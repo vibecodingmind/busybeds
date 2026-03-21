@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 type Package = {
   id: string; name: string; priceMonthly: number; priceAnnual: number | null;
   durationDays: number; couponLimitPerPeriod: number; isActive: boolean;
-  stripePriceIdMonthly: string | null; createdAt: string;
+  stripePriceIdMonthly: string | null; paypalPlanId?: string | null; createdAt: string;
   _count?: { subscriptions: number };
 };
 
@@ -14,6 +14,7 @@ export default function PackagesPage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
+  const [syncing, setSyncing]   = useState(false);
   const [editPkg, setEditPkg]   = useState<Package | null>(null);
   const [showAdd, setShowAdd]   = useState(false);
   const [form, setForm]         = useState<typeof emptyForm>(emptyForm);
@@ -30,7 +31,7 @@ export default function PackagesPage() {
     } finally { setLoading(false); }
   };
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 4000); };
 
   const openEdit = (p: Package) => {
     setEditPkg(p);
@@ -49,8 +50,12 @@ export default function PackagesPage() {
         showToast('Package updated');
       } else {
         const res = await fetch('/api/admin/packages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-        showToast('Package created');
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'Failed');
+        let msg = 'Package created';
+        if (d.stripeConnected) msg += ' · Stripe ✓';
+        if (d.paypalConnected) msg += ' · PayPal ✓';
+        showToast(msg);
       }
       await fetchPackages();
       closeModal();
@@ -74,22 +79,57 @@ export default function PackagesPage() {
     showToast(p.isActive ? 'Package deactivated' : 'Package activated');
   };
 
+  const syncPayPalPlans = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/packages/backfill-paypal', { method: 'POST' });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      showToast(d.message || `PayPal sync complete: ${d.updated} updated`);
+      await fetchPackages();
+    } catch (e: any) { showToast('PayPal sync error: ' + e.message); }
+    finally { setSyncing(false); }
+  };
+
+  const missingPayPal = packages.filter(p => !p.paypalPlanId).length;
+
   return (
     <div className="space-y-5">
       {toast && <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg">{toast}</div>}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">Packages & Plans</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage subscription tiers shown to users</p>
         </div>
-        <button onClick={() => { setShowAdd(true); setForm(emptyForm); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:opacity-90"
-          style={{ background: '#E8395A' }}>
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          New Package
-        </button>
+        <div className="flex items-center gap-2">
+          {missingPayPal > 0 && (
+            <button onClick={syncPayPalPlans} disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 transition-colors">
+              {syncing ? (
+                <><div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> Syncing…</>
+              ) : (
+                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  Sync PayPal Plans ({missingPayPal})</>
+              )}
+            </button>
+          )}
+          <button onClick={() => { setShowAdd(true); setForm(emptyForm); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:opacity-90"
+            style={{ background: '#E8395A' }}>
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Package
+          </button>
+        </div>
       </div>
+
+      {/* PayPal sync notice */}
+      {missingPayPal > 0 && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="mt-0.5 shrink-0"><path strokeLinecap="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          <span><strong>{missingPayPal} package{missingPayPal > 1 ? 's are' : ' is'} missing a PayPal plan.</strong> These were created before PayPal was configured. Click <strong>Sync PayPal Plans</strong> to automatically create PayPal billing plans for them.</span>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -130,11 +170,26 @@ export default function PackagesPage() {
                     <span>{p._count.subscriptions} active subscribers</span>
                   </div>
                 )}
-                {p.stripePriceIdMonthly && (
-                  <div className="flex items-center gap-2 text-xs text-gray-400 font-mono bg-gray-50 px-2 py-1 rounded-lg truncate">
-                    <span>Stripe: {p.stripePriceIdMonthly}</span>
-                  </div>
-                )}
+
+                {/* Payment gateway indicators */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {p.stripePriceIdMonthly ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-violet-50 text-violet-700 font-medium px-2 py-0.5 rounded-full">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/></svg>
+                      Stripe
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs bg-gray-50 text-gray-400 font-medium px-2 py-0.5 rounded-full">No Stripe</span>
+                  )}
+                  {p.paypalPlanId ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 font-medium px-2 py-0.5 rounded-full">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 00-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 00-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 00.554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 01.923-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.777-4.471z"/></svg>
+                      PayPal
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-600 font-medium px-2 py-0.5 rounded-full">No PayPal</span>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-2">
@@ -190,15 +245,18 @@ export default function PackagesPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Stripe Price ID (optional)</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Stripe Price ID (optional — auto-created)</label>
                 <input value={form.stripePriceIdMonthly} onChange={e => setForm({ ...form, stripePriceIdMonthly: e.target.value })}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] font-mono" placeholder="price_1ABC..." />
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] font-mono" placeholder="price_1ABC… (leave blank to auto-create)" />
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })}
                   className="w-4 h-4 rounded accent-[#E8395A]" />
                 <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active (visible to users)</label>
               </div>
+              {!editPkg && (
+                <p className="text-xs text-gray-400">Stripe and PayPal products/plans will be auto-created when you save, if those gateways are configured.</p>
+              )}
             </div>
             <div className="flex gap-3 px-6 pb-6">
               <button onClick={closeModal} className="flex-1 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
