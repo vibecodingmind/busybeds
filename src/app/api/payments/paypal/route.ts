@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const { approvalUrl, subscriptionId } = await createPayPalSubscription(
       (pkg as any).paypalPlanId,
-      `${APP_URL}/subscribe/success?method=paypal&subscription_id={SUBSCRIPTION_ID}`,
+      `${APP_URL}/api/payments/paypal`,
       `${APP_URL}/subscribe`,
       `${session.userId}:${body.packageId}`
     );
@@ -63,9 +63,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: approvalUrl, mode: 'paypal' });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[PayPal Checkout Error]', err);
-    return NextResponse.json({ error: 'PayPal payment error. Please try again.' }, { status: 502 });
+    const detail = err?.message || 'Unknown error';
+    return NextResponse.json({ error: `PayPal error: ${detail}` }, { status: 502 });
   }
 }
 
