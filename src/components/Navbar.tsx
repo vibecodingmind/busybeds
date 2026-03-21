@@ -86,6 +86,12 @@ export default function Navbar() {
         {/* Right side */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Claim your property — desktop */}
+          {/* Map View — desktop */}
+          <Link href="/map" className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            Map
+          </Link>
+
           <Link href="/apply" className="hidden lg:flex items-center px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap">
             Claim your property
           </Link>

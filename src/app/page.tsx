@@ -426,7 +426,7 @@ export default async function HomePage({
 
         {/* ── Results header: count + filter controls ── */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div>
+          <div className="flex items-center gap-4">
             <p className="text-sm font-semibold text-gray-900">
               {total === 0 ? 'No hotels found' : (
                 <>
@@ -437,6 +437,10 @@ export default async function HomePage({
                 </>
               )}
             </p>
+            <Link href="/map" className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:border-gray-400 transition-colors">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+              Map view
+            </Link>
           </div>
 
           {/* Sort + Filters (client component) */}

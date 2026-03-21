@@ -99,6 +99,10 @@ model Hotel {
 
   // Computed average (updated on review save)
   avgRating        Float?
+
+  // Geo location
+  latitude         Float?
+  longitude        Float?
   reviewCount      Int       @default(0)
 
   // Relations
