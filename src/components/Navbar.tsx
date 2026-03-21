@@ -92,7 +92,7 @@ export default function Navbar() {
             Map
           </Link>
 
-          <Link href="/apply" className="hidden lg:flex items-center px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap">
+          <Link href="/onboarding" className="hidden lg:flex items-center px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap">
             Claim your property
           </Link>
 
@@ -194,7 +194,7 @@ export default function Navbar() {
                       Create account
                     </Link>
                     <div className="border-t border-gray-100 my-1" />
-                    <Link href="/apply" onClick={() => setMenuOpen(false)}
+                    <Link href="/onboarding" onClick={() => setMenuOpen(false)}
                       className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       Claim your property
                     </Link>
