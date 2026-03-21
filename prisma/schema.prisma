@@ -217,18 +217,22 @@ model Coupon {
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  userId    String
-  hotelId   String
-  rating    Int      // 1-5
-  comment   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  hotelId     String
+  userId      String
+  rating      Int      // 1-5
+  title       String
+  body        String
+  isVerified  Boolean  @default(false)
+  isApproved  Boolean  @default(false)
+  ownerReply  String?
+  repliedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user      User     @relation(fields: [userId], references: [id])
-  hotel     Hotel    @relation(fields: [hotelId], references: [id])
-
-  @@unique([userId, hotelId]) // one review per user per hotel
+  @@unique([hotelId, userId])
 }
 
 model HotelSuggestion {
