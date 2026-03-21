@@ -2,50 +2,80 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import crypto from 'crypto';
 
+function generateCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// GET — get or create user's referral code + stats
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    let user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { referralCode: true, email: true, fullName: true },
+    let referral = await (prisma as any).referral.findFirst({
+      where: { referrerId: session.userId, referredId: null },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Generate referral code if doesn't exist
-    if (!user.referralCode) {
-      const firstName = user.fullName.split(' ')[0].toLowerCase();
-      const randomPart = crypto.randomBytes(4).toString('hex');
-      const newCode = `${firstName}-${randomPart}`;
-
-      user = await prisma.user.update({
-        where: { id: session.userId },
-        data: { referralCode: newCode },
-        select: { referralCode: true, email: true, fullName: true },
+    if (!referral) {
+      const code = generateCode();
+      referral = await (prisma as any).referral.create({
+        data: { referrerId: session.userId, code },
       });
     }
 
-    // Count referrals for this user
-    const referrals = await prisma.referralUse.findMany({
-      where: { referrerId: session.userId },
+    const usedCount = await (prisma as any).referral.count({
+      where: { referrerId: session.userId, referredId: { not: null } },
     });
 
-    const referralUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://busybeds.com'}/register?ref=${user.referralCode}`;
-
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
     return NextResponse.json({
-      code: user.referralCode,
-      referralUrl,
-      totalReferrals: referrals.length,
-      rewardedMonths: referrals.length, // Each referral gives 7 days which rounds to ~1 month
+      code: referral.code,
+      link: `${appUrl}/register?ref=${referral.code}`,
+      usedCount,
     });
-  } catch (error) {
-    console.error('Error getting referral info:', error);
-    return NextResponse.json({ error: 'Failed to get referral info' }, { status: 500 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
+}
+
+// POST — apply referral code at registration (called internally)
+export async function POST(req: NextRequest) {
+  try {
+    const { code, newUserId } = await req.json();
+    if (!code || !newUserId) return NextResponse.json({ error: 'Missing params' }, { status: 400 });
+
+    const referral = await (prisma as any).referral.findFirst({
+      where: { code, referredId: null },
+    });
+    if (!referral) return NextResponse.json({ error: 'Invalid or used code' }, { status: 404 });
+
+    // Mark referral as used
+    await (prisma as any).referral.update({
+      where: { id: referral.id },
+      data: { referredId: newUserId, usedAt: new Date() },
+    });
+
+    // Award 100 points to referrer
+    await awardPoints(referral.referrerId, 100, 'referral', 'Referral bonus — friend joined BusyBeds');
+
+    // Award 50 points to new user
+    await awardPoints(newUserId, 50, 'bonus', 'Welcome bonus — joined via referral');
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+async function awardPoints(userId: string, points: number, type: string, description: string) {
+  await (prisma as any).loyaltyPoints.upsert({
+    where: { userId },
+    update: { points: { increment: points }, lifetime: { increment: points } },
+    create: { userId, points, lifetime: points },
+  }).catch(() => {});
+
+  await (prisma as any).pointTransaction.create({
+    data: { userId, points, type, description },
+  }).catch(() => {});
 }

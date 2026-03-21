@@ -3,6 +3,7 @@ import './globals.css';
 import MobileNav from '@/components/MobileNav';
 import PWARegister from '@/components/PWARegister';
 import CompareBar from '@/components/CompareBar';
+import PromoBanners from '@/components/PromoBanners';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { CompareProvider } from '@/context/CompareContext';
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <CurrencyProvider>
             <CompareProvider>
+              <PromoBanners />
               <div id="main-content">
                 {children}
               </div>

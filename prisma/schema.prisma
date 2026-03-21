@@ -44,6 +44,10 @@ model User {
   referralCode         String?   @unique
   referralUseGiven     ReferralUse[] @relation("ReferralGiven")
   referralUseReceived  ReferralUse?  @relation("ReferralReceived")
+  referralsMade     Referral[]       @relation("ReferralsMade")
+  referralReceived  Referral[]       @relation("ReferralReceived")
+  loyaltyPoints     LoyaltyPoints?
+  pointTransactions PointTransaction[]
 }
 
 model HotelType {
@@ -294,4 +298,50 @@ model NewsletterSubscriber {
   subscribedAt  DateTime @default(now())
   unsubscribedAt DateTime?
   updatedAt     DateTime @updatedAt
+}
+
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  referredId  String?
+  code        String   @unique
+  usedAt      DateTime?
+  rewardGiven Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  referrer    User     @relation("ReferralsMade", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred    User?    @relation("ReferralReceived", fields: [referredId], references: [id], onDelete: SetNull)
+}
+
+model LoyaltyPoints {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  points      Int      @default(0)
+  lifetime    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PointTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  points      Int
+  type        String
+  description String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PromoBanner {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String?
+  ctaText     String   @default("Learn More")
+  ctaUrl      String   @default("/")
+  bgColor     String   @default("#FF385C")
+  textColor   String   @default("#FFFFFF")
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

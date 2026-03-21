@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import Navbar from '@/components/Navbar';
 import CouponCountdown from '@/components/CouponCountdown';
+import ReferralWidget from '@/components/ReferralWidget';
+import LoyaltyWidget from '@/components/LoyaltyWidget';
 
 async function getData(userId: string) {
   const now = new Date();
@@ -196,6 +198,12 @@ export default async function DashboardPage() {
             </Link>
           </div>
         )}
+
+        {/* ── Referral & Loyalty Widgets ───────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ReferralWidget />
+          <LoyaltyWidget />
+        </div>
 
         {/* ── Quick actions ────────────────────────────────────────────────── */}
         <div>
