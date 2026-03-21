@@ -3,14 +3,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
-    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/google/callback`;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI ||
+    `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/google/callback`;
 
   if (!clientId) {
     // Google OAuth not configured — redirect to login with error
     return NextResponse.redirect(
       new URL('/login?error=google_not_configured', 
-        process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+        process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       )
     );
   }

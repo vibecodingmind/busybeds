@@ -30,7 +30,7 @@ async function getGoogleUser(code: string, redirectUri: string) {
 }
 
 export async function GET(req: Request) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
