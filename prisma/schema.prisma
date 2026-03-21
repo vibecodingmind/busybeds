@@ -53,6 +53,7 @@ model User {
   auditLogs        AuditLog[]
   pointTransactions PointTransaction[]
   notifications   Notification[]
+  priceAlerts     PriceAlert[]
 }
 
 model HotelType {
@@ -116,6 +117,7 @@ model Hotel {
   affiliateLinks   AffiliateLink[]
   reviews          Review[]
   favorites        Favorite[]
+  priceAlerts      PriceAlert[]
 }
 
 model HotelOwner {
@@ -403,4 +405,23 @@ model GiftCard {
   updatedAt     DateTime  @updatedAt
   purchasedBy   User?     @relation("GiftCardsPurchased", fields: [purchasedById], references: [id], onDelete: SetNull)
   redeemedBy    User?     @relation("GiftCardsRedeemed", fields: [redeemedById], references: [id], onDelete: SetNull)
+}
+
+model PriceAlert {
+  id          String   @id @default(cuid())
+  hotelId     String
+  email       String
+  userId      String?
+  minDiscount Int      @default(0)   // alert when discount >= this %
+  isActive    Boolean  @default(true)
+  lastAlertAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([hotelId, email])
+  @@index([hotelId])
+  @@index([email])
+  @@index([isActive])
 }

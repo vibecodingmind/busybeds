@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import InquiryForm from '@/components/InquiryForm';
+import PriceAlertButton from '@/components/PriceAlertButton';
 import prisma from '@/lib/prisma';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -382,6 +383,15 @@ export default function HotelPage({ params }: PageProps) {
               )}
             </div>
           )}
+
+          {/* Price Alert */}
+          <div className="mb-4 flex justify-center">
+            <PriceAlertButton
+              hotelId={hotel.id}
+              hotelName={hotel.name}
+              discountPercent={hotel.discountPercent}
+            />
+          </div>
 
           {/* Inquiry Form */}
           <div className="mt-4">
