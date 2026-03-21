@@ -31,10 +31,11 @@ export async function POST(request: NextRequest) {
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
 
       // Send email
-      await sendEmail(
-        user.email,
-        emailPasswordReset(user.fullName, resetUrl),
-      );
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your Busy Beds password',
+        html: emailPasswordReset(user.fullName, resetUrl),
+      });
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });

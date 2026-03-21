@@ -90,8 +90,8 @@ export async function DELETE(req: NextRequest) {
   });
   if (!sub) return NextResponse.json({ error: 'No active subscription' }, { status: 404 });
 
-  if (hasStripe && stripe && sub.stripeSubscriptionId) {
-    await stripe.subscriptions.update(sub.stripeSubscriptionId, { cancel_at_period_end: true });
+  if (hasStripe && stripe && sub.stripeSubId) {
+    await stripe.subscriptions.update(sub.stripeSubId, { cancel_at_period_end: true });
   }
 
   await prisma.subscription.update({

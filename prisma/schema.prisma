@@ -245,6 +245,8 @@ model AffiliateLink {
   updatedAt DateTime @updatedAt
 
   hotel     Hotel    @relation(fields: [hotelId], references: [id])
+
+  @@unique([hotelId, platform])
 }
 
 model Favorite {

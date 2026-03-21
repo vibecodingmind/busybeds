@@ -25,10 +25,10 @@ export async function GET(
         subscriptions: {
           select: {
             id: true,
-            planName: true,
             status: true,
             expiresAt: true,
             createdAt: true,
+            package: { select: { name: true } },
           },
         },
         _count: {

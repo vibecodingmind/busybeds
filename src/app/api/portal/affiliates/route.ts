@@ -79,24 +79,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = createAffiliateSchema.parse(body);
 
-    // Upsert affiliate link
-    const affiliateLink = await prisma.affiliateLink.upsert({
-      where: {
-        hotelId_platform: {
-          hotelId: hotel.id,
-          platform: validatedData.platform,
-        },
-      },
-      update: {
-        url: validatedData.url,
-        updatedAt: new Date(),
-      },
-      create: {
-        hotelId: hotel.id,
-        platform: validatedData.platform,
-        url: validatedData.url,
-      },
+    // Upsert affiliate link (findFirst + update or create)
+    const existing = await prisma.affiliateLink.findFirst({
+      where: { hotelId: hotel.id, platform: validatedData.platform },
     });
+    const affiliateLink = existing
+      ? await prisma.affiliateLink.update({
+          where: { id: existing.id },
+          data: { url: validatedData.url, updatedAt: new Date() },
+        })
+      : await prisma.affiliateLink.create({
+          data: { hotelId: hotel.id, platform: validatedData.platform, url: validatedData.url },
+        });
 
     return NextResponse.json({ affiliateLink });
   } catch (error) {

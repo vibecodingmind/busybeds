@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
         user: {
           select: { id: true, fullName: true, email: true },
         },
+        package: {
+          select: { name: true },
+        },
       },
     });
 
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
           subject: `Your Busy Beds subscription expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
           html: emailRenewalReminder(
             sub.user.fullName,
-            sub.planName,
+            sub.package.name,
             sub.expiresAt,
             `${process.env.NEXT_PUBLIC_APP_URL}/subscribe`
           ),

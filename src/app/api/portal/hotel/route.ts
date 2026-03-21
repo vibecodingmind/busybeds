@@ -93,8 +93,10 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const data = updateSchema.parse(body);
-  const updateData = { ...data, ...(data.amenities ? { amenities: JSON.stringify(data.amenities) } : {}) };
+  const { amenities, ...rest } = data;
+  const updateData: Record<string, unknown> = { ...rest };
+  if (amenities) updateData.amenities = JSON.stringify(amenities);
 
-  const hotel = await prisma.hotel.update({ where: { id: hotelId }, data: updateData });
+  const hotel = await prisma.hotel.update({ where: { id: hotelId }, data: updateData as any });
   return NextResponse.json({ hotel });
 }
