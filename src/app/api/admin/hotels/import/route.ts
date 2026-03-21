@@ -28,7 +28,7 @@ function generateSlug(name: string, existing: Set<string>): string {
   // Ensure uniqueness
   let counter = 1;
   while (existing.has(slug)) {
-    slug = `${baseSlug}-${cuid().slice(0, 6)}`;
+    slug = `${baseSlug}-${crypto.randomUUID().slice(0, 6)}`;
     counter++;
   }
   
