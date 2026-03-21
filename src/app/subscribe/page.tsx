@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 
 interface Package {
   id: string;
@@ -12,13 +13,6 @@ interface Package {
   durationDays: number;
 }
 
-interface User {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-}
-
 export default function SubscribePage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -26,7 +20,6 @@ export default function SubscribePage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,11 +27,6 @@ export default function SubscribePage() {
       .then(r => r.json())
       .then(d => setPackages(d.packages || []))
       .finally(() => setLoadingPackages(false));
-
-    fetch('/api/auth/me')
-      .then(r => r.json())
-      .then(d => setUser(d.user || null))
-      .catch(() => {});
   }, []);
 
   const subscribe = async () => {
@@ -104,46 +92,7 @@ export default function SubscribePage() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ── Header ── */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: '#1A3C5E' }}>
-              <span className="text-white font-extrabold text-sm">BB</span>
-            </div>
-            <span className="font-extrabold text-lg tracking-tight" style={{ color: '#1A3C5E' }}>Busy Beds</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-500">
-            <Link href="/" className="hover:text-gray-900 transition-colors">Hotels</Link>
-            {user ? (
-              <>
-                <Link href="/dashboard" className="hover:text-gray-900 transition-colors">Dashboard</Link>
-                {user.role === 'admin' && (
-                  <Link href="/admin" className="hover:text-gray-900 transition-colors">Admin</Link>
-                )}
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: '#1A3C5E' }}>
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </div>
-                  {user.fullName.split(' ')[0]}
-                </div>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="hover:text-gray-900 transition-colors">Log in</Link>
-                <Link href="/register" className="px-4 py-2 rounded-lg text-white text-sm font-semibold transition-opacity hover:opacity-90" style={{ background: '#1A3C5E' }}>
-                  Sign up free
-                </Link>
-              </>
-            )}
-          </nav>
-          {user ? (
-            <Link href="/dashboard" className="md:hidden text-sm font-semibold" style={{ color: '#1A3C5E' }}>Dashboard</Link>
-          ) : (
-            <Link href="/login" className="md:hidden text-sm font-semibold" style={{ color: '#1A3C5E' }}>Log in</Link>
-          )}
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── Hero ── */}
       <div className="text-center py-14 px-4" style={{ background: 'linear-gradient(135deg, #1A3C5E 0%, #0f6b6b 100%)' }}>
