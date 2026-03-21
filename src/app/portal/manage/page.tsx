@@ -18,7 +18,7 @@ interface Hotel {
   isFeatured?: boolean; featuredUntil?: string;
 }
 
-type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'contact' | 'promos' | 'affiliates';
+type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'contact' | 'promos' | 'staff' | 'affiliates';
 
 export default function ManageHotelPage() {
   const [hotel, setHotel] = useState<Hotel | null>(null);
@@ -142,7 +142,8 @@ export default function ManageHotelPage() {
     { id: 'photos',   label: 'Photos',    icon: '📷' },
     { id: 'contact',  label: 'Contact',   icon: '📞' },
     { id: 'promos',   label: 'Promotions', icon: '⚡' },
-    { id: 'affiliates', label: 'Affiliate Links', icon: '🔗' },
+    { id: 'staff', label: 'Staff', icon: '👥' },
+    { id: 'affiliates', label: 'Affiliates', icon: '🔗' },
   ];
 
   return (
@@ -241,6 +242,11 @@ export default function ManageHotelPage() {
         {/* ── Promotions Tab ── */}
         {tab === 'promos' && (
           <PromotionsTab hotel={hotel} onSave={saveHotel} />
+        )}
+
+        {/* ── Staff Tab ── */}
+        {tab === 'staff' && (
+          <StaffTab hotelId={hotel.id} />
         )}
 
         {/* ── Affiliates Tab ── */}
@@ -1148,6 +1154,144 @@ function PromotionsTab({ hotel, onSave }: { hotel: Hotel; onSave: (u: Partial<Ho
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Staff Management Tab ─── */
+function StaffTab({ hotelId }: { hotelId: string }) {
+  const [managers, setManagers] = useState<Array<{ id: string; isActive: boolean; assignedAt: string; user: { id: string; fullName: string; email: string; avatar?: string } }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    fetch('/api/portal/staff')
+      .then(r => r.json())
+      .then(d => { setManagers(d.managers || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const addManager = async () => {
+    if (!email.trim()) return;
+    setAdding(true); setError(''); setSuccess('');
+    try {
+      const res = await fetch('/api/portal/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to add'); return; }
+      setManagers(prev => [data.manager, ...prev]);
+      setEmail('');
+      setSuccess('Staff member added successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } finally { setAdding(false); }
+  };
+
+  const removeManager = async (managerId: string) => {
+    await fetch('/api/portal/staff', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ managerId }),
+    });
+    setManagers(prev => prev.filter(m => m.id !== managerId));
+  };
+
+  const activeManagers = managers.filter(m => m.isActive);
+
+  return (
+    <div className="space-y-5">
+      {/* Add staff */}
+      <div className="card p-5">
+        <h2 className="font-bold text-lg mb-1" style={{ color: '#1A3C5E' }}>👥 Staff Management</h2>
+        <p className="text-sm text-gray-500 mb-4">Add managers who can access the hotel portal, scan coupons, and manage your listing.</p>
+
+        {error && <div className="mb-3 p-3 bg-red-50 text-red-600 text-sm rounded-xl">{error}</div>}
+        {success && <div className="mb-3 p-3 bg-green-50 text-green-600 text-sm rounded-xl">✓ {success}</div>}
+
+        <div className="flex gap-2">
+          <input
+            className="input flex-1"
+            type="email"
+            placeholder="staff@example.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addManager()}
+          />
+          <button
+            onClick={addManager}
+            disabled={adding || !email.trim()}
+            className="btn-primary px-5 disabled:opacity-50"
+          >
+            {adding ? '…' : '+ Add'}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          💡 The person must already have a BusyBeds account. They'll get access after you add them.
+        </p>
+      </div>
+
+      {/* Active staff list */}
+      <div className="card p-5">
+        <h3 className="font-semibold text-gray-800 mb-4">
+          Active Staff
+          <span className="ml-2 text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-bold">{activeManagers.length}</span>
+        </h3>
+
+        {loading ? (
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="skeleton h-14 rounded-xl" />)}</div>
+        ) : activeManagers.length === 0 ? (
+          <div className="text-center py-6 text-gray-400">
+            <div className="text-3xl mb-2">👤</div>
+            <p className="text-sm">No staff members yet. Add their email address above.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {activeManagers.map(m => (
+              <div key={m.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                {m.user.avatar ? (
+                  <img src={m.user.avatar} alt={m.user.fullName} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm flex-shrink-0">
+                    {m.user.fullName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-gray-800">{m.user.fullName}</div>
+                  <div className="text-xs text-gray-500">{m.user.email}</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-xs text-gray-400">
+                    Added {new Date(m.assignedAt).toLocaleDateString()}
+                  </div>
+                  <button
+                    onClick={() => removeManager(m.id)}
+                    className="text-xs text-red-400 hover:text-red-600 font-medium mt-0.5"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Permissions info */}
+      <div className="card p-4 bg-blue-50 border border-blue-100">
+        <h4 className="font-semibold text-blue-800 text-sm mb-2">ℹ️ Staff Permissions</h4>
+        <ul className="text-xs text-blue-700 space-y-1">
+          <li>✓ Scan and validate guest coupons</li>
+          <li>✓ View hotel analytics and stats</li>
+          <li>✓ Edit hotel details and photos</li>
+          <li>✗ Cannot remove other staff</li>
+          <li>✗ Cannot change subscription or billing</li>
+        </ul>
       </div>
     </div>
   );
