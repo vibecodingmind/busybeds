@@ -1,28 +1,37 @@
 import { MetadataRoute } from 'next';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
-  const hotels = await prisma.hotel.findMany({
-    where: { status: 'active' },
-    select: { slug: true, updatedAt: true },
-  });
-
+  // Static pages
   const staticPages: MetadataRoute.Sitemap = [
-    { url: base, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
-    { url: `${base}/subscribe`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${base}/login`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${base}/register`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${base}/apply`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
+    { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
+    { url: `${baseUrl}/hotels`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    { url: `${baseUrl}/coupons`, lastModified: new Date(), changeFrequency: 'hourly', priority: 0.8 },
+    { url: `${baseUrl}/apply`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/login`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${baseUrl}/register`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
   ];
 
-  const hotelPages: MetadataRoute.Sitemap = hotels.map(h => ({
-    url: `${base}/hotels/${h.slug}`,
-    lastModified: h.updatedAt,
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
+  // Dynamic hotel pages
+  try {
+    const hotels = await prisma.hotel.findMany({
+      where: { status: 'active' },
+      select: { slug: true, updatedAt: true },
+    });
 
-  return [...staticPages, ...hotelPages];
+    const hotelPages: MetadataRoute.Sitemap = hotels.map(hotel => ({
+      url: `${baseUrl}/hotels/${hotel.slug}`,
+      lastModified: hotel.updatedAt,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    }));
+
+    return [...staticPages, ...hotelPages];
+  } catch {
+    return staticPages;
+  }
 }

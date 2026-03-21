@@ -1,3 +1,4 @@
+import NewsletterSignup from '@/components/NewsletterSignup';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import HotelGridClient from '@/components/HotelGridClient';
@@ -491,6 +492,8 @@ export default async function HomePage({
       </div>
 
         <PersonalizedRecommendations />
+
+      <NewsletterSignup variant="banner" />
 
       {/* ── How it works ── */}
       <div className="border-t border-gray-100 py-14 bg-gray-50">

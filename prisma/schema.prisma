@@ -287,3 +287,11 @@ model SiteSettings {
   key   String @unique
   value String
 }
+
+model NewsletterSubscriber {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  subscribedAt  DateTime @default(now())
+  unsubscribedAt DateTime?
+  updatedAt     DateTime @updatedAt
+}
