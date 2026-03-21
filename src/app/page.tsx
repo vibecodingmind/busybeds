@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import HotelCard from '@/components/HotelCard';
+import HotelGridClient from '@/components/HotelGridClient';
 import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
 import RecentlyViewed from '@/components/RecentlyViewed';
@@ -482,49 +482,11 @@ export default async function HomePage({
             </Link>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-8">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(hotels as any[]).map((hotel) => (
-                <HotelCard key={hotel.id} hotel={hotel} />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-12 gap-2">
-                {currentPage > 1 ? (
-                  <Link href={buildHref({ page: String(currentPage - 1) })}
-                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-sm hover:border-gray-900 transition-colors">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  </Link>
-                ) : (
-                  <span className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center opacity-40 cursor-not-allowed">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  </span>
-                )}
-                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                  const p = i + 1;
-                  return (
-                    <Link key={p} href={buildHref({ page: String(p) })}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                        currentPage === p ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-700 hover:border-gray-900'
-                      }`}>{p}</Link>
-                  );
-                })}
-                {currentPage < totalPages ? (
-                  <Link href={buildHref({ page: String(currentPage + 1) })}
-                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-sm hover:border-gray-900 transition-colors">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </Link>
-                ) : (
-                  <span className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center opacity-40 cursor-not-allowed">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </span>
-                )}
-              </div>
-            )}
-          </>
+          <HotelGridClient
+            initialHotels={hotels as any[]}
+            searchParams={searchParams as Record<string, string | undefined>}
+            pageSize={PAGE_SIZE}
+          />
         )}
       </div>
 
