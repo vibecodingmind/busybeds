@@ -18,7 +18,7 @@ interface Hotel {
   isFeatured?: boolean; featuredUntil?: string;
 }
 
-type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'contact' | 'affiliates';
+type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'contact' | 'promos' | 'affiliates';
 
 export default function ManageHotelPage() {
   const [hotel, setHotel] = useState<Hotel | null>(null);
@@ -141,6 +141,7 @@ export default function ManageHotelPage() {
     { id: 'discount', label: 'Discount',  icon: '🎫' },
     { id: 'photos',   label: 'Photos',    icon: '📷' },
     { id: 'contact',  label: 'Contact',   icon: '📞' },
+    { id: 'promos',   label: 'Promotions', icon: '⚡' },
     { id: 'affiliates', label: 'Affiliate Links', icon: '🔗' },
   ];
 
@@ -235,6 +236,11 @@ export default function ManageHotelPage() {
         {/* ── Contact Tab ── */}
         {tab === 'contact' && (
           <ContactTab hotel={hotel} saving={saving} onSave={saveHotel} />
+        )}
+
+        {/* ── Promotions Tab ── */}
+        {tab === 'promos' && (
+          <PromotionsTab hotel={hotel} onSave={saveHotel} />
         )}
 
         {/* ── Affiliates Tab ── */}
@@ -933,6 +939,215 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
           </div>
         )}
         {photos.length >= 10 && <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">Maximum 10 gallery photos reached.</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Promotions / Flash Sale Tab ─── */
+function PromotionsTab({ hotel, onSave }: { hotel: Hotel; onSave: (u: Partial<Hotel>) => void }) {
+  const [flashDiscount, setFlashDiscount] = useState(hotel.discountPercent + 10);
+  const [flashLabel, setFlashLabel] = useState('Flash Sale');
+  const [flashHours, setFlashHours] = useState(24);
+  const [launching, setLaunching] = useState(false);
+  const [activeFlash, setActiveFlash] = useState<{ discount: number; endsAt: string; bannerId?: string } | null>(null);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [ending, setEnding] = useState(false);
+
+  // Check localStorage for active flash sale
+  useEffect(() => {
+    const stored = localStorage.getItem(`flash_${hotel.id}`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (new Date(parsed.endsAt) > new Date()) {
+        setActiveFlash(parsed);
+      } else {
+        localStorage.removeItem(`flash_${hotel.id}`);
+      }
+    }
+  }, [hotel.id]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!activeFlash) return;
+    const tick = () => {
+      const diff = new Date(activeFlash.endsAt).getTime() - Date.now();
+      if (diff <= 0) { setActiveFlash(null); localStorage.removeItem(`flash_${hotel.id}`); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [activeFlash, hotel.id]);
+
+  const launchFlash = async () => {
+    setLaunching(true);
+    try {
+      const endsAt = new Date(Date.now() + flashHours * 3600 * 1000).toISOString();
+      const res = await fetch('/api/portal/flash-sale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discountPercent: flashDiscount, endsAt, label: flashLabel }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const flash = { discount: flashDiscount, endsAt, bannerId: data.bannerId };
+        setActiveFlash(flash);
+        localStorage.setItem(`flash_${hotel.id}`, JSON.stringify(flash));
+        onSave({ discountPercent: flashDiscount });
+      }
+    } finally { setLaunching(false); }
+  };
+
+  const endFlash = async () => {
+    if (!activeFlash) return;
+    setEnding(true);
+    try {
+      await fetch('/api/portal/flash-sale', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ originalDiscount: hotel.discountPercent - 10, bannerId: activeFlash.bannerId }),
+      });
+      setActiveFlash(null);
+      localStorage.removeItem(`flash_${hotel.id}`);
+      onSave({ discountPercent: hotel.discountPercent - 10 < 5 ? 15 : hotel.discountPercent - 10 });
+    } finally { setEnding(false); }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Active Flash Sale Banner */}
+      {activeFlash && (
+        <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #E8395A, #C0263D)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-white font-black text-xl">🔥 Flash Sale LIVE!</div>
+              <div className="text-pink-100 text-sm mt-1">{activeFlash.discount}% discount active</div>
+            </div>
+            <div className="text-right">
+              <div className="text-white font-bold text-2xl font-mono">{timeLeft}</div>
+              <div className="text-pink-200 text-xs">remaining</div>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-white/80 text-sm">Ends: {new Date(activeFlash.endsAt).toLocaleString()}</div>
+            <button onClick={endFlash} disabled={ending}
+              className="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
+              {ending ? 'Ending…' : 'End Sale Early'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Flash Sale Setup */}
+      <div className="card p-6 space-y-5">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">⚡</span>
+          <div>
+            <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>Flash Sale</h2>
+            <p className="text-sm text-gray-500">Boost your discount for a limited time to drive urgent bookings</p>
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Flash Sale Label</label>
+          <input className="input" placeholder="e.g. Weekend Deal, Early Bird, Summer Special" value={flashLabel}
+            onChange={e => setFlashLabel(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="label">Flash Discount: <strong className="text-teal-600">{flashDiscount}%</strong></label>
+          <input type="range" min={hotel.discountPercent + 1} max="80" value={flashDiscount}
+            onChange={e => setFlashDiscount(Number(e.target.value))}
+            className="w-full accent-red-500 mt-2" />
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Current: {hotel.discountPercent}%</span><span>Max: 80%</span>
+          </div>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {[hotel.discountPercent + 5, hotel.discountPercent + 10, hotel.discountPercent + 15, hotel.discountPercent + 20].filter(d => d <= 80).map(d => (
+              <button key={d} onClick={() => setFlashDiscount(d)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${flashDiscount === d ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-red-50'}`}>
+                +{d - hotel.discountPercent}% → {d}%
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Duration</label>
+          <div className="flex gap-2 flex-wrap">
+            {[2, 6, 12, 24, 48, 72].map(h => (
+              <button key={h} onClick={() => setFlashHours(h)}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${flashHours === h ? 'bg-teal-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-teal-50'}`}>
+                {h < 24 ? `${h}h` : `${h/24}d`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-xl p-4 text-sm">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <div className="font-bold text-gray-800">{flashDiscount}%</div>
+              <div className="text-xs text-gray-400">Flash Discount</div>
+            </div>
+            <div>
+              <div className="font-bold text-gray-800">{flashHours < 24 ? `${flashHours}h` : `${flashHours/24}d`}</div>
+              <div className="text-xs text-gray-400">Duration</div>
+            </div>
+            <div>
+              <div className="font-bold text-gray-800">{new Date(Date.now() + flashHours * 3600 * 1000).toLocaleDateString()}</div>
+              <div className="text-xs text-gray-400">Ends On</div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={launchFlash}
+          disabled={launching || !!activeFlash}
+          className="w-full py-3 rounded-xl font-bold text-white text-base transition-all hover:scale-[1.01] disabled:opacity-50 disabled:transform-none"
+          style={{ background: activeFlash ? '#9CA3AF' : 'linear-gradient(135deg, #E8395A, #C0263D)' }}
+        >
+          {launching ? '⚡ Launching…' : activeFlash ? '⚡ Flash Sale Already Active' : `⚡ Launch ${flashLabel}!`}
+        </button>
+      </div>
+
+      {/* Featured listing */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">⭐</span>
+          <div>
+            <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>Featured Listing</h2>
+            <p className="text-sm text-gray-500">Get your hotel shown at the top of search results</p>
+          </div>
+        </div>
+
+        <div className={`rounded-xl p-4 ${hotel.isFeatured ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+          {hotel.isFeatured ? (
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⭐</span>
+              <div>
+                <div className="font-semibold text-yellow-800">Your hotel is currently featured!</div>
+                <div className="text-sm text-yellow-600">
+                  {hotel.featuredUntil
+                    ? `Featured until ${new Date(hotel.featuredUntil).toLocaleDateString()}`
+                    : 'Featured indefinitely by admin'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-2">
+              <div className="text-gray-400 text-sm mb-3">Your hotel is not currently featured</div>
+              <Link href="/subscribe"
+                className="inline-block btn-primary text-sm px-6">
+                🚀 Upgrade to Get Featured
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -164,3 +164,81 @@ export function emailRenewalReminder(name: string, planName: string, expiresAt: 
     </div>
   `);
 }
+
+export function emailCouponExpiringSoon(name: string, hotelName: string, code: string, discountPercent: number, expiresAt: Date, shareUrl: string) {
+  const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return baseTemplate(`
+    <h2>⏰ Your coupon expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!</h2>
+    <p>Hi ${name}, your <strong>${discountPercent}% discount coupon</strong> for <strong>${hotelName}</strong> is expiring soon.</p>
+    <div class="box" style="text-align:center">
+      <div style="font-size:13px;color:#666">Coupon Code</div>
+      <div class="code" style="font-size:22px;margin:8px 0">${code}</div>
+      <div style="font-size:13px;color:#E8395A;font-weight:bold">Expires: ${expiresAt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
+    </div>
+    <p>Don't let it go to waste! Visit the hotel and show this coupon to the front desk.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/coupons" class="btn">View My Coupons →</a>
+    <p style="font-size:13px;color:#888;margin-top:16px">Want to share this deal? <a href="${shareUrl}" style="color:#0E7C7B">Share your coupon link →</a></p>
+  `);
+}
+
+export function emailNewReviewReceived(ownerName: string, hotelName: string, guestName: string, rating: number, title: string) {
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  return baseTemplate(`
+    <h2>New review for ${hotelName}! ⭐</h2>
+    <p>Hi ${ownerName}, <strong>${guestName}</strong> just left a review for your hotel.</p>
+    <div class="box">
+      <div style="font-size:22px;color:#F59E0B;margin-bottom:6px">${stars}</div>
+      <div style="font-weight:bold;font-size:16px;color:#1A3C5E">"${title}"</div>
+    </div>
+    <p>Log in to your portal to view the full review and respond.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/portal/manage" class="btn">View & Respond →</a>
+  `);
+}
+
+export function emailFlashSaleAlert(name: string, hotelName: string, discount: number, endsAt: Date, hotelSlug: string) {
+  const hoursLeft = Math.ceil((endsAt.getTime() - Date.now()) / (1000 * 60 * 60));
+  return baseTemplate(`
+    <h2>🔥 Flash Sale: ${discount}% OFF at ${hotelName}!</h2>
+    <p>Hi ${name}, there's a limited-time flash sale you don't want to miss.</p>
+    <div class="box" style="background:linear-gradient(135deg,#E8395A,#C0263D);color:white;border-radius:12px;text-align:center;padding:24px">
+      <div style="font-size:48px;font-weight:900;line-height:1">${discount}%</div>
+      <div style="font-size:16px;font-weight:bold;margin-top:4px">OFF your stay</div>
+      <div style="font-size:13px;opacity:0.85;margin-top:8px">⏰ Only ${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left!</div>
+    </div>
+    <p>This is a limited-time offer. Generate your coupon before it ends!</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/hotels/${hotelSlug}" class="btn">Get My Discount Now →</a>
+  `);
+}
+
+export function emailCouponShareReceived(recipientName: string, senderName: string, hotelName: string, discount: number, shareUrl: string, expiresAt: Date) {
+  return baseTemplate(`
+    <h2>🎁 ${senderName} shared a hotel deal with you!</h2>
+    <p>Hi ${recipientName}, you've received an exclusive hotel discount from <strong>${senderName}</strong>.</p>
+    <div class="box" style="text-align:center">
+      <div style="font-size:13px;color:#666;margin-bottom:4px">${hotelName}</div>
+      <div style="font-size:42px;font-weight:900;color:#0E7C7B;line-height:1">${discount}%</div>
+      <div style="font-size:14px;color:#666;margin-top:4px">Discount on your stay</div>
+      <div style="font-size:12px;color:#E8395A;margin-top:8px">Valid until ${expiresAt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+    </div>
+    <a href="${shareUrl}" class="btn">View My Exclusive Deal →</a>
+    <p style="font-size:12px;color:#888;margin-top:16px">Don't have a BusyBeds account yet? <a href="${process.env.NEXT_PUBLIC_APP_URL}/register" style="color:#0E7C7B">Join free →</a></p>
+  `);
+}
+
+export function emailWelcomeOwner(ownerName: string, hotelName: string) {
+  return baseTemplate(`
+    <h2>Welcome to BusyBeds, ${ownerName}! 🏨</h2>
+    <p>Your hotel <strong>${hotelName}</strong> has been submitted and is under review. Our team will verify it within 1–2 business days.</p>
+    <div class="box">
+      <strong>While you wait, here's what to prepare:</strong>
+      <ul style="margin:8px 0 0 16px;padding:0">
+        <li>High-quality cover photo of your hotel</li>
+        <li>Accurate room descriptions and pricing</li>
+        <li>Business contact info and social links</li>
+        <li>Decide on your discount percentage (we recommend 15–25%)</li>
+      </ul>
+    </div>
+    <p>Once approved, you'll get full access to your hotel portal to manage coupons, view analytics, and run flash sales.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/portal" class="btn">Explore Your Portal →</a>
+  `);
+}
