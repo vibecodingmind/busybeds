@@ -20,6 +20,14 @@ const navItems = [
     ],
   },
   {
+    label: 'Admin Superpowers',
+    items: [
+      { href: '/admin/revenue',  label: 'Revenue & Growth', icon: RevenueIcon },
+      { href: '/admin/health',   label: 'System Health',    icon: HealthIcon },
+      { href: '/admin/fraud',    label: 'Fraud Detection',  icon: FraudIcon },
+    ],
+  },
+  {
     label: 'Settings',
     items: [
       { href: '/admin/packages',  label: 'Packages',   icon: PackageIcon },
@@ -107,6 +115,15 @@ function KycIcon({ active }: { active: boolean }) {
 function AnalyticsIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 }
+function RevenueIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>;
+}
+function HealthIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+}
+function FraudIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M12 1l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 1z"/></svg>;
+}
 function PackageIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8l-2 4h12l-2-4z"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>;
 }
@@ -119,8 +136,6 @@ function TagIcon({ active }: { active: boolean }) {
 function SettingsIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>;
 }
-
-
 function BroadcastIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M4 16.5V19a2 2 0 002 2h12a2 2 0 002-2v-2.5M16 12L12 8M12 8L8 12M12 8v8"/></svg>;
 }
