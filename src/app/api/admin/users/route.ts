@@ -1,44 +1,77 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
-import bcrypt from 'bcryptjs';
-import { z } from 'zod';
+import prisma from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session || (session as any).role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
-  const search = searchParams.get('search');
-  const users = await prisma.user.findMany({
-    where: search ? { OR: [{ fullName: { contains: search } }, { email: { contains: search } }] } : {},
-    select: { id: true, email: true, fullName: true, role: true, createdAt: true, suspendedAt: true, avatar: true, _count: { select: { subscriptions: true, coupons: true } } },
-    orderBy: { createdAt: 'desc' },
-    take: 200,
-  });
-  return NextResponse.json({ users });
+  const search = searchParams.get('search') || '';
+  const role = searchParams.get('role') || '';
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = 50;
+
+  try {
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (role) where.role = role;
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true, fullName: true, email: true, role: true,
+          createdAt: true, isBanned: true,
+          _count: { select: { coupons: true, hotelOwner: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return NextResponse.json({ users, total, page, pages: Math.ceil(total / limit) });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }
 
-const createSchema = z.object({
-  fullName: z.string().min(2),
-  email:    z.string().email(),
-  role:     z.enum(['traveler', 'hotel_owner', 'hotel_manager', 'admin']).default('traveler'),
-  password: z.string().min(6),
-});
-
-export async function POST(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  const body = await req.json();
-  const parsed = createSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: 'Invalid data', details: parsed.error.flatten() }, { status: 400 });
-  const { fullName, email, role, password } = parsed.data;
-  const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists) return NextResponse.json({ error: 'Email already in use' }, { status: 409 });
-  const hashed = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: { fullName, email, passwordHash: hashed, role, emailVerified: true },
-    select: { id: true, email: true, fullName: true, role: true, createdAt: true, suspendedAt: true, avatar: true, _count: { select: { subscriptions: true, coupons: true } } },
-  });
-  return NextResponse.json({ user }, { status: 201 });
+  if (!session || (session as any).role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { userId, action, role } = await req.json();
+  if (!userId || !action) return NextResponse.json({ error: 'userId and action required' }, { status: 400 });
+
+  try {
+    let updateData: any = {};
+    if (action === 'ban') updateData.isBanned = true;
+    else if (action === 'unban') updateData.isBanned = false;
+    else if (action === 'set_role' && role) updateData.role = role;
+    else return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+
+    const user = await prisma.user.update({ where: { id: userId }, data: updateData });
+
+    try {
+      await (prisma as any).auditLog.create({
+        data: { userId: session.userId, action: `user_${action}`, resource: 'user', resourceId: userId, metadata: JSON.stringify({ role }) },
+      });
+    } catch {}
+
+    return NextResponse.json({ ok: true, user: { id: user.id, role: user.role, isBanned: (user as any).isBanned } });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }

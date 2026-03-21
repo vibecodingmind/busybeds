@@ -18,6 +18,7 @@ model User {
   createdAt            DateTime  @default(now())
   suspendedAt          DateTime?
   suspendedReason      String?
+  isBanned             Boolean   @default(false)
 
   // Email verification
   emailVerified        Boolean   @default(false)
