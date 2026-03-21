@@ -36,6 +36,28 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ room }, { status: 201 });
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const hotelId = await getStaffHotelId(session);
+  if (!hotelId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { roomId, ...updates } = await req.json();
+  const room = await prisma.roomType.findFirst({ where: { id: roomId, hotelId } });
+  if (!room) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const patchSchema = z.object({
+    name: z.string().min(2).optional(),
+    description: z.string().optional(),
+    pricePerNight: z.number().positive().optional(),
+    maxOccupancy: z.number().int().min(1).optional(),
+    displayOrder: z.number().int().optional(),
+  });
+  const data = patchSchema.parse(updates);
+  const updated = await prisma.roomType.update({ where: { id: roomId }, data });
+  return NextResponse.json({ room: updated });
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

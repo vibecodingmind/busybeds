@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import AffiliateTab from './AffiliateTab';
 
-interface RoomType { id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number; }
+interface RoomType { id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number; displayOrder: number; }
+interface Photo { id: string; url: string; displayOrder: number; isPrimary?: boolean; }
 interface AffiliateLink { id: string; platform: string; url: string; isActive: boolean; }
 interface Hotel {
   id: string; name: string; city: string; country: string; starRating: number;
@@ -11,9 +12,13 @@ interface Hotel {
   descriptionShort: string; descriptionLong: string; amenities: string[];
   discountPercent: number; couponValidDays: number; websiteUrl?: string;
   coverImage?: string; roomTypes: RoomType[]; affiliateLinks?: AffiliateLink[];
+  email?: string; whatsapp?: string; address?: string;
+  socialFacebook?: string; socialInstagram?: string; socialTwitter?: string; socialTiktok?: string;
+  latitude?: number; longitude?: number;
+  isFeatured?: boolean; featuredUntil?: string;
 }
 
-type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'affiliates';
+type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'contact' | 'affiliates';
 
 export default function ManageHotelPage() {
   const [hotel, setHotel] = useState<Hotel | null>(null);
@@ -73,8 +78,8 @@ export default function ManageHotelPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       }
-    } catch (error) {
-      console.error('Error downloading report:', error);
+    } catch (e) {
+      console.error('Error downloading report:', e);
     } finally {
       setDownloadingReport(false);
     }
@@ -101,6 +106,18 @@ export default function ManageHotelPage() {
     setHotel(prev => prev ? { ...prev, roomTypes: prev.roomTypes.filter(r => r.id !== roomId) } : prev);
   };
 
+  const updateRoom = async (roomId: string, updates: Partial<RoomType>) => {
+    const res = await fetch('/api/portal/rooms', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, ...updates }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setHotel(prev => prev ? { ...prev, roomTypes: prev.roomTypes.map(r => r.id === roomId ? { ...r, ...data.room } : r) } : prev);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="animate-spin w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full" />
@@ -119,10 +136,11 @@ export default function ManageHotelPage() {
   );
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'overview', label: 'Overview', icon: '📋' },
-    { id: 'rooms',    label: 'Rooms',    icon: '🛏' },
-    { id: 'discount', label: 'Discount', icon: '🎫' },
-    { id: 'photos',   label: 'Photos',   icon: '📷' },
+    { id: 'overview', label: 'Overview',  icon: '📋' },
+    { id: 'rooms',    label: 'Rooms',     icon: '🛏' },
+    { id: 'discount', label: 'Discount',  icon: '🎫' },
+    { id: 'photos',   label: 'Photos',    icon: '📷' },
+    { id: 'contact',  label: 'Contact',   icon: '📞' },
     { id: 'affiliates', label: 'Affiliate Links', icon: '🔗' },
   ];
 
@@ -143,16 +161,16 @@ export default function ManageHotelPage() {
             <Link href="/portal/analytics" className="text-sm font-medium px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100">📊 Analytics</Link>
           </div>
           <div className="flex items-center gap-3">
-            {saved && <span className="text-green-600 text-sm font-medium">{saved}</span>}
+            {saved && <span className="text-green-600 text-sm font-medium animate-pulse">{saved}</span>}
             {error && <span className="text-red-500 text-sm">{error}</span>}
             <button
               onClick={downloadReport}
               disabled={downloadingReport}
               className="text-xs bg-teal-500 hover:bg-teal-600 text-white font-semibold px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
             >
-              {downloadingReport ? '...' : '📥 Download Report'}
+              {downloadingReport ? '...' : '📥 Report'}
             </button>
-            <Link href={`/hotels/${hotel.id}`} target="_blank" className="text-xs text-teal-600 hover:underline">View listing ↗</Link>
+            <Link href={`/hotels/${hotel.id}`} target="_blank" className="text-xs text-teal-600 hover:underline">View ↗</Link>
           </div>
         </div>
       </div>
@@ -161,7 +179,7 @@ export default function ManageHotelPage() {
         {/* Stat row */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Total Coupons', value: Object.values(stats).reduce((a, b) => a + b, 0), color: 'bg-gray-50' },
+            { label: 'Total Coupons', value: Object.values(stats).reduce((a, b) => a + b, 0), color: 'bg-white' },
             { label: 'Active',   value: stats.active   || 0, color: 'bg-green-50 text-green-700' },
             { label: 'Redeemed', value: stats.redeemed || 0, color: 'bg-blue-50 text-blue-700' },
             { label: 'Expired',  value: stats.expired  || 0, color: 'bg-gray-50 text-gray-500' },
@@ -177,8 +195,8 @@ export default function ManageHotelPage() {
         <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-1 justify-center ${tab === t.id ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
-              <span>{t.icon}</span>{t.label}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${tab === t.id ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+              <span>{t.icon}</span><span className="hidden sm:inline">{t.label}</span>
             </button>
           ))}
         </div>
@@ -190,56 +208,15 @@ export default function ManageHotelPage() {
 
         {/* ── Rooms Tab ── */}
         {tab === 'rooms' && (
-          <div className="space-y-4">
-            <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>Room Types</h2>
-            {hotel.roomTypes.map(room => (
-              <div key={room.id} className="card p-4 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-800">{room.name}</div>
-                  <div className="text-sm text-gray-500">{room.description}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">Up to {room.maxOccupancy} guests</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="font-bold text-lg" style={{ color: '#1A3C5E' }}>${room.pricePerNight}</div>
-                    <div className="text-xs text-gray-400">/night</div>
-                  </div>
-                  <button onClick={() => deleteRoom(room.id)} className="text-red-400 hover:text-red-600 text-sm px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">✕</button>
-                </div>
-              </div>
-            ))}
-
-            {/* Add room form */}
-            <div className="card p-5">
-              <h3 className="font-semibold text-gray-800 mb-4">Add Room Type</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="label">Room Name</label>
-                  <input className="input" placeholder="e.g. Deluxe King" value={roomForm.name}
-                    onChange={e => setRoomForm({ ...roomForm, name: e.target.value })} />
-                </div>
-                <div className="col-span-2">
-                  <label className="label">Description</label>
-                  <input className="input" placeholder="Brief room description" value={roomForm.description}
-                    onChange={e => setRoomForm({ ...roomForm, description: e.target.value })} />
-                </div>
-                <div>
-                  <label className="label">Price / Night ($)</label>
-                  <input className="input" type="number" min="1" placeholder="150" value={roomForm.pricePerNight}
-                    onChange={e => setRoomForm({ ...roomForm, pricePerNight: e.target.value })} />
-                </div>
-                <div>
-                  <label className="label">Max Guests</label>
-                  <input className="input" type="number" min="1" max="10" value={roomForm.maxOccupancy}
-                    onChange={e => setRoomForm({ ...roomForm, maxOccupancy: e.target.value })} />
-                </div>
-              </div>
-              <button onClick={addRoom} disabled={addingRoom || !roomForm.name || !roomForm.pricePerNight}
-                className="mt-4 btn-primary w-full disabled:opacity-50">
-                {addingRoom ? 'Adding...' : '+ Add Room'}
-              </button>
-            </div>
-          </div>
+          <RoomsTab
+            hotel={hotel}
+            roomForm={roomForm}
+            setRoomForm={setRoomForm}
+            addingRoom={addingRoom}
+            onAdd={addRoom}
+            onDelete={deleteRoom}
+            onUpdate={updateRoom}
+          />
         )}
 
         {/* ── Discount Tab ── */}
@@ -253,6 +230,11 @@ export default function ManageHotelPage() {
             <h3 className="font-bold text-lg mb-6" style={{ color: '#1A3C5E' }}>Photo Management</h3>
             <PhotoTab hotel={hotel} saving={saving} onSave={saveHotel} />
           </div>
+        )}
+
+        {/* ── Contact Tab ── */}
+        {tab === 'contact' && (
+          <ContactTab hotel={hotel} saving={saving} onSave={saveHotel} />
         )}
 
         {/* ── Affiliates Tab ── */}
@@ -399,31 +381,200 @@ function OverviewTab({ hotel, saving, onSave }: {
   );
 }
 
+/* ── Rooms Tab with inline editing ─── */
+function RoomsTab({ hotel, roomForm, setRoomForm, addingRoom, onAdd, onDelete, onUpdate }: {
+  hotel: Hotel;
+  roomForm: { name: string; description: string; pricePerNight: string; maxOccupancy: string };
+  setRoomForm: (f: any) => void;
+  addingRoom: boolean;
+  onAdd: () => void;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: any) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; description: string; pricePerNight: string; maxOccupancy: string }>({
+    name: '', description: '', pricePerNight: '', maxOccupancy: '2',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = (room: RoomType) => {
+    setEditingId(room.id);
+    setEditForm({
+      name: room.name,
+      description: room.description,
+      pricePerNight: String(room.pricePerNight),
+      maxOccupancy: String(room.maxOccupancy),
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    setSavingEdit(true);
+    await onUpdate(editingId, {
+      name: editForm.name,
+      description: editForm.description,
+      pricePerNight: Number(editForm.pricePerNight),
+      maxOccupancy: Number(editForm.maxOccupancy),
+    });
+    setSavingEdit(false);
+    setEditingId(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>Room Types</h2>
+        <span className="text-sm text-gray-400">{hotel.roomTypes.length} rooms</span>
+      </div>
+
+      {hotel.roomTypes.length === 0 && (
+        <div className="text-center py-8 text-gray-400">
+          <div className="text-3xl mb-2">🛏</div>
+          <p className="text-sm">No room types yet. Add your first room below.</p>
+        </div>
+      )}
+
+      {hotel.roomTypes.map(room => (
+        <div key={room.id} className="card p-4">
+          {editingId === room.id ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="label">Room Name</label>
+                  <input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+                </div>
+                <div className="col-span-2">
+                  <label className="label">Description</label>
+                  <input className="input" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Price / Night ($)</label>
+                  <input className="input" type="number" min="1" value={editForm.pricePerNight}
+                    onChange={e => setEditForm({ ...editForm, pricePerNight: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Max Guests</label>
+                  <input className="input" type="number" min="1" max="10" value={editForm.maxOccupancy}
+                    onChange={e => setEditForm({ ...editForm, maxOccupancy: e.target.value })} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveEdit} disabled={savingEdit}
+                  className="btn-primary text-sm px-4 disabled:opacity-50">
+                  {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button onClick={() => setEditingId(null)}
+                  className="text-sm px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="font-semibold text-gray-800">{room.name}</div>
+                <div className="text-sm text-gray-500">{room.description}</div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs text-gray-400">👥 Up to {room.maxOccupancy} guests</span>
+                  <span className="text-xs font-bold text-teal-600">${room.pricePerNight}/night</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <button onClick={() => startEdit(room)}
+                  className="text-blue-500 hover:text-blue-700 text-sm px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium">
+                  ✏️ Edit
+                </button>
+                <button onClick={() => onDelete(room.id)}
+                  className="text-red-400 hover:text-red-600 text-sm px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Add room form */}
+      <div className="card p-5 border-2 border-dashed border-gray-200">
+        <h3 className="font-semibold text-gray-800 mb-4">➕ Add New Room Type</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label className="label">Room Name</label>
+            <input className="input" placeholder="e.g. Deluxe King" value={roomForm.name}
+              onChange={e => setRoomForm({ ...roomForm, name: e.target.value })} />
+          </div>
+          <div className="col-span-2">
+            <label className="label">Description</label>
+            <input className="input" placeholder="Brief room description" value={roomForm.description}
+              onChange={e => setRoomForm({ ...roomForm, description: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Price / Night ($)</label>
+            <input className="input" type="number" min="1" placeholder="150" value={roomForm.pricePerNight}
+              onChange={e => setRoomForm({ ...roomForm, pricePerNight: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Max Guests</label>
+            <input className="input" type="number" min="1" max="10" value={roomForm.maxOccupancy}
+              onChange={e => setRoomForm({ ...roomForm, maxOccupancy: e.target.value })} />
+          </div>
+        </div>
+        <button onClick={onAdd} disabled={addingRoom || !roomForm.name || !roomForm.pricePerNight}
+          className="mt-4 btn-primary w-full disabled:opacity-50">
+          {addingRoom ? 'Adding...' : '+ Add Room'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DiscountTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; onSave: (u: Partial<Hotel>) => void }) {
   const [discount, setDiscount] = useState(hotel.discountPercent);
   const [validDays, setValidDays] = useState(hotel.couponValidDays);
 
+  const presets = [10, 15, 20, 25, 30, 40, 50];
+
   return (
     <div className="card p-6 space-y-5">
       <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>Coupon Offer Settings</h2>
-      <div className="bg-teal-50 rounded-2xl p-5 text-center mb-2">
-        <div className="text-5xl font-extrabold text-teal-600">{discount}%</div>
+      <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-2xl p-5 text-center">
+        <div className="text-6xl font-extrabold text-teal-600">{discount}%</div>
         <div className="text-teal-700 font-medium mt-1">Current discount shown to travelers</div>
+        <div className="text-teal-500 text-sm mt-0.5">Coupons valid for {validDays} days</div>
       </div>
+
       <div>
         <label className="label">Discount Percentage: <strong>{discount}%</strong></label>
         <input type="range" min="1" max="80" value={discount} onChange={e => setDiscount(Number(e.target.value))}
           className="w-full accent-teal-500 mt-2" />
         <div className="flex justify-between text-xs text-gray-400 mt-1"><span>1%</span><span>80%</span></div>
+        <div className="flex gap-1.5 flex-wrap mt-3">
+          {presets.map(p => (
+            <button key={p} onClick={() => setDiscount(p)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${discount === p ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50'}`}>
+              {p}%
+            </button>
+          ))}
+        </div>
       </div>
+
       <div>
         <label className="label">Coupon Valid For: <strong>{validDays} days</strong></label>
         <input type="range" min="7" max="90" value={validDays} onChange={e => setValidDays(Number(e.target.value))}
           className="w-full accent-teal-500 mt-2" />
         <div className="flex justify-between text-xs text-gray-400 mt-1"><span>7 days</span><span>90 days</span></div>
+        <div className="flex gap-1.5 mt-3">
+          {[7, 14, 30, 60, 90].map(d => (
+            <button key={d} onClick={() => setValidDays(d)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${validDays === d ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50'}`}>
+              {d}d
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
-        <strong>Note:</strong> Changes apply to <em>new coupons only</em>. Already-generated coupons keep their original discount.
+
+      <div className="bg-amber-50 rounded-xl p-4 text-sm text-amber-700 border border-amber-200">
+        <strong>💡 Tip:</strong> Changes apply to <em>new coupons only</em>. Already-generated coupons keep their original discount.
       </div>
       <button onClick={() => onSave({ discountPercent: discount, couponValidDays: validDays })}
         disabled={saving} className="w-full btn-primary disabled:opacity-50">
@@ -433,15 +584,126 @@ function DiscountTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean;
   );
 }
 
+/* ── Contact & Social Tab ─── */
+function ContactTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; onSave: (u: Partial<Hotel>) => void }) {
+  const [form, setForm] = useState({
+    email: hotel.email || '',
+    whatsapp: hotel.whatsapp || '',
+    address: hotel.address || '',
+    socialFacebook: hotel.socialFacebook || '',
+    socialInstagram: hotel.socialInstagram || '',
+    socialTwitter: hotel.socialTwitter || '',
+    socialTiktok: hotel.socialTiktok || '',
+    latitude: hotel.latitude ? String(hotel.latitude) : '',
+    longitude: hotel.longitude ? String(hotel.longitude) : '',
+  });
+
+  return (
+    <div className="space-y-5">
+      {/* Contact info */}
+      <div className="card p-6 space-y-4">
+        <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>📞 Contact Information</h2>
+        <p className="text-sm text-gray-500">This info may appear on your hotel page and help guests contact you.</p>
+
+        <div>
+          <label className="label">Business Email</label>
+          <input className="input" type="email" placeholder="hotel@example.com" value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">WhatsApp Number</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">+</span>
+            <input className="input pl-6" type="tel" placeholder="1 555 123 4567 (with country code)" value={form.whatsapp}
+              onChange={e => setForm({ ...form, whatsapp: e.target.value })} />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Include country code without + (e.g. 1555123456)</p>
+        </div>
+        <div>
+          <label className="label">Full Address</label>
+          <textarea className="input" rows={2} placeholder="123 Main Street, City, Country" value={form.address}
+            onChange={e => setForm({ ...form, address: e.target.value })} />
+        </div>
+
+        {/* Map coordinates */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Latitude</label>
+            <input className="input" type="number" step="any" placeholder="e.g. -1.2921" value={form.latitude}
+              onChange={e => setForm({ ...form, latitude: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Longitude</label>
+            <input className="input" type="number" step="any" placeholder="e.g. 36.8219" value={form.longitude}
+              onChange={e => setForm({ ...form, longitude: e.target.value })} />
+          </div>
+        </div>
+        <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
+          💡 Find your coordinates at <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">Google Maps</a> — right-click your property and copy the lat/lng.
+        </div>
+
+        <button
+          onClick={() => onSave({
+            email: form.email,
+            whatsapp: form.whatsapp,
+            address: form.address,
+            latitude: form.latitude ? parseFloat(form.latitude) : undefined,
+            longitude: form.longitude ? parseFloat(form.longitude) : undefined,
+          })}
+          disabled={saving}
+          className="w-full btn-primary disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save Contact Info'}
+        </button>
+      </div>
+
+      {/* Social media */}
+      <div className="card p-6 space-y-4">
+        <h2 className="font-bold text-lg" style={{ color: '#1A3C5E' }}>📱 Social Media</h2>
+        <p className="text-sm text-gray-500">Add your social profiles to boost trust and discoverability.</p>
+
+        {[
+          { key: 'socialFacebook', label: 'Facebook', icon: '📘', placeholder: 'https://facebook.com/yourhotel' },
+          { key: 'socialInstagram', label: 'Instagram', icon: '📸', placeholder: 'https://instagram.com/yourhotel' },
+          { key: 'socialTwitter', label: 'Twitter / X', icon: '𝕏', placeholder: 'https://twitter.com/yourhotel' },
+          { key: 'socialTiktok', label: 'TikTok', icon: '🎵', placeholder: 'https://tiktok.com/@yourhotel' },
+        ].map(({ key, label, icon, placeholder }) => (
+          <div key={key}>
+            <label className="label">{icon} {label}</label>
+            <input className="input" type="url" placeholder={placeholder}
+              value={(form as any)[key]}
+              onChange={e => setForm({ ...form, [key]: e.target.value })} />
+          </div>
+        ))}
+
+        <button
+          onClick={() => onSave({
+            socialFacebook: form.socialFacebook,
+            socialInstagram: form.socialInstagram,
+            socialTwitter: form.socialTwitter,
+            socialTiktok: form.socialTiktok,
+          })}
+          disabled={saving}
+          className="w-full btn-primary disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save Social Links'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; onSave: (u: Partial<Hotel>) => void }) {
   const [coverUrl, setCoverUrl]     = useState(hotel.coverImage || '');
-  const [photos, setPhotos]         = useState<Array<{ id: string; url: string; displayOrder: number }>>([]);
+  const [photos, setPhotos]         = useState<Photo[]>([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [addingPhoto, setAddingPhoto] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [dragOver, setDragOver]     = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -452,7 +714,7 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
       .catch(() => setLoadingPhotos(false));
   }, []);
 
-  const uploadFile = async (file: File, forCover = false) => {
+  const uploadFile = async (file: File) => {
     if (!file.type.startsWith('image/')) { setUploadError('Only image files allowed'); return null; }
     if (file.size > 5 * 1024 * 1024) { setUploadError('File too large (max 5 MB)'); return null; }
     setUploadError('');
@@ -514,6 +776,31 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
     files.slice(0, 10 - photos.length).forEach(f => addPhotoFile(f));
   };
 
+  // Drag-to-reorder
+  const handlePhotoDragStart = (idx: number) => setDraggingIdx(idx);
+  const handlePhotoDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggingIdx === null || draggingIdx === idx) return;
+    const reordered = [...photos];
+    const [moved] = reordered.splice(draggingIdx, 1);
+    reordered.splice(idx, 0, moved);
+    setPhotos(reordered);
+    setDraggingIdx(idx);
+  };
+  const handlePhotoDragEnd = async () => {
+    setDraggingIdx(null);
+    setSavingOrder(true);
+    try {
+      await Promise.all(photos.map((p, i) =>
+        fetch('/api/portal/photos', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photoId: p.id, displayOrder: i }),
+        })
+      ));
+    } finally { setSavingOrder(false); }
+  };
+
   return (
     <div className="space-y-6 text-left">
       {uploadError && (
@@ -538,16 +825,15 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
           </div>
         )}
 
-        {/* File upload for cover */}
         <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) uploadCoverFile(f); e.target.value = ''; }} />
 
         <div className="flex gap-2 mb-2">
           <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border-2 border-dashed border-gray-300 hover:border-[#E8395A] hover:bg-red-50 transition-colors disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border-2 border-dashed border-gray-300 hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50">
             {uploadingCover
-              ? <><div className="w-3.5 h-3.5 border-2 border-[#E8395A] border-t-transparent rounded-full animate-spin" /> Uploading…</>
-              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Upload from device</>
+              ? <><div className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /> Uploading…</>
+              : <>📤 Upload from device</>
             }
           </button>
         </div>
@@ -569,9 +855,12 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
       <div>
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-gray-800">Gallery Photos</h3>
-          <span className="text-xs text-gray-400">{photos.length}/10</span>
+          <div className="flex items-center gap-2">
+            {savingOrder && <span className="text-xs text-teal-600 animate-pulse">Saving order…</span>}
+            <span className="text-xs text-gray-400">{photos.length}/10</span>
+          </div>
         </div>
-        <p className="text-xs text-gray-400 mb-4">These appear in the hotel page carousel. Drag &amp; drop multiple images at once.</p>
+        <p className="text-xs text-gray-400 mb-4">Drag photos to reorder them. Drop multiple images at once to upload.</p>
 
         {/* Drag & drop zone */}
         {photos.length < 10 && (
@@ -580,14 +869,14 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all mb-4 ${dragOver ? 'border-[#E8395A] bg-red-50' : 'border-gray-200 hover:border-[#E8395A] hover:bg-gray-50'}`}
+            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all mb-4 ${dragOver ? 'border-teal-400 bg-teal-50' : 'border-gray-200 hover:border-teal-400 hover:bg-gray-50'}`}
           >
             <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
               onChange={e => { Array.from(e.target.files || []).forEach(f => addPhotoFile(f)); e.target.value = ''; }} />
             {addingPhoto
-              ? <div className="flex items-center justify-center gap-2 text-sm text-gray-500"><div className="w-4 h-4 border-2 border-[#E8395A] border-t-transparent rounded-full animate-spin" /> Uploading…</div>
+              ? <div className="flex items-center justify-center gap-2 text-sm text-gray-500"><div className="w-4 h-4 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" /> Uploading…</div>
               : <>
-                  <svg className="mx-auto mb-2 text-gray-300" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                  <div className="text-3xl mb-2">📸</div>
                   <p className="text-sm font-medium text-gray-600">Drop photos here or click to browse</p>
                   <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP · Max 5 MB each</p>
                 </>
@@ -603,12 +892,23 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
               <p className="text-sm text-gray-400 text-center py-3 bg-gray-50 rounded-xl">No gallery photos yet.</p>
             )}
             {photos.map((p, idx) => (
-              <div key={p.id} className="flex items-center gap-3 p-2 border border-gray-200 rounded-xl">
+              <div
+                key={p.id}
+                draggable
+                onDragStart={() => handlePhotoDragStart(idx)}
+                onDragOver={e => handlePhotoDragOver(e, idx)}
+                onDragEnd={handlePhotoDragEnd}
+                className={`flex items-center gap-3 p-2 border rounded-xl transition-all cursor-grab active:cursor-grabbing ${draggingIdx === idx ? 'border-teal-400 bg-teal-50 shadow-md' : 'border-gray-200'}`}
+              >
+                {/* Drag handle */}
+                <div className="text-gray-300 hover:text-gray-500 flex-shrink-0 select-none">⠿⠿</div>
+                {/* Order badge */}
+                <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</div>
                 <img src={p.url} alt="" className="w-16 h-12 object-cover rounded-lg flex-shrink-0"
                   onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=80'; }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500 truncate">{p.url}</p>
-                  <p className="text-xs text-gray-400">Photo {idx + 1}</p>
+                  {idx === 0 && <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded font-medium">Main Photo</span>}
                 </div>
                 <button onClick={() => deletePhoto(p.id)}
                   className="text-red-400 hover:text-red-600 hover:bg-red-50 w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-lg flex-shrink-0">×</button>

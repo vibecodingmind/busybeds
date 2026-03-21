@@ -68,10 +68,23 @@ const updateSchema = z.object({
   descriptionLong: z.string().optional(),
   starRating: z.number().int().min(1).max(5).optional(),
   amenities: z.array(z.string()).optional(),
-  websiteUrl: z.string().url().optional().or(z.literal('')),
+  websiteUrl: z.string().optional(),
   discountPercent: z.number().int().min(1).max(80).optional(),
   couponValidDays: z.number().int().min(1).max(365).optional(),
   coverImage: z.string().optional(),
+  category: z.string().optional(),
+  // Contact info
+  email: z.string().email().optional().or(z.literal('')),
+  whatsapp: z.string().optional(),
+  address: z.string().optional(),
+  // Social media
+  socialFacebook: z.string().optional(),
+  socialInstagram: z.string().optional(),
+  socialTwitter: z.string().optional(),
+  socialTiktok: z.string().optional(),
+  // Geo
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
