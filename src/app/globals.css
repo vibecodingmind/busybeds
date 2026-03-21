@@ -314,3 +314,126 @@ body::before {
   border-bottom: 1px solid #e5e7eb !important;
   box-shadow: none !important;
 }
+
+/* ── Dark mode variables ─────────────────────────────────────── */
+html.dark {
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: #1E293B;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --border-color: #334155;
+}
+
+html.dark body {
+  background-color: #0F172A !important;
+  color: #F1F5F9 !important;
+  background-image: none !important;
+}
+
+html.dark .bg-white {
+  background-color: #1E293B !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: #0F172A !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: #1E293B !important;
+}
+
+html.dark .text-gray-900 {
+  color: #F1F5F9 !important;
+}
+
+html.dark .text-gray-700 {
+  color: #CBD5E1 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #94A3B8 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #64748B !important;
+}
+
+html.dark .text-gray-400 {
+  color: #475569 !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+html.dark .border-gray-100 {
+  border-color: #1E293B !important;
+}
+
+html.dark nav.bg-white {
+  background-color: #0F172A !important;
+  border-color: #1E293B !important;
+}
+
+html.dark .shadow-sm,
+html.dark .shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1E293B !important;
+  color: #F1F5F9 !important;
+  border-color: #334155 !important;
+}
+
+html.dark .rounded-2xl.bg-white,
+html.dark .rounded-xl.bg-white {
+  background-color: #1E293B !important;
+}
+
+/* ═══════════════════════════════════════════
+   ACCESSIBILITY
+═══════════════════════════════════════════ */
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid #FF385C;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip to main content */
+.skip-to-main {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  background: #FF385C;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  transition: top 0.2s;
+}
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .bg-white { background: white !important; }
+  .text-gray-500 { color: #333 !important; }
+  .border-gray-200 { border-color: #666 !important; }
+}

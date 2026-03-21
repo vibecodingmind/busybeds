@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import MobileNav from '@/components/MobileNav';
+import PWARegister from '@/components/PWARegister';
+import CompareBar from '@/components/CompareBar';
 import { CurrencyProvider } from '@/context/CurrencyContext';
+import { LanguageProvider } from '@/context/LanguageContext';
+import { CompareProvider } from '@/context/CompareContext';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
@@ -43,10 +47,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <CurrencyProvider>
-          {children}
-          <MobileNav />
-        </CurrencyProvider>
+        <a href="#main-content" className="skip-to-main">Skip to main content</a>
+        <LanguageProvider>
+          <CurrencyProvider>
+            <CompareProvider>
+              <div id="main-content">
+                {children}
+              </div>
+              <CompareBar />
+              <MobileNav />
+              <PWARegister />
+            </CompareProvider>
+          </CurrencyProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

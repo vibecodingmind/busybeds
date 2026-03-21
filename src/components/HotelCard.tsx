@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import FavoriteButton from './FavoriteButton';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useCompare } from '@/context/CompareContext';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
 interface Hotel {
   id: string;
@@ -22,6 +24,9 @@ interface Hotel {
 
 export default function HotelCard({ hotel }: { hotel: Hotel }) {
   const { format } = useCurrency();
+  const { addHotel, removeHotel, isComparing, canAdd } = useCompare();
+  const { addHotel: addToRecent } = useRecentlyViewed();
+  const comparing = isComparing(hotel.id);
 
   const allImages = [
     hotel.coverImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
@@ -44,7 +49,11 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
   const rating = hotel.avgRating ?? hotel.starRating ?? null;
 
   return (
-    <Link href={`/hotels/${hotel.slug}`} className="group block">
+    <Link 
+      href={`/hotels/${hotel.slug}`} 
+      className="group block"
+      onClick={() => addToRecent({ id: hotel.id, name: hotel.name, slug: hotel.slug, coverImage: hotel.coverImage, city: hotel.city, country: hotel.country, discountPercent: hotel.discountPercent, starRating: hotel.starRating, avgRating: hotel.avgRating })}
+    >
       {/* Image container — square aspect ratio like Airbnb */}
       <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
         <img
@@ -73,6 +82,44 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* Favorite button */}
         <div className="absolute top-3 right-3" onClick={e => e.preventDefault()}>
           <FavoriteButton hotelId={hotel.id} size="sm" />
+        </div>
+
+        {/* Compare button */}
+        <div className="absolute bottom-3 right-3" onClick={e => e.preventDefault()}>
+          <button
+            onClick={e => {
+              e.preventDefault(); e.stopPropagation();
+              if (comparing) {
+                removeHotel(hotel.id);
+              } else if (canAdd) {
+                addHotel({
+                  id: hotel.id,
+                  name: hotel.name,
+                  slug: hotel.slug,
+                  coverImage: hotel.coverImage,
+                  starRating: hotel.starRating,
+                  discountPercent: hotel.discountPercent,
+                  city: hotel.city,
+                  country: hotel.country,
+                  avgRating: hotel.avgRating,
+                });
+              }
+            }}
+            disabled={!comparing && !canAdd}
+            className={`w-7 h-7 rounded-full flex items-center justify-center shadow-md transition-all ${
+              comparing
+                ? 'bg-blue-500 text-white'
+                : canAdd
+                ? 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                : 'bg-white text-gray-300 cursor-not-allowed'
+            }`}
+            title={comparing ? 'Remove from compare' : canAdd ? 'Add to compare' : 'Max 3 hotels'}
+            aria-label={comparing ? 'Remove from compare' : 'Add to compare'}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+            </svg>
+          </button>
         </div>
 
         {/* Carousel arrows — only show on hover if multiple images */}

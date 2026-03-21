@@ -1,44 +1,37 @@
 'use client';
-
 import { useState } from 'react';
-import { useCurrency } from '@/context/CurrencyContext';
+import { useCurrency, Currency } from '@/context/CurrencyContext';
 
 export default function CurrencyToggle() {
-  const { currency, setCurrency, rate } = useCurrency();
-  const [showTooltip, setShowTooltip] = useState(false);
+  const { currency, setCurrency, currencies } = useCurrency();
+  const [open, setOpen] = useState(false);
+  const info = currencies[currency];
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-0.5 bg-gray-100 rounded-full p-1">
-        <button
-          onClick={() => setCurrency('USD')}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-            currency === 'USD'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          USD
-        </button>
-        <button
-          onClick={() => setCurrency('TZS')}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all relative ${
-            currency === 'TZS'
-              ? 'bg-white text-teal-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          TZS
-          {showTooltip && currency === 'TZS' && (
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap">
-              1 USD = {rate.toLocaleString()} TZS
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-gray-900"></div>
-            </div>
-          )}
-        </button>
-      </div>
+      <button onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+        aria-label="Select currency">
+        <span>{info.flag}</span>
+        <span className="font-semibold">{currency}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden w-52 max-h-80 overflow-y-auto">
+            {(Object.values(currencies) as any[]).map((c) => (
+              <button key={c.code} onClick={() => { setCurrency(c.code as Currency); setOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors ${currency === c.code ? 'font-semibold text-[#E8395A]' : 'text-gray-700 dark:text-gray-300'}`}>
+                <span className="text-base w-6">{c.flag}</span>
+                <span className="font-mono font-bold text-xs w-8">{c.code}</span>
+                <span className="text-gray-500 text-xs truncate">{c.name}</span>
+                {currency === c.code && <svg className="ml-auto flex-shrink-0" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

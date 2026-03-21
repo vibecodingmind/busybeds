@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import CurrencyToggle from './CurrencyToggle';
+import LanguageSelector from './LanguageSelector';
 import NavbarSearch from './NavbarSearch';
 import Logo from './Logo';
 
@@ -87,6 +88,10 @@ export default function Navbar() {
           <Link href="/apply" className="hidden lg:flex items-center px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap">
             Claim your property
           </Link>
+
+          <div className="hidden md:block">
+            <LanguageSelector />
+          </div>
 
           <div className="hidden md:block">
             <CurrencyToggle />

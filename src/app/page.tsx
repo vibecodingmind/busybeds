@@ -3,6 +3,8 @@ import Navbar from '@/components/Navbar';
 import HotelCard from '@/components/HotelCard';
 import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
+import RecentlyViewed from '@/components/RecentlyViewed';
+import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
 import prisma from '@/lib/prisma';
 
 const PAGE_SIZE = 18;
@@ -461,6 +463,8 @@ export default async function HomePage({
           </div>
         )}
 
+        <RecentlyViewed />
+
         {/* ── Hotel grid ── */}
         {hotels.length === 0 ? (
           <div className="text-center py-24">
@@ -523,6 +527,8 @@ export default async function HomePage({
           </>
         )}
       </div>
+
+        <PersonalizedRecommendations />
 
       {/* ── How it works ── */}
       <div className="border-t border-gray-100 py-14 bg-gray-50">

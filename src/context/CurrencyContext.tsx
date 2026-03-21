@@ -1,94 +1,75 @@
 'use client';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+export type Currency = 'USD' | 'TZS' | 'KES' | 'NGN' | 'ZAR' | 'EUR' | 'GBP' | 'UGX' | 'RWF' | 'ETB';
 
-type Currency = 'USD' | 'TZS';
+interface CurrencyInfo {
+  code: Currency;
+  name: string;
+  symbol: string;
+  flag: string;
+  rate: number; // vs USD
+}
+
+const CURRENCIES: Record<Currency, CurrencyInfo> = {
+  USD: { code: 'USD', name: 'US Dollar',       symbol: '$',   flag: '🇺🇸', rate: 1 },
+  EUR: { code: 'EUR', name: 'Euro',             symbol: '€',   flag: '🇪🇺', rate: 0.92 },
+  GBP: { code: 'GBP', name: 'British Pound',   symbol: '£',   flag: '🇬🇧', rate: 0.79 },
+  KES: { code: 'KES', name: 'Kenyan Shilling',  symbol: 'KSh', flag: '🇰🇪', rate: 130 },
+  TZS: { code: 'TZS', name: 'Tanzanian Shilling', symbol: 'TSh', flag: '🇹🇿', rate: 2500 },
+  NGN: { code: 'NGN', name: 'Nigerian Naira',  symbol: '₦',   flag: '🇳🇬', rate: 1580 },
+  ZAR: { code: 'ZAR', name: 'South African Rand', symbol: 'R', flag: '🇿🇦', rate: 18.5 },
+  UGX: { code: 'UGX', name: 'Ugandan Shilling', symbol: 'USh', flag: '🇺🇬', rate: 3750 },
+  RWF: { code: 'RWF', name: 'Rwandan Franc',   symbol: 'RF',  flag: '🇷🇼', rate: 1300 },
+  ETB: { code: 'ETB', name: 'Ethiopian Birr',  symbol: 'Br',  flag: '🇪🇹', rate: 57 },
+};
 
 interface CurrencyContextType {
   currency: Currency;
-  setCurrency: (currency: Currency) => void;
-  rate: number;
+  setCurrency: (c: Currency) => void;
+  currencies: typeof CURRENCIES;
   format: (usdAmount: number) => string;
+  convert: (usdAmount: number) => number;
+  rate: number;
+  info: CurrencyInfo;
 }
 
-const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
-
-const FALLBACK_RATE = 2600;
+const CurrencyContext = createContext<CurrencyContextType>({
+  currency: 'USD', setCurrency: () => {},
+  currencies: CURRENCIES,
+  format: (n) => `$${n}`, convert: (n) => n,
+  rate: 1, info: CURRENCIES.USD,
+});
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>('USD');
-  const [rate, setRate] = useState(FALLBACK_RATE);
-  const [mounted, setMounted] = useState(false);
 
-  // Fetch exchange rate on mount
   useEffect(() => {
-    const init = async () => {
-      try {
-        const savedCurrency = localStorage.getItem('bb_currency') as Currency | null;
-        if (savedCurrency && (savedCurrency === 'USD' || savedCurrency === 'TZS')) {
-          setCurrencyState(savedCurrency);
-        }
-      } catch {
-        // Silently fail on localStorage access
-      }
-
-      try {
-        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', {
-          headers: { 'Accept': 'application/json' },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.rates?.TZS) {
-            setRate(Math.round(data.rates.TZS));
-          }
-        }
-      } catch {
-        // Use fallback rate if fetch fails
-        setRate(FALLBACK_RATE);
-      }
-
-      setMounted(true);
-    };
-
-    init();
+    const saved = localStorage.getItem('bb_currency') as Currency;
+    if (saved && CURRENCIES[saved]) setCurrencyState(saved);
   }, []);
 
-  const setCurrency = (newCurrency: Currency) => {
-    setCurrencyState(newCurrency);
-    try {
-      localStorage.setItem('bb_currency', newCurrency);
-    } catch {
-      // Silently fail if localStorage is not available
-    }
+  const setCurrency = (c: Currency) => {
+    setCurrencyState(c);
+    localStorage.setItem('bb_currency', c);
   };
 
-  const format = (usdAmount: number): string => {
-    if (currency === 'USD') {
-      return `$${usdAmount.toLocaleString()}`;
-    } else {
-      return `TZS ${Math.round(usdAmount * rate).toLocaleString()}`;
-    }
-  };
+  const info = CURRENCIES[currency];
+  const rate = info.rate;
 
-  const value: CurrencyContextType = {
-    currency: mounted ? currency : 'USD',
-    setCurrency,
-    rate,
-    format,
+  const convert = (usdAmount: number) => usdAmount * rate;
+
+  const format = (usdAmount: number) => {
+    const amount = usdAmount * rate;
+    if (rate >= 100) return `${info.symbol}${Math.round(amount).toLocaleString()}`;
+    return `${info.symbol}${amount.toFixed(2)}`;
   };
 
   return (
-    <CurrencyContext.Provider value={value}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, currencies: CURRENCIES, format, convert, rate, info }}>
       {children}
     </CurrencyContext.Provider>
   );
 }
 
-export function useCurrency(): CurrencyContextType {
-  const context = useContext(CurrencyContext);
-  if (context === undefined) {
-    throw new Error('useCurrency must be used within a CurrencyProvider');
-  }
-  return context;
-}
+export function useCurrency() { return useContext(CurrencyContext); }

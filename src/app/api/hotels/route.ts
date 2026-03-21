@@ -37,6 +37,10 @@ export async function GET(req: NextRequest) {
     ];
   }
 
+  const page  = parseInt(searchParams.get('page')  || '1');
+  const limit = parseInt(searchParams.get('limit') || '18');
+  const skip  = (page - 1) * limit;
+
   let hotels = await prisma.hotel.findMany({
     where,
     include: {
@@ -46,6 +50,8 @@ export async function GET(req: NextRequest) {
     orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
            : sortBy === 'rating'   ? [{ avgRating: 'desc' }]
            : [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+    skip,
+    take: limit,
   });
 
   // Filter by amenities (JSON array stored as string)
