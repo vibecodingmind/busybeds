@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { rateLimit, getIp } from '@/lib/rateLimit';
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
