@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
-import { hasPesapal, createPesapalOrder } from '@/lib/pesapal';
+import { hasPesapal, createPesapalOrder, registerAndGetIpnId } from '@/lib/pesapal';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
 
@@ -28,9 +28,14 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const ipnId = process.env.PESAPAL_IPN_ID || '';
-    if (!ipnId) {
-      return NextResponse.json({ error: 'Pesapal IPN ID not configured. Please set PESAPAL_IPN_ID.' }, { status: 503 });
+    // Auto-register IPN URL and get the ID
+    const ipnUrl = process.env.PESAPAL_IPN_URL || `${APP_URL}/api/payments/pesapal/callback`;
+    let ipnId: string;
+    try {
+      ipnId = await registerAndGetIpnId(ipnUrl);
+    } catch (err) {
+      console.error('[Pesapal IPN Registration Error]', err);
+      return NextResponse.json({ error: 'Pesapal IPN registration failed. Please try again.' }, { status: 503 });
     }
 
     // Cancel existing active subscriptions

@@ -24,8 +24,12 @@ async function getAuthToken(): Promise<string> {
   return data.token;
 }
 
-/** Register IPN URL (do this once during setup) */
-export async function registerPesapalIPN(ipnUrl: string) {
+/**
+ * Register IPN URL with Pesapal and return the IPN ID.
+ * Pesapal returns the same ID if the URL is already registered.
+ * Call this automatically before each order.
+ */
+export async function registerAndGetIpnId(ipnUrl: string): Promise<string> {
   const token = await getAuthToken();
   const res = await fetch(`${PESAPAL_BASE}/api/URLSetup/RegisterIPN`, {
     method: 'POST',
@@ -37,8 +41,8 @@ export async function registerPesapalIPN(ipnUrl: string) {
     body: JSON.stringify({ url: ipnUrl, ipn_notification_type: 'GET' }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`Pesapal IPN registration failed: ${JSON.stringify(data)}`);
-  return data;
+  if (!res.ok || data.error) throw new Error(`Pesapal IPN registration failed: ${JSON.stringify(data)}`);
+  return data.ipn_id;
 }
 
 /** Submit an order and get a redirect URL */
