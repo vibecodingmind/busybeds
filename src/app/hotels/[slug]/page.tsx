@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
+import InquiryForm from '@/components/InquiryForm';
 import prisma from '@/lib/prisma';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -57,6 +58,8 @@ interface Hotel {
   starRating: number;
   amenities: string[];
   websiteUrl: string | null;
+  whatsapp: string | null;
+  email: string | null;
   coverImage: string | null;
   discountPercent: number;
   couponValidDays: number;
@@ -379,6 +382,16 @@ export default function HotelPage({ params }: PageProps) {
               )}
             </div>
           )}
+
+          {/* Inquiry Form */}
+          <div className="mt-4">
+            <InquiryForm
+              hotelId={hotel.id}
+              hotelName={hotel.name}
+              hasWhatsapp={!!hotel.whatsapp}
+              whatsappNumber={hotel.whatsapp || undefined}
+            />
+          </div>
         </div>
       </div>
 
