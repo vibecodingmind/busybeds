@@ -583,7 +583,11 @@ export default function HotelPage({ params }: PageProps) {
                   width="100%" height="100%"
                   style={{ border: 0 }} loading="lazy" allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent((hotel.address ? hotel.address + ', ' : '') + hotel.name + ', ' + hotel.city + ', ' + hotel.country)}&output=embed&z=15`}
+                  src={
+                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+                      ? `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent((hotel.address ? hotel.address + ', ' : '') + hotel.name + ', ' + hotel.city + ', ' + hotel.country)}&zoom=15`
+                      : `https://maps.google.com/maps?q=${encodeURIComponent((hotel.address ? hotel.address + ', ' : '') + hotel.name + ', ' + hotel.city + ', ' + hotel.country)}&output=embed&z=15`
+                  }
                 />
               </div>
             </section>
