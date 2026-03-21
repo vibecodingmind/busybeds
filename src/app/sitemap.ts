@@ -3,6 +3,10 @@ import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+function nameToSlug(name: string) {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
@@ -16,11 +20,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/register`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
   ];
 
-  // Dynamic hotel pages
+  // Add /locations
+  staticPages.push({ url: `${baseUrl}/locations`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 });
+
   try {
     const hotels = await prisma.hotel.findMany({
       where: { status: 'active' },
-      select: { slug: true, updatedAt: true },
+      select: { slug: true, city: true, country: true, updatedAt: true },
     });
 
     const hotelPages: MetadataRoute.Sitemap = hotels.map(hotel => ({
@@ -30,7 +36,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    return [...staticPages, ...hotelPages];
+    // Unique country pages
+    const countrySet = new Set(hotels.map(h => h.country));
+    const countries = Array.from(countrySet);
+    const countryPages: MetadataRoute.Sitemap = countries.map(c => ({
+      url: `${baseUrl}/locations/${nameToSlug(c)}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.75,
+    }));
+
+    // Unique city pages
+    const cityKeySet = new Set(hotels.map(h => `${h.country}::${h.city}`));
+    const cityKeys = Array.from(cityKeySet);
+    const cityPages: MetadataRoute.Sitemap = cityKeys.map(key => {
+      const [country, city] = key.split('::');
+      return {
+        url: `${baseUrl}/locations/${nameToSlug(country)}/${nameToSlug(city)}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      };
+    });
+
+    return [...staticPages, ...countryPages, ...cityPages, ...hotelPages];
   } catch {
     return staticPages;
   }
