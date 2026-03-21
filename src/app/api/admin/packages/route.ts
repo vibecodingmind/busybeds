@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { stripe, hasStripe } from '@/lib/stripe';
+import { hasPayPal, createPayPalProduct, createPayPalPlan } from '@/lib/paypal';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -22,26 +23,42 @@ export async function POST(req: NextRequest) {
   if (!name || priceMonthly == null) return NextResponse.json({ error: 'name and priceMonthly required' }, { status: 400 });
 
   let stripePriceIdMonthly: string | null = null;
+  let paypalPlanId: string | null = null;
 
-  // Auto-create Stripe product + price if Stripe is configured
+  // Auto-create Stripe product + price
   if (hasStripe && stripe) {
     try {
       const product = await stripe.products.create({
         name,
         description: `BusyBeds ${name} — ${couponLimitPerPeriod || 5} coupons per period`,
       });
-
       const price = await stripe.prices.create({
         product: product.id,
-        unit_amount: Math.round(Number(priceMonthly) * 100), // cents
+        unit_amount: Math.round(Number(priceMonthly) * 100),
         currency: 'usd',
         recurring: { interval: 'month' },
       });
-
       stripePriceIdMonthly = price.id;
     } catch (err) {
       console.error('Stripe product/price creation failed:', err);
-      // Continue without Stripe — will fall back to mock payments
+    }
+  }
+
+  // Auto-create PayPal product + plan
+  if (hasPayPal) {
+    try {
+      const product = await createPayPalProduct(
+        `BusyBeds ${name}`,
+        `BusyBeds ${name} — ${couponLimitPerPeriod || 5} coupons per period`
+      );
+      const plan = await createPayPalPlan(
+        product.id,
+        `BusyBeds ${name}`,
+        Number(priceMonthly)
+      );
+      paypalPlanId = plan.id;
+    } catch (err) {
+      console.error('PayPal product/plan creation failed:', err);
     }
   }
 
@@ -54,8 +71,13 @@ export async function POST(req: NextRequest) {
       couponLimitPerPeriod: Number(couponLimitPerPeriod || 5),
       isActive: Boolean(isActive ?? true),
       stripePriceIdMonthly,
-    },
+      paypalPlanId,
+    } as any,
   });
 
-  return NextResponse.json({ pkg, stripeConnected: !!stripePriceIdMonthly }, { status: 201 });
+  return NextResponse.json({
+    pkg,
+    stripeConnected: !!stripePriceIdMonthly,
+    paypalConnected: !!paypalPlanId,
+  }, { status: 201 });
 }

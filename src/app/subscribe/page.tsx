@@ -13,11 +13,20 @@ interface Package {
   durationDays: number;
 }
 
+type PaymentMethod = 'stripe' | 'paypal' | 'pesapal';
+
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: string; desc: string }[] = [
+  { id: 'stripe',  label: 'Card',    icon: '💳', desc: 'Visa, Mastercard, Amex' },
+  { id: 'paypal',  label: 'PayPal',  icon: '🅿️', desc: 'Pay with your PayPal account' },
+  { id: 'pesapal', label: 'Pesapal', icon: '🌍', desc: 'M-Pesa, Airtel, Cards (Africa)' },
+];
+
 export default function SubscribePage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
@@ -34,7 +43,13 @@ export default function SubscribePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/subscriptions', {
+      // Determine endpoint based on payment method
+      const endpoint =
+        paymentMethod === 'paypal'  ? '/api/payments/paypal' :
+        paymentMethod === 'pesapal' ? '/api/payments/pesapal' :
+        '/api/subscriptions';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageId: selected }),
@@ -53,7 +68,7 @@ export default function SubscribePage() {
         return;
       }
 
-      if (data.mode === 'stripe' && data.url) {
+      if (data.url) {
         window.location.href = data.url;
       } else {
         setSuccess(true);
@@ -176,6 +191,30 @@ export default function SubscribePage() {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* ── Payment Method ── */}
+        {packages.length > 0 && (
+          <div className="max-w-md mx-auto mb-6">
+            <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Choose payment method</p>
+            <div className="grid grid-cols-3 gap-3">
+              {PAYMENT_METHODS.map(({ id, label, icon, desc }) => (
+                <button
+                  key={id}
+                  onClick={() => setPaymentMethod(id)}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center"
+                  style={{
+                    borderColor: paymentMethod === id ? '#0f6b6b' : '#e5e7eb',
+                    background: paymentMethod === id ? '#f0fafa' : 'white',
+                  }}
+                >
+                  <span className="text-2xl">{icon}</span>
+                  <span className="text-xs font-bold text-gray-800">{label}</span>
+                  <span className="text-xs text-gray-400 leading-tight">{desc}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

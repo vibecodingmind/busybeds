@@ -161,6 +161,7 @@ model SubscriptionPackage {
   couponLimitPerPeriod Int      @default(5)
   isActive             Boolean  @default(true)
   stripePriceIdMonthly String?
+  paypalPlanId         String?
   createdAt            DateTime @default(now())
 
   subscriptions        Subscription[]
