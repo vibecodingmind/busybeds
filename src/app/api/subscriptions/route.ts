@@ -28,55 +28,70 @@ export async function GET(req: NextRequest) {
 const schema = z.object({ packageId: z.string() });
 
 export async function POST(req: NextRequest) {
-  const session = await getSessionFromRequest(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await req.json();
-  const { packageId } = schema.parse(body);
-
-  const pkg = await prisma.subscriptionPackage.findUnique({ where: { id: packageId } });
-  if (!pkg) return NextResponse.json({ error: 'Package not found' }, { status: 404 });
-
-  const user = await prisma.user.findUnique({ where: { id: session.userId } });
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-
-  // ── Stripe Checkout (when keys are configured) ───────────────
-  if (hasStripe && stripe && pkg.stripePriceIdMonthly) {
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      customer_email: user.email,
-      line_items: [{ price: pkg.stripePriceIdMonthly, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscribe`,
-      metadata: { userId: session.userId, packageId },
-    });
-    return NextResponse.json({ url: checkoutSession.url, mode: 'stripe' });
-  }
-
-  // ── Mock Payment (dev — no Stripe keys needed) ───────────────
-  await prisma.subscription.updateMany({
-    where: { userId: session.userId, status: 'active' },
-    data: { status: 'cancelled' },
-  });
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + pkg.durationDays);
-
-  const sub = await prisma.subscription.create({
-    data: { userId: session.userId, packageId, status: 'active', billingCycle: 'monthly', expiresAt },
-    include: { package: true },
-  });
-
   try {
-    await sendEmail({
-      to: user.email,
-      subject: `Your ${pkg.name} subscription is active — Busy Beds`,
-      html: emailSubscriptionConfirmed(user.fullName, pkg.name, expiresAt),
-    });
-  } catch (e) { console.error('Email error:', e); }
+    const session = await getSessionFromRequest(req);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  return NextResponse.json({ subscription: sub, mode: 'mock' }, { status: 201 });
+    let body: { packageId?: string };
+    try { body = await req.json(); } catch { body = {}; }
+
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: 'packageId is required' }, { status: 400 });
+    const { packageId } = parsed.data;
+
+    const pkg = await prisma.subscriptionPackage.findUnique({ where: { id: packageId } });
+    if (!pkg) return NextResponse.json({ error: 'Package not found' }, { status: 404 });
+
+    const user = await prisma.user.findUnique({ where: { id: session.userId } });
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    // ── Stripe Checkout (when keys are configured) ───────────────
+    if (hasStripe && stripe && pkg.stripePriceIdMonthly) {
+      try {
+        const checkoutSession = await stripe.checkout.sessions.create({
+          mode: 'subscription',
+          payment_method_types: ['card'],
+          customer_email: user.email,
+          line_items: [{ price: pkg.stripePriceIdMonthly, quantity: 1 }],
+          success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscribe`,
+          metadata: { userId: session.userId, packageId },
+        });
+        return NextResponse.json({ url: checkoutSession.url, mode: 'stripe' });
+      } catch (stripeErr) {
+        console.error('[Stripe Checkout Error]', stripeErr);
+        return NextResponse.json({ error: 'Payment provider error. Please try again.' }, { status: 502 });
+      }
+    }
+
+    // ── Direct Payment / Mock ─────────────────────────────────────
+    await prisma.subscription.updateMany({
+      where: { userId: session.userId, status: 'active' },
+      data: { status: 'cancelled' },
+    });
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + pkg.durationDays);
+
+    const sub = await prisma.subscription.create({
+      data: { userId: session.userId, packageId, status: 'active', billingCycle: 'monthly', expiresAt },
+      include: { package: true },
+    });
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: `Your ${pkg.name} subscription is active — Busy Beds`,
+        html: emailSubscriptionConfirmed(user.fullName, pkg.name, expiresAt),
+      });
+    } catch (e) { console.error('Email error:', e); }
+
+    return NextResponse.json({ subscription: sub, mode: 'mock' }, { status: 201 });
+
+  } catch (err) {
+    console.error('[Subscription POST Error]', err);
+    return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {

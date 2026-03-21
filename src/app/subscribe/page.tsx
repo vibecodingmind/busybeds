@@ -44,10 +44,11 @@ export default function SubscribePage() {
         return;
       }
 
-      const data = await res.json();
+      let data: { error?: string; mode?: string; url?: string } = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
 
       if (!res.ok) {
-        setError(data.error || 'Something went wrong. Please try again.');
+        setError(data.error || `Error ${res.status} — please try again.`);
         return;
       }
 
