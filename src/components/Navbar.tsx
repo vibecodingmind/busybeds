@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import CurrencyToggle from './CurrencyToggle';
 import LanguageSelector from './LanguageSelector';
+import NotificationBell from './NotificationBell';
 import NavbarSearch from './NavbarSearch';
 import Logo from './Logo';
 
@@ -96,6 +97,8 @@ export default function Navbar() {
           <div className="hidden md:block">
             <CurrencyToggle />
           </div>
+
+          {user && <NotificationBell />}
 
           {/* Theme toggle */}
           <button onClick={toggleTheme} className="hidden md:flex w-9 h-9 items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600">

@@ -15,6 +15,7 @@ const navItems = [
       { href: '/admin/users',     label: 'Users',      icon: UsersIcon },
       { href: '/admin/coupons',   label: 'Coupons',    icon: CouponIcon },
       { href: '/admin/kyc',       label: 'Claims / KYC', icon: KycIcon, badge: true },
+      { href: '/admin/broadcast', label: 'Broadcast',  icon: BroadcastIcon },
       { href: '/admin/analytics', label: 'Analytics',  icon: AnalyticsIcon },
     ],
   },
@@ -117,4 +118,9 @@ function TagIcon({ active }: { active: boolean }) {
 }
 function SettingsIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>;
+}
+
+
+function BroadcastIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M4 16.5V19a2 2 0 002 2h12a2 2 0 002-2v-2.5M16 12L12 8M12 8L8 12M12 8v8"/></svg>;
 }
