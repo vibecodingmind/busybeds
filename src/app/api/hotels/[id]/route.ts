@@ -23,6 +23,12 @@ export async function GET(
       return NextResponse.json({ error: 'Hotel not found' }, { status: 404 });
     }
 
+    // Increment view count (fire and forget)
+    prisma.hotel.update({
+      where: { id: hotel.id },
+      data: { viewCount: { increment: 1 } },
+    }).catch(() => {});
+
     const amenities = JSON.parse(hotel.amenities || '[]');
     const formattedPhotos = hotel.photos.map(p => ({ id: p.id, url: p.url }));
 

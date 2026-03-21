@@ -130,13 +130,17 @@ export default function ManageHotelPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/portal" className="text-gray-400 hover:text-gray-600">←</Link>
             <div>
               <span className="font-bold text-sm" style={{ color: '#1A3C5E' }}>{hotel.name}</span>
               <span className="text-gray-400 text-xs ml-2">Management</span>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/portal" className="text-sm font-medium px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100">🎫 Scanner</Link>
+            <Link href="/portal/analytics" className="text-sm font-medium px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100">📊 Analytics</Link>
           </div>
           <div className="flex items-center gap-3">
             {saved && <span className="text-green-600 text-sm font-medium">{saved}</span>}

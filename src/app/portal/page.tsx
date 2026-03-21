@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import QrScanner from '@/components/QrScanner';
 
@@ -24,6 +24,7 @@ function PortalContent() {
   const [history, setHistory] = useState<ScanResult[]>([]);
   const [showScanner, setShowScanner] = useState(false);
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   // Auto-fill if code comes from QR scan
   useEffect(() => {
@@ -68,15 +69,37 @@ function PortalContent() {
     }, 100);
   };
 
+  const navItems = [
+    { href: '/portal', label: 'Scanner', icon: '🎫' },
+    { href: '/portal/manage', label: 'Manage Hotel', icon: '🏨' },
+    { href: '/portal/analytics', label: 'Analytics', icon: '📊' },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: '#1A3C5E' }}>BB</div>
             <span className="font-bold text-sm" style={{ color: '#1A3C5E' }}>Hotel Portal</span>
           </Link>
+          <div className="flex items-center gap-4">
+            {navItems.map(item => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                  pathname === item.href
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <span>{item.icon} </span>
+                {item.label}
+              </Link>
+            ))}
+          </div>
           <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">Staff View</span>
         </div>
       </div>

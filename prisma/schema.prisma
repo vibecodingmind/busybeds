@@ -93,6 +93,9 @@ model Hotel {
   socialTwitter    String?
   socialTiktok     String?
 
+  // Analytics
+  viewCount        Int       @default(0)
+
   // Computed average (updated on review save)
   avgRating        Float?
   reviewCount      Int       @default(0)
