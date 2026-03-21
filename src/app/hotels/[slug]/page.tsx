@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import PhotoLightbox from '@/components/PhotoLightbox';
-import HotelReviews from './HotelReviews';
+import ReviewsSection from '@/components/ReviewsSection';
 import prisma from '@/lib/prisma';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -305,7 +305,7 @@ export default function HotelPage({ params }: PageProps) {
           )}
 
           {/* Reviews */}
-          <HotelReviews hotelId={hotel.id} hotelName={hotel.name} />
+          <ReviewsSection hotelId={hotel.id} hotelName={hotel.name} avgRating={hotel.avgRating} reviewCount={hotel.reviewCount} />
         </div>
 
         {/* Sidebar */}
