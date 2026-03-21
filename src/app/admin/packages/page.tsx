@@ -84,8 +84,15 @@ export default function PackagesPage() {
     try {
       const res = await fetch('/api/admin/packages/backfill-paypal', { method: 'POST' });
       const d = await res.json();
-      if (!res.ok) throw new Error(d.error || 'Failed');
-      showToast(d.message || `PayPal sync complete: ${d.updated} updated`);
+      if (!res.ok) throw new Error(d.error || 'Sync failed');
+      // Show details if any failed
+      if (d.results?.some((r: any) => r.error)) {
+        const failedNames = d.results.filter((r: any) => r.error).map((r: any) => r.name).join(', ');
+        const firstError = d.results.find((r: any) => r.error)?.error || '';
+        showToast(`⚠️ ${d.message} Failed: ${failedNames}. Error: ${firstError.slice(0, 80)}`);
+      } else {
+        showToast(d.message || `PayPal sync complete: ${d.updated} updated`);
+      }
       await fetchPackages();
     } catch (e: any) { showToast('PayPal sync error: ' + e.message); }
     finally { setSyncing(false); }
