@@ -6,33 +6,62 @@ import { getSessionFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const city = searchParams.get('city');
-  const country = searchParams.get('country');
-  const search = searchParams.get('search');
-  const featured = searchParams.get('featured');
+  const city        = searchParams.get('city');
+  const country     = searchParams.get('country');
+  const search      = searchParams.get('search');
+  const featured    = searchParams.get('featured');
+  const stars       = searchParams.get('stars');        // "3" | "4" | "5"
+  const minDiscount = searchParams.get('minDiscount');  // "10"
+  const amenities   = searchParams.get('amenities');    // "wifi,pool"
+  const sortBy      = searchParams.get('sort');         // "discount" | "rating" | "newest"
 
-  const hotels = await prisma.hotel.findMany({
-    where: {
-      status: 'active',
-      ...(city ? { city: { contains: city } } : {}),
-      ...(country ? { country: { contains: country } } : {}),
-      ...(search ? {
-        OR: [
-          { name: { contains: search } },
-          { city: { contains: search } },
-          { country: { contains: search } },
-        ],
-      } : {}),
-      ...(featured === 'true' ? { isFeatured: true } : {}),
-    },
+  const where: Record<string, any> = { status: 'active' };
+
+  if (city)    where.city    = { contains: city,    mode: 'insensitive' };
+  if (country) where.country = { contains: country, mode: 'insensitive' };
+  if (featured === 'true') where.isFeatured = true;
+  if (stars) {
+    const starNums = stars.split(',').map(Number).filter(n => n >= 1 && n <= 5);
+    if (starNums.length) where.starRating = { in: starNums };
+  }
+  if (minDiscount) {
+    const d = parseInt(minDiscount);
+    if (!isNaN(d)) where.discountPercent = { gte: d };
+  }
+  if (search) {
+    where.OR = [
+      { name:    { contains: search, mode: 'insensitive' } },
+      { city:    { contains: search, mode: 'insensitive' } },
+      { country: { contains: search, mode: 'insensitive' } },
+      { descriptionShort: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  let hotels = await prisma.hotel.findMany({
+    where,
     include: {
       roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
       _count: { select: { coupons: true } },
     },
-    orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+    orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
+           : sortBy === 'rating'   ? [{ avgRating: 'desc' }]
+           : [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
   });
 
-  return NextResponse.json({ hotels });
+  // Filter by amenities (JSON array stored as string)
+  if (amenities) {
+    const required = amenities.split(',').map(a => a.trim().toLowerCase()).filter(Boolean);
+    if (required.length) {
+      hotels = hotels.filter(h => {
+        try {
+          const arr: string[] = JSON.parse(h.amenities || '[]');
+          return required.every(r => arr.some(a => a.toLowerCase().includes(r)));
+        } catch { return false; }
+      });
+    }
+  }
+
+  return NextResponse.json({ hotels, total: hotels.length });
 }
 
 const affiliateLinkSchema = z.object({

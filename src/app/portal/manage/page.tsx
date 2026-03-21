@@ -430,11 +430,16 @@ function DiscountTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean;
 }
 
 function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; onSave: (u: Partial<Hotel>) => void }) {
-  const [coverUrl, setCoverUrl] = useState(hotel.coverImage || '');
-  const [photos, setPhotos] = useState<Array<{ id: string; url: string; displayOrder: number }>>([]);
+  const [coverUrl, setCoverUrl]     = useState(hotel.coverImage || '');
+  const [photos, setPhotos]         = useState<Array<{ id: string; url: string; displayOrder: number }>>([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [addingPhoto, setAddingPhoto] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [dragOver, setDragOver]     = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/portal/photos')
@@ -443,91 +448,184 @@ function PhotoTab({ hotel, saving, onSave }: { hotel: Hotel; saving: boolean; on
       .catch(() => setLoadingPhotos(false));
   }, []);
 
-  const addPhoto = async () => {
+  const uploadFile = async (file: File, forCover = false) => {
+    if (!file.type.startsWith('image/')) { setUploadError('Only image files allowed'); return null; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('File too large (max 5 MB)'); return null; }
+    setUploadError('');
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`/api/portal/photos`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) { setUploadError(data.error || 'Upload failed'); return null; }
+    return data.photo;
+  };
+
+  const uploadCoverFile = async (file: File) => {
+    setUploadingCover(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload?folder=covers', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) { setUploadError(data.error || 'Upload failed'); return; }
+      setCoverUrl(data.url);
+      await onSave({ coverImage: data.url });
+    } finally { setUploadingCover(false); }
+  };
+
+  const addPhotoFile = async (file: File) => {
+    if (photos.length >= 10) { setUploadError('Maximum 10 photos reached'); return; }
+    setAddingPhoto(true);
+    try {
+      const photo = await uploadFile(file);
+      if (photo) setPhotos(prev => [...prev, photo]);
+    } finally { setAddingPhoto(false); }
+  };
+
+  const addPhotoUrl = async () => {
     if (!newPhotoUrl.trim()) return;
     setAddingPhoto(true);
     try {
       const res = await fetch('/api/portal/photos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: newPhotoUrl.trim() }),
       });
       const data = await res.json();
-      if (res.ok) {
-        setPhotos(prev => [...prev, data.photo]);
-        setNewPhotoUrl('');
-      }
+      if (res.ok) { setPhotos(prev => [...prev, data.photo]); setNewPhotoUrl(''); }
+      else setUploadError(data.error || 'Failed to add photo');
     } finally { setAddingPhoto(false); }
   };
 
   const deletePhoto = async (photoId: string) => {
     await fetch('/api/portal/photos', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ photoId }),
     });
     setPhotos(prev => prev.filter(p => p.id !== photoId));
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    files.slice(0, 10 - photos.length).forEach(f => addPhotoFile(f));
+  };
+
   return (
     <div className="space-y-6 text-left">
+      {uploadError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <span>⚠️</span> {uploadError}
+          <button onClick={() => setUploadError('')} className="ml-auto text-red-400 hover:text-red-600">✕</button>
+        </div>
+      )}
+
       {/* Cover Image */}
       <div>
         <h3 className="font-semibold text-gray-800 mb-3">Cover Photo</h3>
         {coverUrl && (
-          <div className="rounded-xl overflow-hidden border border-gray-200 h-48 mb-3">
+          <div className="rounded-xl overflow-hidden border border-gray-200 h-48 mb-3 relative group">
             <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button onClick={() => coverInputRef.current?.click()}
+                className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                Replace
+              </button>
+            </div>
           </div>
         )}
-        <label className="label">Cover Image URL</label>
-        <input className="input mb-2" type="url" placeholder="https://images.unsplash.com/..." value={coverUrl}
-          onChange={e => setCoverUrl(e.target.value)} />
-        <p className="text-xs text-gray-400 mb-3">Use any public image URL. Unsplash.com has free hotel photos.</p>
-        <button onClick={() => onSave({ coverImage: coverUrl })} disabled={saving}
-          className="btn-primary text-sm disabled:opacity-50">
-          {saving ? 'Saving...' : 'Update Cover Photo'}
-        </button>
+
+        {/* File upload for cover */}
+        <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) uploadCoverFile(f); e.target.value = ''; }} />
+
+        <div className="flex gap-2 mb-2">
+          <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border-2 border-dashed border-gray-300 hover:border-[#E8395A] hover:bg-red-50 transition-colors disabled:opacity-50">
+            {uploadingCover
+              ? <><div className="w-3.5 h-3.5 border-2 border-[#E8395A] border-t-transparent rounded-full animate-spin" /> Uploading…</>
+              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Upload from device</>
+            }
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400 mb-2">Or paste a URL:</p>
+        <div className="flex gap-2">
+          <input className="input flex-1" type="url" placeholder="https://images.unsplash.com/..." value={coverUrl}
+            onChange={e => setCoverUrl(e.target.value)} />
+          <button onClick={() => onSave({ coverImage: coverUrl })} disabled={saving}
+            className="btn-primary text-sm px-4 disabled:opacity-50 flex-shrink-0">
+            {saving ? '…' : 'Save'}
+          </button>
+        </div>
       </div>
 
       <div className="h-px bg-gray-200" />
 
       {/* Gallery Photos */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-1">Gallery Photos</h3>
-        <p className="text-xs text-gray-400 mb-4">Add up to 10 photos for the hotel gallery. These show in the hotel detail page carousel.</p>
-        
-        {loadingPhotos ? (
-          <div className="space-y-2">
-            {[1, 2].map(i => <div key={i} className="skeleton h-16 rounded-xl" />)}
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-gray-800">Gallery Photos</h3>
+          <span className="text-xs text-gray-400">{photos.length}/10</span>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">These appear in the hotel page carousel. Drag &amp; drop multiple images at once.</p>
+
+        {/* Drag & drop zone */}
+        {photos.length < 10 && (
+          <div
+            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all mb-4 ${dragOver ? 'border-[#E8395A] bg-red-50' : 'border-gray-200 hover:border-[#E8395A] hover:bg-gray-50'}`}
+          >
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+              onChange={e => { Array.from(e.target.files || []).forEach(f => addPhotoFile(f)); e.target.value = ''; }} />
+            {addingPhoto
+              ? <div className="flex items-center justify-center gap-2 text-sm text-gray-500"><div className="w-4 h-4 border-2 border-[#E8395A] border-t-transparent rounded-full animate-spin" /> Uploading…</div>
+              : <>
+                  <svg className="mx-auto mb-2 text-gray-300" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                  <p className="text-sm font-medium text-gray-600">Drop photos here or click to browse</p>
+                  <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP · Max 5 MB each</p>
+                </>
+            }
           </div>
+        )}
+
+        {loadingPhotos ? (
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="skeleton h-16 rounded-xl" />)}</div>
         ) : (
           <div className="space-y-2 mb-4">
             {photos.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-xl">No gallery photos yet. Add some below.</p>
+              <p className="text-sm text-gray-400 text-center py-3 bg-gray-50 rounded-xl">No gallery photos yet.</p>
             )}
             {photos.map((p, idx) => (
               <div key={p.id} className="flex items-center gap-3 p-2 border border-gray-200 rounded-xl">
-                <img src={p.url} alt="" className="w-16 h-12 object-cover rounded-lg flex-shrink-0" 
+                <img src={p.url} alt="" className="w-16 h-12 object-cover rounded-lg flex-shrink-0"
                   onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=80'; }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500 truncate">{p.url}</p>
                   <p className="text-xs text-gray-400">Photo {idx + 1}</p>
                 </div>
-                <button onClick={() => deletePhoto(p.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-lg flex-shrink-0">×</button>
+                <button onClick={() => deletePhoto(p.id)}
+                  className="text-red-400 hover:text-red-600 hover:bg-red-50 w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-lg flex-shrink-0">×</button>
               </div>
             ))}
           </div>
         )}
 
+        {/* URL fallback */}
         {photos.length < 10 && (
-          <div className="flex gap-2">
-            <input className="input flex-1" type="url" placeholder="https://images.unsplash.com/..." 
-              value={newPhotoUrl} onChange={e => setNewPhotoUrl(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addPhoto()} />
-            <button onClick={addPhoto} disabled={addingPhoto || !newPhotoUrl.trim()}
-              className="btn-primary text-sm px-4 disabled:opacity-50 flex-shrink-0">
-              {addingPhoto ? '...' : '+ Add'}
-            </button>
+          <div>
+            <p className="text-xs text-gray-400 mb-1.5">Or add by URL:</p>
+            <div className="flex gap-2">
+              <input className="input flex-1" type="url" placeholder="https://images.unsplash.com/..."
+                value={newPhotoUrl} onChange={e => setNewPhotoUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addPhotoUrl()} />
+              <button onClick={addPhotoUrl} disabled={addingPhoto || !newPhotoUrl.trim()}
+                className="btn-primary text-sm px-4 disabled:opacity-50 flex-shrink-0">
+                {addingPhoto ? '…' : '+ Add'}
+              </button>
+            </div>
           </div>
         )}
         {photos.length >= 10 && <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">Maximum 10 gallery photos reached.</p>}
