@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { cuid } from 'cuid2';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 
@@ -24,7 +23,7 @@ type HotelRow = z.infer<typeof HotelRowSchema>;
 // Helper to auto-generate slug
 function generateSlug(name: string, existing: Set<string>): string {
   const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  let slug = `${baseSlug}-${cuid().slice(0, 6)}`;
+  let slug = `${baseSlug}-${crypto.randomUUID().slice(0, 6)}`;
   
   // Ensure uniqueness
   let counter = 1;
