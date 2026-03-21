@@ -48,6 +48,8 @@ model User {
   referralsMade     Referral[]       @relation("ReferralsMade")
   referralReceived  Referral[]       @relation("ReferralReceived")
   loyaltyPoints     LoyaltyPoints?
+  giftCardsPurchased GiftCard[] @relation("GiftCardsPurchased")
+  giftCardsRedeemed  GiftCard[] @relation("GiftCardsRedeemed")
   auditLogs        AuditLog[]
   pointTransactions PointTransaction[]
   notifications   Notification[]
@@ -382,4 +384,23 @@ model AuditLog {
   ipAddress  String?
   createdAt  DateTime @default(now())
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model GiftCard {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  amount        Float     // USD value
+  balance       Float     // remaining balance
+  purchasedById String?
+  redeemedById  String?
+  recipientEmail String?
+  recipientName  String?
+  message       String?
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
+  purchasedAt   DateTime  @default(now())
+  redeemedAt    DateTime?
+  updatedAt     DateTime  @updatedAt
+  purchasedBy   User?     @relation("GiftCardsPurchased", fields: [purchasedById], references: [id], onDelete: SetNull)
+  redeemedBy    User?     @relation("GiftCardsRedeemed", fields: [redeemedById], references: [id], onDelete: SetNull)
 }
