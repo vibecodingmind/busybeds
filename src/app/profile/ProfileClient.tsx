@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import SecuritySettings from '@/components/SecuritySettings';
 
 const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/initials/svg?seed=';
 
@@ -269,7 +270,14 @@ export default function ProfileClient({ user, subscription, stats }: Props) {
           <div className="flex-1 min-w-0">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
               {tab === 'profile'      && <ProfileSection user={user} avatarUrl={avatarUrl} />}
-              {tab === 'security'     && <SecuritySection />}
+              {tab === 'security'     && (
+                <div className="space-y-6">
+                  <SecuritySection />
+                  <div className="bg-white rounded-2xl shadow-sm">
+                    <SecuritySettings />
+                  </div>
+                </div>
+              )}
               {tab === 'subscription' && <SubscriptionSection subscription={subscription} />}
             </div>
           </div>

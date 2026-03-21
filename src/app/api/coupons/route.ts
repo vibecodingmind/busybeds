@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { rateLimit } from '@/lib/rateLimit';
+import { rateLimit, getIp } from '@/lib/rateLimit';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -49,6 +49,14 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Rate limit: 5 coupon generations per 10 minutes per user
+  const rl = rateLimit(`coupon:${session.userId}`, { limit: 5, windowSec: 600 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many coupon generation requests. Please wait a few minutes.", code: "RATE_LIMITED" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
 
   const body = await req.json();
   const { hotelId, guestName } = schema.parse(body);

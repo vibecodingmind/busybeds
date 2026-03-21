@@ -47,6 +47,7 @@ model User {
   referralsMade     Referral[]       @relation("ReferralsMade")
   referralReceived  Referral[]       @relation("ReferralReceived")
   loyaltyPoints     LoyaltyPoints?
+  auditLogs        AuditLog[]
   pointTransactions PointTransaction[]
   notifications   Notification[]
 }
@@ -357,4 +358,16 @@ model Notification {
   link      String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
