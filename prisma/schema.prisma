@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String
+  role                 String    @default("traveler")
+  fullName             String
+  phone                String?
+  createdAt            DateTime  @default(now())
+  suspendedAt          DateTime?
+  suspendedReason      String?
+
+  // Email verification
+  emailVerified        Boolean   @default(false)
+  emailVerifyToken     String?
+  emailVerifyExpiry    DateTime?
+  googleId             String?   @unique
+
+  // Avatar
+  avatar               String?
+
+  // Password reset
+  passwordResetToken   String?
+  passwordResetExpiry  DateTime?
+
+  // Relations
+  subscriptions        Subscription[]
+  coupons              Coupon[]          @relation("CouponOwner")
+  redeemedCoupons      Coupon[]          @relation("CouponRedeemer")
+  hotelOwner           HotelOwner?
+  hotelManager         HotelManager?
+  suggestions          HotelSuggestion[]
+  reviews              Review[]
+  favorites            Favorite[]
+  referralCode         String?   @unique
+  referralUseGiven     ReferralUse[] @relation("ReferralGiven")
+  referralUseReceived  ReferralUse?  @relation("ReferralReceived")
+}
+
+model HotelType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String   @default("hotel")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Hotel {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  city             String
+  country          String
+  category         String    @default("Hotel")
+  descriptionShort String
+  descriptionLong  String
+  starRating       Int       @default(3)
+  amenities        String    @default("[]")
+  websiteUrl       String?
+  status           String    @default("active")
+  isFeatured       Boolean   @default(false)
+  featuredUntil    DateTime?
+  coverImage       String?   @default("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt @default(now())
+  discountPercent  Int       @default(15)
+  couponValidDays  Int       @default(30)
+
+  // Contact info
+  email            String?
+  whatsapp         String?
+  address          String?
+
+  // Social media
+  socialFacebook   String?
+  socialInstagram  String?
+  socialTwitter    String?
+  socialTiktok     String?
+
+  // Computed average (updated on review save)
+  avgRating        Float?
+  reviewCount      Int       @default(0)
+
+  // Relations
+  owner            HotelOwner?
+  managers         HotelManager[]
+  roomTypes        RoomType[]
+  photos           HotelPhoto[]
+  coupons          Coupon[]
+  affiliateLinks   AffiliateLink[]
+  reviews          Review[]
+  favorites        Favorite[]
+}
+
+model HotelOwner {
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  hotelId            String    @unique
+  kycStatus          String    @default("pending")
+  kycDocuments       String?
+  kycSubmittedAt     DateTime  @default(now())
+  kycReviewedAt      DateTime?
+  kycRejectionReason String?
+
+  user               User      @relation(fields: [userId], references: [id])
+  hotel              Hotel     @relation(fields: [hotelId], references: [id])
+}
+
+model HotelManager {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  hotelId    String
+  assignedBy String?
+  assignedAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+
+  user       User     @relation(fields: [userId], references: [id])
+  hotel      Hotel    @relation(fields: [hotelId], references: [id])
+}
+
+model RoomType {
+  id             String  @id @default(cuid())
+  hotelId        String
+  name           String
+  description    String
+  pricePerNight  Float
+  currency       String  @default("USD")
+  maxOccupancy   Int     @default(2)
+  displayOrder   Int     @default(0)
+
+  hotel          Hotel   @relation(fields: [hotelId], references: [id])
+}
+
+model HotelPhoto {
+  id           String   @id @default(cuid())
+  hotelId      String
+  url          String
+  isPrimary    Boolean  @default(false)
+  displayOrder Int      @default(0)
+  uploadedAt   DateTime @default(now())
+
+  hotel        Hotel    @relation(fields: [hotelId], references: [id])
+}
+
+model SubscriptionPackage {
+  id                   String   @id @default(cuid())
+  name                 String
+  priceMonthly         Float
+  priceAnnual          Float?
+  durationDays         Int
+  couponLimitPerPeriod Int      @default(5)
+  isActive             Boolean  @default(true)
+  stripePriceIdMonthly String?
+  createdAt            DateTime @default(now())
+
+  subscriptions        Subscription[]
+}
+
+model Subscription {
+  id           String    @id @default(cuid())
+  userId       String
+  packageId    String
+  status       String    @default("active")
+  billingCycle String    @default("monthly")
+  startsAt     DateTime  @default(now())
+  expiresAt    DateTime
+  stripeSubId  String?
+  compedBy     String?
+  compedReason String?
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id])
+  package      SubscriptionPackage @relation(fields: [packageId], references: [id])
+}
+
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  qrDataUrl       String?
+  userId          String
+  hotelId         String
+  subscriptionId  String
+  discountPercent Int
+  guestName       String?   // set when coupon is for a friend/guest
+  status          String    @default("active")
+  generatedAt     DateTime  @default(now())
+  expiresAt       DateTime
+  redeemedAt      DateTime?
+  redeemedBy      String?
+  cancelledAt     DateTime?
+  cancelledBy     String?
+
+  user            User      @relation("CouponOwner", fields: [userId], references: [id])
+  hotel           Hotel     @relation(fields: [hotelId], references: [id])
+  redeemer        User?     @relation("CouponRedeemer", fields: [redeemedBy], references: [id])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  hotelId   String
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+
+  @@unique([userId, hotelId]) // one review per user per hotel
+}
+
+model HotelSuggestion {
+  id                String    @id @default(cuid())
+  suggestedByUserId String?
+  suggestedByEmail  String?
+  hotelName         String
+  hotelCity         String
+  hotelCountry      String
+  hotelWebsite      String?
+  notes             String?
+  status            String    @default("pending")
+  reviewedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  suggestedBy       User?     @relation(fields: [suggestedByUserId], references: [id])
+}
+
+model AffiliateLink {
+  id        String   @id @default(cuid())
+  hotelId   String
+  platform  String
+  url       String
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  hotelId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+
+  @@unique([userId, hotelId])
+}
+
+model ReferralUse {
+  id           String   @id @default(cuid())
+  referrerId   String
+  referredId   String   @unique
+  createdAt    DateTime @default(now())
+
+  referrer     User     @relation("ReferralGiven", fields: [referrerId], references: [id])
+  referred     User     @relation("ReferralReceived", fields: [referredId], references: [id])
+}
+
+model Amenity {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String   @default("✓")
+  category  String   @default("general")
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model SiteSettings {
+  id    String @id @default("global")
+  key   String @unique
+  value String
+}

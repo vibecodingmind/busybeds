@@ -1,0 +1,209 @@
+'use client';
+import { useState } from 'react';
+
+type SettingGroup = {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  fields: SettingField[];
+};
+
+type SettingField = {
+  key: string;
+  label: string;
+  placeholder: string;
+  type: 'text' | 'password' | 'url' | 'email' | 'toggle' | 'number' | 'select';
+  options?: string[];
+  hint?: string;
+};
+
+const SETTING_GROUPS: SettingGroup[] = [
+  {
+    id: 'general',
+    label: 'General',
+    icon: '🌐',
+    description: 'Platform name, branding and contact details',
+    fields: [
+      { key: 'siteName',    label: 'Platform Name',    placeholder: 'BusyBeds', type: 'text' },
+      { key: 'siteUrl',     label: 'Site URL',          placeholder: 'https://busybeds.com', type: 'url' },
+      { key: 'supportEmail',label: 'Support Email',     placeholder: 'support@busybeds.com', type: 'email' },
+      { key: 'defaultCurrency', label: 'Default Currency', placeholder: 'USD', type: 'select', options: ['USD', 'EUR', 'GBP', 'KES', 'NGN', 'ZAR'] },
+    ],
+  },
+  {
+    id: 'stripe',
+    label: 'Stripe Payments',
+    icon: '💳',
+    description: 'Stripe API keys for subscription billing',
+    fields: [
+      { key: 'stripePublishableKey', label: 'Publishable Key', placeholder: 'pk_live_…', type: 'text', hint: 'Starts with pk_live_ or pk_test_' },
+      { key: 'stripeSecretKey',      label: 'Secret Key',      placeholder: 'sk_live_…', type: 'password', hint: 'Keep this secret — never expose in client code' },
+      { key: 'stripeWebhookSecret',  label: 'Webhook Secret',  placeholder: 'whsec_…', type: 'password', hint: 'From Stripe Dashboard → Webhooks' },
+    ],
+  },
+  {
+    id: 'email',
+    label: 'Email (SMTP)',
+    icon: '✉️',
+    description: 'SMTP credentials for transactional emails',
+    fields: [
+      { key: 'smtpHost',     label: 'SMTP Host',      placeholder: 'smtp.sendgrid.net', type: 'text' },
+      { key: 'smtpPort',     label: 'SMTP Port',      placeholder: '587', type: 'number' },
+      { key: 'smtpUser',     label: 'SMTP Username',  placeholder: 'apikey', type: 'text' },
+      { key: 'smtpPass',     label: 'SMTP Password',  placeholder: '••••••••', type: 'password' },
+      { key: 'emailFrom',    label: 'From Address',   placeholder: 'no-reply@busybeds.com', type: 'email' },
+    ],
+  },
+  {
+    id: 'google',
+    label: 'Google OAuth',
+    icon: '🔑',
+    description: 'Google sign-in credentials',
+    fields: [
+      { key: 'googleClientId',     label: 'Client ID',     placeholder: '1234567890-abc.apps.googleusercontent.com', type: 'text' },
+      { key: 'googleClientSecret', label: 'Client Secret', placeholder: 'GOCSPX-…', type: 'password' },
+    ],
+  },
+  {
+    id: 'cloudinary',
+    label: 'Cloudinary (Images)',
+    icon: '🖼️',
+    description: 'Image hosting and CDN via Cloudinary',
+    fields: [
+      { key: 'cloudinaryCloudName', label: 'Cloud Name',  placeholder: 'my-cloud', type: 'text' },
+      { key: 'cloudinaryApiKey',    label: 'API Key',     placeholder: '123456789012345', type: 'text' },
+      { key: 'cloudinaryApiSecret', label: 'API Secret',  placeholder: '••••••••••••••••', type: 'password' },
+    ],
+  },
+  {
+    id: 'platform',
+    label: 'Platform Rules',
+    icon: '⚙️',
+    description: 'Default coupon, discount and booking behaviour',
+    fields: [
+      { key: 'defaultDiscountPercent', label: 'Default Discount %', placeholder: '15', type: 'number' },
+      { key: 'defaultCouponValidDays', label: 'Coupon Valid Days',  placeholder: '30', type: 'number' },
+      { key: 'maxCouponsPerUser',      label: 'Max Coupons / User', placeholder: '10', type: 'number' },
+      { key: 'maintenanceMode',        label: 'Maintenance Mode',   placeholder: '', type: 'toggle', hint: 'Shows a maintenance page to non-admins' },
+    ],
+  },
+];
+
+// Local state — persisted to .env.local / config in a real app via the API
+const DEFAULT_VALS: Record<string, string> = {
+  siteName: 'BusyBeds', defaultCurrency: 'USD', defaultDiscountPercent: '15',
+  defaultCouponValidDays: '30', maxCouponsPerUser: '10', maintenanceMode: 'false',
+};
+
+export default function SettingsPage() {
+  const [values, setValues]     = useState<Record<string, string>>(DEFAULT_VALS);
+  const [saved, setSaved]       = useState<Record<string, boolean>>({});
+  const [saving, setSaving]     = useState<Record<string, boolean>>({});
+  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState('general');
+
+  const set = (k: string, v: string) => { setValues(prev => ({ ...prev, [k]: v })); setSaved(prev => ({ ...prev, [activeTab]: false })); };
+
+  const saveGroup = async (groupId: string) => {
+    setSaving(prev => ({ ...prev, [groupId]: true }));
+    // In production this would POST to /api/admin/settings
+    await new Promise(r => setTimeout(r, 800));
+    setSaved(prev => ({ ...prev, [groupId]: true }));
+    setSaving(prev => ({ ...prev, [groupId]: false }));
+    setTimeout(() => setSaved(prev => ({ ...prev, [groupId]: false })), 3000);
+  };
+
+  const activeGroup = SETTING_GROUPS.find(g => g.id === activeTab)!;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-extrabold text-gray-900">API & Platform Settings</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Configure integrations, keys, and platform behaviour</p>
+      </div>
+
+      <div className="flex gap-5">
+        {/* Left: tab sidebar */}
+        <div className="w-52 flex-shrink-0 space-y-1">
+          {SETTING_GROUPS.map(g => (
+            <button key={g.id} onClick={() => setActiveTab(g.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all ${activeTab === g.id ? 'text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
+              style={activeTab === g.id ? { background: '#E8395A' } : {}}>
+              <span>{g.icon}</span>
+              {g.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: fields */}
+        <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span>{activeGroup.icon}</span> {activeGroup.label}
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">{activeGroup.description}</p>
+            </div>
+            <button
+              onClick={() => saveGroup(activeGroup.id)}
+              disabled={saving[activeGroup.id]}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${saved[activeGroup.id] ? 'bg-green-50 text-green-700' : 'text-white hover:opacity-90'}`}
+              style={!saved[activeGroup.id] ? { background: '#E8395A' } : {}}>
+              {saving[activeGroup.id] ? (
+                <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+              ) : saved[activeGroup.id] ? (
+                <><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg> Saved!</>
+              ) : 'Save Changes'}
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            {activeGroup.fields.map(f => (
+              <div key={f.key}>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">{f.label}</label>
+                {f.type === 'toggle' ? (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => set(f.key, values[f.key] === 'true' ? 'false' : 'true')}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${values[f.key] === 'true' ? 'bg-[#E8395A]' : 'bg-gray-200'}`}>
+                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${values[f.key] === 'true' ? 'translate-x-7' : 'translate-x-1'}`} />
+                    </button>
+                    <span className="text-sm text-gray-600">{values[f.key] === 'true' ? 'Enabled' : 'Disabled'}</span>
+                    {f.hint && <span className="text-xs text-gray-400">— {f.hint}</span>}
+                  </div>
+                ) : f.type === 'select' ? (
+                  <select value={values[f.key] || ''} onChange={e => set(f.key, e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] bg-white max-w-xs">
+                    {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <div className="relative max-w-lg">
+                    <input
+                      type={f.type === 'password' ? (showKeys[f.key] ? 'text' : 'password') : f.type}
+                      value={values[f.key] || ''}
+                      onChange={e => set(f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] font-mono pr-10"
+                    />
+                    {f.type === 'password' && (
+                      <button onClick={() => setShowKeys(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showKeys[f.key] ? (
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {f.hint && f.type !== 'toggle' && <p className="text-xs text-gray-400 mt-1">{f.hint}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

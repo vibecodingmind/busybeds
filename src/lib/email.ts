@@ -1,0 +1,166 @@
+import nodemailer from 'nodemailer';
+
+const hasSmtp = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+const transporter = hasSmtp
+  ? nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: Number(process.env.EMAIL_PORT || 587),
+      secure: false,
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    })
+  : null;
+
+interface EmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export async function sendEmail({ to, subject, html }: EmailOptions) {
+  if (!transporter) {
+    // Dev mode — print to console instead of sending
+    console.log('\n📧 EMAIL (dev mode — configure SMTP to send for real)');
+    console.log(`   To:      ${to}`);
+    console.log(`   Subject: ${subject}`);
+    console.log(`   Body:    ${html.replace(/<[^>]+>/g, '').slice(0, 200)}...`);
+    console.log('');
+    return;
+  }
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || 'Busy Beds <noreply@busybeds.com>',
+    to, subject, html,
+  });
+}
+
+// ── Email Templates ────────────────────────────────────────────
+
+function baseTemplate(content: string) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>
+  body { font-family: Arial, sans-serif; background: #F2F4F7; margin: 0; padding: 0; }
+  .wrap { max-width: 560px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; }
+  .header { background: linear-gradient(135deg,#1A3C5E,#0E7C7B); padding: 32px 32px 24px; color: #fff; }
+  .header h1 { margin: 0; font-size: 22px; }
+  .header p { margin: 4px 0 0; opacity: .75; font-size: 13px; }
+  .body { padding: 32px; color: #1D2939; line-height: 1.6; }
+  .btn { display: inline-block; background: #0E7C7B; color: #fff !important; padding: 12px 28px;
+         border-radius: 10px; text-decoration: none; font-weight: bold; margin: 16px 0; }
+  .box { background: #F2F4F7; border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+  .code { font-family: monospace; font-size: 18px; font-weight: bold; color: #1A3C5E; letter-spacing: 2px; }
+  .footer { padding: 20px 32px; font-size: 12px; color: #888; border-top: 1px solid #eee; text-align: center; }
+</style></head>
+<body><div class="wrap">
+  <div class="header">
+    <h1>🏨 Busy Beds</h1>
+    <p>Hotel discounts, verified by QR</p>
+  </div>
+  <div class="body">${content}</div>
+  <div class="footer">© ${new Date().getFullYear()} Busy Beds · You received this because you have an account with us.</div>
+</div></body></html>`;
+}
+
+export function emailWelcome(name: string) {
+  return baseTemplate(`
+    <h2>Welcome, ${name}! 🎉</h2>
+    <p>Your Busy Beds account is ready. Subscribe to a plan and start generating hotel discount coupons in seconds.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/subscribe" class="btn">Choose a Plan →</a>
+    <p style="color:#888;font-size:13px">Each coupon is unique to you, verified by hotel staff on-site. No booking needed.</p>
+  `);
+}
+
+export function emailCouponGenerated(name: string, hotelName: string, discount: number, code: string, expiresAt: Date) {
+  return baseTemplate(`
+    <h2>Your coupon is ready! 🎫</h2>
+    <p>Hi ${name}, here's your discount coupon for <strong>${hotelName}</strong>.</p>
+    <div class="box">
+      <div style="font-size:13px;color:#666;margin-bottom:4px">Coupon Code</div>
+      <div class="code">${code}</div>
+      <div style="margin-top:10px;font-size:22px;font-weight:bold;color:#0E7C7B">${discount}% OFF</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Valid until ${expiresAt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+    </div>
+    <p>Show this code (or your QR code) at the hotel reception. Staff will scan it and apply your discount instantly.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/coupons" class="btn">View My Coupons →</a>
+  `);
+}
+
+export function emailSubscriptionConfirmed(name: string, planName: string, expiresAt: Date) {
+  return baseTemplate(`
+    <h2>Subscription activated! 💳</h2>
+    <p>Hi ${name}, your <strong>${planName}</strong> plan is now active.</p>
+    <div class="box">
+      <div style="font-size:13px;color:#666">Active until</div>
+      <div style="font-size:18px;font-weight:bold;color:#1A3C5E;margin-top:4px">
+        ${expiresAt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
+      </div>
+    </div>
+    <p>Browse hotels and start generating your discount coupons now.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}" class="btn">Browse Hotels →</a>
+  `);
+}
+
+export function emailKycApproved(name: string, hotelName: string) {
+  return baseTemplate(`
+    <h2>KYC Approved! ✅</h2>
+    <p>Hi ${name}, great news — your application for <strong>${hotelName}</strong> has been approved.</p>
+    <p>You now have full access to your hotel dashboard. Set up your hotel page, add photos, configure your discount offer, and assign managers.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/portal" class="btn">Go to Hotel Portal →</a>
+  `);
+}
+
+export function emailKycRejected(name: string, hotelName: string, reason?: string) {
+  return baseTemplate(`
+    <h2>KYC Application Update</h2>
+    <p>Hi ${name}, unfortunately your application for <strong>${hotelName}</strong> was not approved at this time.</p>
+    ${reason ? `<div class="box"><strong>Reason:</strong> ${reason}</div>` : ''}
+    <p>If you have questions or would like to resubmit with updated documents, please contact our support team.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/apply" class="btn">Resubmit Application →</a>
+  `);
+}
+
+export function emailHotelSuggestionReceived(hotelName: string) {
+  return baseTemplate(`
+    <h2>Thank you for your suggestion!</h2>
+    <p>We've received your suggestion to add <strong>${hotelName}</strong> to Busy Beds.</p>
+    <p>Our team will review it and add it to the platform if it meets our criteria. We'll let you know once it's live.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}" class="btn">Browse Existing Hotels →</a>
+  `);
+}
+
+export function emailVerifyEmail(name: string, verifyUrl: string) {
+  return baseTemplate(`
+    <h2>Verify your email address 📧</h2>
+    <p>Hi ${name}, thanks for joining Busy Beds! Please verify your email address to get started.</p>
+    <a href="${verifyUrl}" class="btn">Verify Email →</a>
+    <p style="margin-top:16px;font-size:12px;color:#888">This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.</p>
+  `);
+}
+
+export function emailPasswordReset(name: string, resetUrl: string) {
+  return baseTemplate(`
+    <h2>Reset your password 🔑</h2>
+    <p>Hi ${name}, we received a request to reset your password.</p>
+    <a href="${resetUrl}" class="btn">Reset Password →</a>
+    <p style="margin-top:16px;font-size:12px;color:#888">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
+  `);
+}
+
+export function emailRenewalReminder(name: string, planName: string, expiresAt: Date, renewUrl: string) {
+  const daysLeft = Math.ceil((expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  return baseTemplate(`
+    <h2>Your subscription expires soon! ⏰</h2>
+    <p>Hi ${name}, your <strong>${planName}</strong> plan expires on <strong>${expiresAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong> — just ${daysLeft} day${daysLeft !== 1 ? 's' : ''} away.</p>
+    <p>Renew now to keep enjoying your hotel discounts without interruption.</p>
+    <a href="${renewUrl}" class="btn">Renew Now →</a>
+    <div class="box" style="margin-top: 20px;">
+      <strong>What you'll lose if you don't renew:</strong>
+      <ul style="margin: 8px 0 0 16px; padding: 0;">
+        <li>Access to all hotel discount coupons</li>
+        <li>Ability to generate new coupons</li>
+        <li>Pending coupon redemptions may expire</li>
+      </ul>
+    </div>
+  `);
+}
