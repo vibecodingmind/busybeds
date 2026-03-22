@@ -441,7 +441,7 @@ export default function HotelPageClient({
           <div className="bg-white border border-gray-100 rounded-2xl shadow-md p-5">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-gray-900">Book Directly</h3>
-              {!canClickPartner && (
+              {!canClickPartner && hotel.affiliateLinks.length > 0 && (
                 <span className="flex items-center gap-1 text-xs text-gray-400">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                   {subState === 'not_logged_in' ? 'Sign in to access' : 'Subscription required'}
@@ -477,20 +477,15 @@ export default function HotelPageClient({
                 })}
               </div>
             ) : (
-              /* No links yet — show all partner logos as placeholders */
-              <div className="grid grid-cols-3 gap-2">
-                {Object.values(PARTNERS).map(p => (
-                  <div key={p.name}
-                    className="flex flex-col items-center gap-1.5 p-2.5 border border-gray-100 rounded-xl bg-gray-50 opacity-40">
-                    <img src={p.logo} alt={p.name} className="h-5 w-auto object-contain grayscale"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    <span className="text-[10px] font-medium text-gray-400 text-center leading-tight">{p.name}</span>
-                  </div>
-                ))}
+              /* No links added — clean empty state */
+              <div className="flex flex-col items-center gap-2 py-5 text-center">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">🔗</div>
+                <p className="text-sm font-medium text-gray-500">No partner links yet</p>
+                <p className="text-xs text-gray-400 max-w-[180px]">The hotel hasn&apos;t added any booking platform links yet.</p>
               </div>
             )}
 
-            {!canClickPartner && (
+            {!canClickPartner && hotel.affiliateLinks.length > 0 && (
               <Link href={subState === 'not_logged_in' ? '/login' : '/subscribe'}
                 className="mt-3 w-full block text-center py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 style={{ background: '#FF385C' }}>
