@@ -362,7 +362,7 @@ export default function HotelPageClient({
           {relatedHotels.length > 0 && (
             <div className="mt-12">
               <h2 className="text-xl font-bold text-gray-900 mb-5">
-                More hotels in {hotel.city}
+                You might also like
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 {relatedHotels.map(h => {
