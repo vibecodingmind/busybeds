@@ -11,6 +11,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const data: Record<string, unknown> = {};
   for (const key of allowed) { if (key in body) data[key] = body[key]; }
   if ('vibeTags' in body) data.vibeTags = JSON.stringify(body.vibeTags);
+  if ('discountRules' in body) data.discountRules = JSON.stringify(body.discountRules);
   const hotel = await prisma.hotel.update({ where: { id: params.id }, data, include: { _count: { select: { coupons: true, roomTypes: true } } } });
   return NextResponse.json({ hotel });
 }

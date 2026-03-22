@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import AffiliateTab from './AffiliateTab';
+import DiscountRulesTab from './DiscountRulesTab';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
 interface RoomType { id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number; displayOrder: number; }
@@ -19,7 +20,7 @@ interface Hotel {
   isFeatured?: boolean; featuredUntil?: string;
 }
 
-type Tab = 'overview' | 'rooms' | 'discount' | 'photos' | 'contact' | 'promos' | 'staff' | 'affiliates';
+type Tab = 'overview' | 'rooms' | 'discount' | 'discount-rules' | 'photos' | 'contact' | 'promos' | 'staff' | 'affiliates';
 
 export default function ManageHotelPage() {
   const [hotel, setHotel] = useState<Hotel | null>(null);
@@ -140,6 +141,7 @@ export default function ManageHotelPage() {
     { id: 'overview', label: 'Overview',  icon: '📋' },
     { id: 'rooms',    label: 'Rooms',     icon: '🛏' },
     { id: 'discount', label: 'Discount',  icon: '🎫' },
+    { id: 'discount-rules', label: 'Promo Rules', icon: '🏷️' },
     { id: 'photos',   label: 'Photos',    icon: '📷' },
     { id: 'contact',  label: 'Contact',   icon: '📞' },
     { id: 'promos',   label: 'Promotions', icon: '⚡' },
@@ -225,6 +227,13 @@ export default function ManageHotelPage() {
         {/* ── Discount Tab ── */}
         {tab === 'discount' && (
           <DiscountTab hotel={hotel} saving={saving} onSave={saveHotel} />
+        )}
+
+        {/* ── Discount Rules Tab ── */}
+        {tab === 'discount-rules' && (
+          <div className="card p-6">
+            <DiscountRulesTab hotelBaseDiscount={hotel.discountPercent} />
+          </div>
         )}
 
         {/* ── Photos Tab ── */}

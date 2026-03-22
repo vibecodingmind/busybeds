@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import HotelPageClient from './HotelPageClient';
+import { getEffectiveDiscount } from '@/lib/discountRules';
 
 interface PageProps { params: { slug: string } }
 
@@ -13,13 +14,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!hotel) return { title: 'Hotel Not Found — BusyBeds' };
 
+  const { discount: metaDiscount } = getEffectiveDiscount((hotel as any).discountRules || '[]', hotel.discountPercent);
   const base = hotel.roomTypes[0]?.pricePerNight ?? null;
-  const discounted = base ? Math.round(base * (1 - hotel.discountPercent / 100)) : null;
+  const discounted = base ? Math.round(base * (1 - metaDiscount / 100)) : null;
   const image = hotel.coverImage || hotel.photos[0]?.url || 'https://busybeds.com/og-default.jpg';
-  const desc = `Save ${hotel.discountPercent}% at ${hotel.name} in ${hotel.city}, ${hotel.country}.${discounted ? ` From $${discounted}/night.` : ''} Get your exclusive discount coupon now on BusyBeds.`;
+  const desc = `Save ${metaDiscount}% at ${hotel.name} in ${hotel.city}, ${hotel.country}.${discounted ? ` From $${discounted}/night.` : ''} Get your exclusive discount coupon now on BusyBeds.`;
 
   return {
-    title: `${hotel.name} — ${hotel.discountPercent}% Off | BusyBeds`,
+    title: `${hotel.name} — ${metaDiscount}% Off | BusyBeds`,
     description: desc,
     openGraph: {
       title: `${hotel.name} — ${hotel.discountPercent}% Discount`,
@@ -72,7 +74,7 @@ export default async function HotelPage({ params }: PageProps) {
     whatsapp: (hotel as any).whatsapp ?? null,
     email: (hotel as any).email ?? null,
     coverImage: hotel.coverImage ?? null,
-    discountPercent: hotel.discountPercent,
+    discountPercent: (() => { const { discount } = getEffectiveDiscount((hotel as any).discountRules || '[]', hotel.discountPercent); return discount; })(),
     couponValidDays: hotel.couponValidDays,
     avgRating: (hotel as any).avgRating ?? null,
     reviewCount: (hotel as any).reviewCount ?? 0,

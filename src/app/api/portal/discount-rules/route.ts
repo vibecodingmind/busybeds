@@ -59,10 +59,16 @@ export async function PUT(req: NextRequest) {
   if (!hotelId) return NextResponse.json({ error: 'No hotel' }, { status: 404 });
 
   const body = await req.json();
-  const raw: DiscountRule[] = z.array(ruleSchema).parse(body.rules ?? []);
+  const raw = z.array(ruleSchema).parse(body.rules ?? []);
   const rules: DiscountRule[] = raw.map(r => ({
-    ...r,
-    id: r.id || randomBytes(6).toString('hex'),
+    id: r.id ?? randomBytes(6).toString('hex'),
+    name: r.name,
+    type: r.type,
+    discount: r.discount,
+    startDate: r.startDate,
+    endDate: r.endDate,
+    days: r.days,
+    isActive: r.isActive,
   }));
 
   await prisma.hotel.update({ where: { id: hotelId }, data: { discountRules: JSON.stringify(rules) } as any });
