@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="18" fill="#000000"/>
+
+  <!-- House left wall + floor -->
+  <path d="M 13 53 L 13 87 Q 13 95 21 95 L 47 95"
+        stroke="#E8395A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- House right wall + floor -->
+  <path d="M 87 53 L 87 87 Q 87 95 79 95 L 57 95"
+        stroke="#E8395A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Roof left -->
+  <path d="M 10 55 L 50 12" stroke="#E8395A" stroke-width="7" stroke-linecap="round"/>
+  <!-- Roof right -->
+  <path d="M 90 55 L 50 12" stroke="#E8395A" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Circle with checkmark -->
+  <circle cx="50" cy="64" r="20" stroke="#E8395A" stroke-width="6.5"/>
+  <polyline points="37,64 47,73 64,55"
+            stroke="#E8395A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
