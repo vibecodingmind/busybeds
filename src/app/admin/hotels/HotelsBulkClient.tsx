@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Hotel {
   id: string; name: string; city: string; country: string;
@@ -11,12 +12,33 @@ interface Hotel {
 interface Props { initialHotels: Hotel[]; }
 
 export default function HotelsBulkClient({ initialHotels }: Props) {
+  const router = useRouter();
   const [hotels, setHotels] = useState<Hotel[]>(initialHotels);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const deleteHotel = async (hotel: Hotel) => {
+    if (!confirm(`Delete "${hotel.name}"? This cannot be undone.`)) return;
+    setDeleting(hotel.id);
+    try {
+      const res = await fetch(`/api/admin/hotels/${hotel.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setHotels(prev => prev.filter(h => h.id !== hotel.id));
+        setMsg(`✓ "${hotel.name}" deleted`);
+        setTimeout(() => setMsg(''), 4000);
+      } else {
+        const d = await res.json();
+        setMsg(`✗ ${d.error || 'Delete failed'}`);
+      }
+    } catch {
+      setMsg('✗ Network error');
+    }
+    setDeleting(null);
+  };
 
   const filtered = hotels.filter(h => {
     const matchStatus = filter === 'all' || h.status === filter;
@@ -159,12 +181,22 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                 </td>
                 <td className="px-4 py-3 text-gray-400 text-xs">{new Date(hotel.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     <button onClick={() => { setSelected(new Set([hotel.id])); bulkAction('active'); }} className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                       Approve
                     </button>
                     <button onClick={() => { setSelected(new Set([hotel.id])); bulkAction('rejected'); }} className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
                       Reject
+                    </button>
+                    <Link href={`/admin/hotels/${hotel.id}/edit`}
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => deleteHotel(hotel)}
+                      disabled={deleting === hotel.id}
+                      className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors disabled:opacity-40">
+                      {deleting === hotel.id ? '…' : 'Delete'}
                     </button>
                   </div>
                 </td>
