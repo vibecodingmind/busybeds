@@ -34,7 +34,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
   const allImages = [
     hotel.coverImage || FALLBACK,
-    ...hotel.photos.map(p => p.url),
+    ...(hotel.photos || []).map(p => p.url),
   ].filter(Boolean);
 
   const [imgIndex, setImgIndex] = useState(0);

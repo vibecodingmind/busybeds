@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        photos:    { orderBy: { displayOrder: 'asc' }, take: 5 },
         _count: { select: { coupons: true } },
       },
       orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
