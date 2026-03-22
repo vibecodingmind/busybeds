@@ -11,21 +11,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session) redirect('/login');
   if (session.role !== 'admin') redirect('/dashboard');
 
-  // Load notifications (pending KYC + recent signups)
-  const [pendingKyc, recentUsers] = await Promise.all([
-    prisma.hotelOwner.findMany({
-      where: { kycStatus: 'pending' },
-      include: { user: { select: { fullName: true } }, hotel: { select: { name: true } } },
-      orderBy: { kycSubmittedAt: 'desc' },
-      take: 10,
-    }),
-    prisma.user.findMany({
-      where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
-      select: { fullName: true, email: true, createdAt: true, role: true },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    }),
-  ]);
+  // Load notifications sequentially to avoid connection pool exhaustion (Supabase connection_limit=1)
+  const pendingKyc = await prisma.hotelOwner.findMany({
+    where: { kycStatus: 'pending' },
+    include: { user: { select: { fullName: true } }, hotel: { select: { name: true } } },
+    orderBy: { kycSubmittedAt: 'desc' },
+    take: 10,
+  });
+  const recentUsers = await prisma.user.findMany({
+    where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+    select: { fullName: true, email: true, createdAt: true, role: true },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
 
   const notifications = [
     ...pendingKyc.map(k => ({

@@ -4,50 +4,49 @@ import prisma from '@/lib/prisma';
 async function getStats() {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const [totalUsers, totalHotels, activeSubs, totalCoupons, redeemed, pendingKyc, monthlyRevenue] = await Promise.all([
-    prisma.user.count(),
-    prisma.hotel.count({ where: { status: 'active' } }),
-    prisma.subscription.count({ where: { status: 'active', expiresAt: { gt: now } } }),
-    prisma.coupon.count(),
-    prisma.coupon.count({ where: { status: 'redeemed' } }),
-    prisma.hotelOwner.count({ where: { kycStatus: 'pending' } }),
-    prisma.subscription.count({ where: { status: 'active', createdAt: { gte: thirtyDaysAgo } } }),
-  ]);
+  // Sequential queries to avoid connection pool exhaustion (Supabase connection_limit=1)
+  const totalUsers     = await prisma.user.count();
+  const totalHotels    = await prisma.hotel.count({ where: { status: 'active' } });
+  const activeSubs     = await prisma.subscription.count({ where: { status: 'active', expiresAt: { gt: now } } });
+  const totalCoupons   = await prisma.coupon.count();
+  const redeemed       = await prisma.coupon.count({ where: { status: 'redeemed' } });
+  const pendingKyc     = await prisma.hotelOwner.count({ where: { kycStatus: 'pending' } });
+  const monthlyRevenue = await prisma.subscription.count({ where: { status: 'active', createdAt: { gte: thirtyDaysAgo } } });
   return { totalUsers, totalHotels, activeSubs, totalCoupons, redeemed, pendingKyc, monthlyRevenue };
 }
 
 async function getRecentData() {
-  const [kycApplications, recentCoupons, recentUsers, recentHotels] = await Promise.all([
-    prisma.hotelOwner.findMany({
-      where: { kycStatus: 'pending' },
-      include: {
-        user: { select: { fullName: true, email: true } },
-        hotel: { select: { name: true, city: true } },
-      },
-      orderBy: { kycSubmittedAt: 'desc' },
-      take: 5,
-    }),
-    prisma.coupon.findMany({
-      orderBy: { generatedAt: 'desc' }, take: 8,
-      include: {
-        hotel: { select: { name: true } },
-        user: { select: { fullName: true, avatar: true } },
-      },
-    }),
-    prisma.user.findMany({
-      orderBy: { createdAt: 'desc' }, take: 5,
-      select: { id: true, fullName: true, email: true, role: true, createdAt: true },
-    }),
-    prisma.hotel.findMany({
-      orderBy: { createdAt: 'desc' }, take: 5,
-      include: { _count: { select: { coupons: true } } },
-    }),
-  ]);
+  // Sequential queries to avoid connection pool exhaustion (Supabase connection_limit=1)
+  const kycApplications = await prisma.hotelOwner.findMany({
+    where: { kycStatus: 'pending' },
+    include: {
+      user: { select: { fullName: true, email: true } },
+      hotel: { select: { name: true, city: true } },
+    },
+    orderBy: { kycSubmittedAt: 'desc' },
+    take: 5,
+  });
+  const recentCoupons = await prisma.coupon.findMany({
+    orderBy: { generatedAt: 'desc' }, take: 8,
+    include: {
+      hotel: { select: { name: true } },
+      user: { select: { fullName: true, avatar: true } },
+    },
+  });
+  const recentUsers = await prisma.user.findMany({
+    orderBy: { createdAt: 'desc' }, take: 5,
+    select: { id: true, fullName: true, email: true, role: true, createdAt: true },
+  });
+  const recentHotels = await prisma.hotel.findMany({
+    orderBy: { createdAt: 'desc' }, take: 5,
+    include: { _count: { select: { coupons: true } } },
+  });
   return { kycApplications, recentCoupons, recentUsers, recentHotels };
 }
 
 export default async function AdminPage() {
-  const [stats, data] = await Promise.all([getStats(), getRecentData()]);
+  const stats = await getStats();
+  const data  = await getRecentData();
 
   return (
     <div className="space-y-6">
