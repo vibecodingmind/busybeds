@@ -28,11 +28,14 @@ export async function POST(req: NextRequest) {
   const hotel = await prisma.hotel.findUnique({
     where: { id: d.hotelId },
     select: {
-      name: true, email: true, slug: true,
+      name: true, email: true, slug: true, allowBookingRequests: true,
       owner: { include: { user: { select: { email: true, fullName: true } } } },
     },
   });
   if (!hotel) return NextResponse.json({ error: 'Hotel not found' }, { status: 404 });
+  if (!hotel.allowBookingRequests) {
+    return NextResponse.json({ error: 'This hotel does not accept direct booking requests.' }, { status: 403 });
+  }
 
   const request = await prisma.bookingRequest.create({
     data: {

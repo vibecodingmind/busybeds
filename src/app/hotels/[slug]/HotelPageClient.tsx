@@ -27,6 +27,7 @@ export interface HotelData {
   coverImage: string | null; discountPercent: number; couponValidDays: number;
   avgRating: number | null; reviewCount: number; isFeatured: boolean;
   latitude: number | null; longitude: number | null;
+  allowBookingRequests: boolean;
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
@@ -523,11 +524,13 @@ export default function HotelPageClient({
           </div>
 
           {/* ── Booking Request ── */}
-          <BookingRequestForm
-            hotelId={hotel.id}
-            hotelName={hotel.name}
-            roomTypes={hotel.roomTypes.map(rt => ({ id: rt.id, name: rt.name, pricePerNight: rt.pricePerNight }))}
-          />
+          {hotel.allowBookingRequests !== false && (
+            <BookingRequestForm
+              hotelId={hotel.id}
+              hotelName={hotel.name}
+              roomTypes={hotel.roomTypes.map(rt => ({ id: rt.id, name: rt.name, pricePerNight: rt.pricePerNight }))}
+            />
+          )}
 
           {/* ── Share This Deal ── */}
           <SocialShareButtons

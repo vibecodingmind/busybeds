@@ -67,6 +67,7 @@ export default function EditHotelPage() {
     websiteUrl: '', email: '', whatsapp: '',
     status: 'active' as typeof STATUSES[number],
     isFeatured: false, latitude: '', longitude: '',
+    allowBookingRequests: true,
   });
 
   const cities = CITIES_BY_COUNTRY[form.country] || [];
@@ -112,6 +113,7 @@ export default function EditHotelPage() {
             isFeatured: hotelData.isFeatured || false,
             latitude: hotelData.latitude != null ? String(hotelData.latitude) : '',
             longitude: hotelData.longitude != null ? String(hotelData.longitude) : '',
+            allowBookingRequests: hotelData.allowBookingRequests ?? true,
           });
 
           // Amenities
@@ -617,6 +619,17 @@ export default function EditHotelPage() {
             <div>
               <p className="text-sm font-medium text-gray-800">Featured Hotel</p>
               <p className="text-xs text-gray-400">Featured hotels appear at the top with a badge</p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-4 cursor-pointer mt-4">
+            <div onClick={() => f('allowBookingRequests', !form.allowBookingRequests)}
+              className={`w-12 h-6 rounded-full transition-colors flex items-center cursor-pointer ${form.allowBookingRequests ? 'bg-teal-500' : 'bg-gray-200'}`}>
+              <span className={`w-5 h-5 rounded-full bg-white shadow transition-transform mx-0.5 ${form.allowBookingRequests ? 'translate-x-6' : 'translate-x-0'}`} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-800">Accept Booking Requests</p>
+              <p className="text-xs text-gray-400">Allow guests to send direct booking requests from the hotel page</p>
             </div>
           </label>
         </Section>

@@ -158,6 +158,14 @@ export default async function OwnerDashboardPage() {
               className="mt-4 block w-full text-center py-2 rounded-xl text-sm font-semibold bg-[#F2F4F7] text-gray-700 hover:bg-gray-200 transition-colors">
               View Hotel Page
             </Link>
+            <Link href="/owner/edit"
+              className="mt-2 block w-full text-center py-2 rounded-xl text-sm font-semibold border border-[#0E7C7B] text-[#0E7C7B] hover:bg-[#0E7C7B]/5 transition-colors">
+              ✏️ Edit Hotel Details
+            </Link>
+            <Link href="/owner/reviews"
+              className="mt-2 block w-full text-center py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+              💬 Reply to Reviews
+            </Link>
           </div>
 
           {/* Affiliate click stats */}
