@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import PriceAlertButton from '@/components/PriceAlertButton';
+import GetCouponButton from './GetCouponButton';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
 export interface RelatedHotel {
@@ -114,37 +115,16 @@ export default function HotelPageClient({
   hotel: HotelData;
   relatedHotels?: RelatedHotel[];
 }) {
-  const [subState, setSubState]       = useState<SubState>('loading');
-  const [couponEmail, setCouponEmail] = useState('');
-  const [couponExpiry, setCouponExpiry] = useState('');
+  const [subState, setSubState] = useState<SubState>('loading');
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [error, setError]             = useState('');
 
   useEffect(() => {
     fetch('/api/subscription-status')
       .then(r => r.ok ? r.json() : { state: 'not_logged_in' })
-      .then(({ state, email, expiresAt }) => {
-        setSubState(state || 'not_logged_in');
-        if (email)     setCouponEmail(email);
-        if (expiresAt) setCouponExpiry(expiresAt);
-      })
+      .then(({ state }) => setSubState(state || 'not_logged_in'))
       .catch(() => setSubState('not_logged_in'));
   }, []);
-
-  const handleGenerateCoupon = useCallback(async () => {
-    setCouponLoading(true); setError('');
-    try {
-      const res = await fetch('/api/coupons/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hotelId: hotel.id, hotelName: hotel.name }),
-      });
-      if (res.ok) { window.location.href = '/portal/coupons?generated=true'; }
-      else { const d = await res.json(); setError(d.error || 'Failed'); }
-    } catch { setError('Network error. Try again.'); }
-    finally { setCouponLoading(false); }
-  }, [hotel.id, hotel.name]);
 
   const allPhotos = [
     ...(hotel.coverImage ? [{ id: 'cover', url: hotel.coverImage }] : []),
@@ -399,49 +379,18 @@ export default function HotelPageClient({
               </div>
             )}
 
-            {subState === 'active' && (
-              <>
-                <button onClick={handleGenerateCoupon} disabled={couponLoading}
-                  className="w-full py-3.5 rounded-xl text-white font-bold text-sm mb-2 transition-opacity hover:opacity-90 disabled:opacity-60 shadow-sm"
-                  style={{ background: '#FF385C' }}>
-                  {couponLoading ? 'Generating…' : '🎟 Get Discount Coupon'}
-                </button>
-                {error && <p className="text-xs text-red-500 text-center mb-2">{error}</p>}
-                <p className="text-xs text-gray-400 text-center mb-4">Valid for {hotel.couponValidDays} days · Show at reception</p>
-                <div className="pt-3 border-t border-gray-100 text-xs text-gray-400 space-y-1">
-                  <p><span className="text-gray-500 font-medium">Email:</span> {couponEmail}</p>
-                  <p><span className="text-gray-500 font-medium">Sub expires:</span> {couponExpiry ? new Date(couponExpiry).toLocaleDateString() : '—'}</p>
-                </div>
-              </>
-            )}
-
-            {subState === 'loading' && (
+            {/* Coupon generation — handles all subscription states internally */}
+            {subState === 'loading' ? (
               <div className="flex justify-center py-4">
                 <div className="w-6 h-6 border-2 border-rose-300 border-t-rose-500 rounded-full animate-spin" />
               </div>
+            ) : (
+              <GetCouponButton hotelId={hotel.id} hotelName={hotel.name} />
             )}
 
-            {subState === 'not_logged_in' && (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600 font-medium mb-3 text-center">Subscribe to unlock coupons</p>
-                <Link href="/register" className="w-full block text-center py-3 rounded-xl text-white text-sm font-bold shadow-sm hover:opacity-90 transition-opacity" style={{ background: '#FF385C' }}>
-                  Create Account
-                </Link>
-                <Link href="/login" className="w-full block text-center py-3 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:border-gray-400 transition-colors">
-                  Sign In
-                </Link>
-              </div>
-            )}
-            {(subState === 'no_sub' || subState === 'expired') && (
-              <Link href="/subscribe" className="w-full block text-center py-3.5 rounded-xl text-white text-sm font-bold shadow-sm hover:opacity-90 transition-opacity" style={{ background: '#FF385C' }}>
-                {subState === 'expired' ? 'Renew Subscription' : 'Subscribe Now'}
-              </Link>
-            )}
-            {subState === 'limit_reached' && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
-                You've reached your coupon limit. Try a different hotel or upgrade your plan.
-              </p>
-            )}
+            <p className="text-xs text-gray-400 text-center mt-3">
+              Valid for {hotel.couponValidDays} days · Show at reception
+            </p>
           </div>
 
           {/* ── Book Directly (Partners) ── */}
