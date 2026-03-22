@@ -52,6 +52,27 @@ export default async function HotelPage({ params }: PageProps) {
 
   if (!hotel) notFound();
 
+  // Fetch related hotels (same city, different hotel)
+  const relatedRaw = await prisma.hotel.findMany({
+    where: { status: 'active', city: hotel.city, slug: { not: params.slug } },
+    include: {
+      roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+      photos:    { orderBy: { displayOrder: 'asc' }, take: 1 },
+    },
+    orderBy: [{ isFeatured: 'desc' }, { avgRating: 'desc' }],
+    take: 4,
+  }).catch(() => []);
+
+  const relatedHotels = relatedRaw.map(h => ({
+    id: h.id, name: h.name, slug: h.slug, city: h.city, country: h.country,
+    coverImage: h.coverImage ?? null,
+    photo: h.photos[0]?.url ?? null,
+    discountPercent: h.discountPercent,
+    avgRating: (h as any).avgRating ?? null,
+    reviewCount: (h as any).reviewCount ?? 0,
+    basePrice: h.roomTypes[0]?.pricePerNight ?? null,
+  }));
+
   // Serialise to a plain object (dates → strings, decimals → numbers)
   const hotelData = {
     id: hotel.id,
@@ -90,5 +111,5 @@ export default async function HotelPage({ params }: PageProps) {
     affiliateLinks: hotel.affiliateLinks.map(l => ({ id: l.id, platform: l.platform, url: l.url })),
   };
 
-  return <HotelPageClient hotel={hotelData} />;
+  return <HotelPageClient hotel={hotelData} relatedHotels={relatedHotels} />;
 }
