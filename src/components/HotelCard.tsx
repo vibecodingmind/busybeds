@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import FavoriteButton from './FavoriteButton';
+import AddToTripButton from './AddToTripButton';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCompare } from '@/context/CompareContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -103,6 +104,15 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* ── Favourite button ── */}
         <div className="absolute top-3 right-3" onClick={e => e.preventDefault()}>
           <FavoriteButton hotelId={hotel.id} size="sm" />
+        </div>
+
+        {/* ── Trip Planner button ── */}
+        <div className="absolute bottom-3 left-3" onClick={e => e.preventDefault()}>
+          <AddToTripButton hotel={{
+            hotelId: hotel.id, name: hotel.name, slug: hotel.slug,
+            city: hotel.city, country: hotel.country,
+            coverImage: hotel.coverImage, starRating: hotel.starRating,
+          }} />
         </div>
 
         {/* ── Compare button ── */}

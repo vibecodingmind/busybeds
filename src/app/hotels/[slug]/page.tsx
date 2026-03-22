@@ -52,16 +52,67 @@ export default async function HotelPage({ params }: PageProps) {
 
   if (!hotel) notFound();
 
-  // Fetch related hotels (same city, different hotel)
-  const relatedRaw = await prisma.hotel.findMany({
-    where: { status: 'active', city: hotel.city, slug: { not: params.slug } },
-    include: {
-      roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
-      photos:    { orderBy: { displayOrder: 'asc' }, take: 1 },
-    },
-    orderBy: [{ isFeatured: 'desc' }, { avgRating: 'desc' }],
-    take: 4,
-  }).catch(() => []);
+  // Fetch related hotels — prefer vibe tag matches across all cities, fall back to same city
+  const currentVibeTags: string[] = (() => {
+    try { return JSON.parse((hotel as any).vibeTags || '[]'); } catch { return []; }
+  })();
+
+  type RelatedHotelRaw = Awaited<ReturnType<typeof prisma.hotel.findMany<{
+    include: { roomTypes: true; photos: true };
+  }>>>[number];
+
+  let relatedRaw: RelatedHotelRaw[] = [];
+
+  if (currentVibeTags.length > 0) {
+    const vibeMatches = await prisma.hotel.findMany({
+      where: {
+        status: 'active',
+        slug: { not: params.slug },
+        OR: currentVibeTags.map(tag => ({
+          vibeTags: { contains: `"${tag}"`, mode: 'insensitive' as const },
+        })),
+      },
+      include: {
+        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        photos:    { orderBy: { displayOrder: 'asc' }, take: 1 },
+      },
+      orderBy: [{ isFeatured: 'desc' }, { avgRating: 'desc' }],
+      take: 20,
+    }).catch(() => []);
+
+    // Score by number of matching vibe tags, take top 4
+    const scored = vibeMatches
+      .map(h => {
+        const hTags: string[] = (() => { try { return JSON.parse((h as any).vibeTags || '[]'); } catch { return []; } })();
+        const matchCount = hTags.filter((t: string) => currentVibeTags.includes(t)).length;
+        return { hotel: h, matchCount };
+      })
+      .sort((a, b) => b.matchCount - a.matchCount)
+      .slice(0, 4)
+      .map(x => x.hotel);
+
+    relatedRaw = scored;
+  }
+
+  // Top up with same-city hotels if fewer than 4 vibe matches
+  if (relatedRaw.length < 4) {
+    const existingIds = relatedRaw.map(h => h.id);
+    const cityFallback = await prisma.hotel.findMany({
+      where: {
+        status: 'active',
+        city: hotel.city,
+        slug: { not: params.slug },
+        ...(existingIds.length > 0 ? { id: { notIn: existingIds } } : {}),
+      },
+      include: {
+        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        photos:    { orderBy: { displayOrder: 'asc' }, take: 1 },
+      },
+      orderBy: [{ isFeatured: 'desc' }, { avgRating: 'desc' }],
+      take: 4 - relatedRaw.length,
+    }).catch(() => []);
+    relatedRaw = [...relatedRaw, ...cityFallback];
+  }
 
   const relatedHotels = relatedRaw.map(h => ({
     id: h.id, name: h.name, slug: h.slug, city: h.city, country: h.country,
