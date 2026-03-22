@@ -24,6 +24,7 @@ export interface HotelData {
   websiteUrl: string | null; whatsapp: string | null; email: string | null;
   coverImage: string | null; discountPercent: number; couponValidDays: number;
   avgRating: number | null; reviewCount: number; isFeatured: boolean;
+  latitude: number | null; longitude: number | null;
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
@@ -310,6 +311,49 @@ export default function HotelPageClient({
               </div>
             </div>
           )}
+
+          {/* ── Map ── */}
+          <div className="mb-8 pb-8 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Location</h2>
+            <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {hotel.address || `${hotel.city}, ${hotel.country}`}
+            </p>
+            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm" style={{ height: 300 }}>
+              {hotel.latitude && hotel.longitude ? (
+                <iframe
+                  title={`Map of ${hotel.name}`}
+                  width="100%"
+                  height="300"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${hotel.longitude - 0.01},${hotel.latitude - 0.01},${hotel.longitude + 0.01},${hotel.latitude + 0.01}&layer=mapnik&marker=${hotel.latitude},${hotel.longitude}`}
+                />
+              ) : (
+                <iframe
+                  title={`Map of ${hotel.name}`}
+                  width="100%"
+                  height="300"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent((hotel.address || `${hotel.name} ${hotel.city} ${hotel.country}`))}&output=embed`}
+                />
+              )}
+            </div>
+            <a
+              href={hotel.latitude && hotel.longitude
+                ? `https://www.openstreetmap.org/?mlat=${hotel.latitude}&mlon=${hotel.longitude}#map=15/${hotel.latitude}/${hotel.longitude}`
+                : `https://maps.google.com/?q=${encodeURIComponent(hotel.address || `${hotel.name} ${hotel.city} ${hotel.country}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-rose-500 hover:text-rose-700 transition-colors"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              View on map
+            </a>
+          </div>
 
           {/* Reviews */}
           <ReviewsSection hotelId={hotel.id} hotelName={hotel.name} avgRating={hotel.avgRating} reviewCount={hotel.reviewCount} />

@@ -85,6 +85,8 @@ export default async function HotelPage({ params }: PageProps) {
     descriptionShort: hotel.descriptionShort,
     descriptionLong: hotel.descriptionLong,
     starRating: hotel.starRating,
+    latitude:  (hotel as any).latitude  != null ? Number((hotel as any).latitude)  : null,
+    longitude: (hotel as any).longitude != null ? Number((hotel as any).longitude) : null,
     amenities: (() => {
       try { return JSON.parse(hotel.amenities as unknown as string); } catch { return []; }
     })(),
