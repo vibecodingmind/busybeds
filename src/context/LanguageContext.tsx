@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type Lang = 'en' | 'fr' | 'sw' | 'ar' | 'pt';
+export type Lang = 'en' | 'sw';
 
 const translations: Record<Lang, Record<string, string>> = {
   en: {
@@ -18,20 +18,6 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.search': 'Search', 'common.filter': 'Filter', 'common.sort': 'Sort',
     'home.title': 'Exclusive Hotel Discounts', 'home.subtitle': 'Subscribe once. Save everywhere.',
   },
-  fr: {
-    'nav.home': 'Accueil', 'nav.coupons': 'Mes Coupons', 'nav.favorites': 'Hôtels Sauvegardés',
-    'nav.profile': 'Profil', 'nav.signin': 'Se connecter', 'nav.register': 'Créer un compte',
-    'nav.signout': 'Se déconnecter', 'nav.dashboard': 'Tableau de bord', 'nav.claim': 'Enregistrer votre hôtel',
-    'search.placeholder': 'Rechercher par nom d\'hôtel, ville ou pays…',
-    'hotel.discount': 'RÉDUCTION', 'hotel.book': 'Obtenir Coupon', 'hotel.reviews': 'avis',
-    'hotel.viewall': 'Voir Tous les Hôtels', 'hotel.featured': 'En vedette',
-    'coupon.active': 'Actif', 'coupon.expired': 'Expiré', 'coupon.redeemed': 'Utilisé',
-    'coupon.share': 'Partager', 'coupon.print': 'Imprimer', 'coupon.save': 'Enregistrer',
-    'sub.subscribe': 'S\'abonner', 'sub.monthly': '/mois',
-    'common.loading': 'Chargement…', 'common.save': 'Enregistrer', 'common.cancel': 'Annuler',
-    'common.search': 'Rechercher', 'common.filter': 'Filtrer', 'common.sort': 'Trier',
-    'home.title': 'Réductions Hôtelières Exclusives', 'home.subtitle': 'Abonnez-vous une fois. Économisez partout.',
-  },
   sw: {
     'nav.home': 'Nyumbani', 'nav.coupons': 'Tikiti Zangu', 'nav.favorites': 'Hoteli Zilizohifadhiwa',
     'nav.profile': 'Wasifu', 'nav.signin': 'Ingia', 'nav.register': 'Fungua Akaunti',
@@ -46,38 +32,11 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.search': 'Tafuta', 'common.filter': 'Chuja', 'common.sort': 'Panga',
     'home.title': 'Punguzo za Kipekee za Hoteli', 'home.subtitle': 'Jisajili mara moja. Okoa kila mahali.',
   },
-  ar: {
-    'nav.home': 'الرئيسية', 'nav.coupons': 'كوبوناتي', 'nav.favorites': 'الفنادق المحفوظة',
-    'nav.profile': 'الملف الشخصي', 'nav.signin': 'تسجيل الدخول', 'nav.register': 'إنشاء حساب',
-    'nav.signout': 'تسجيل الخروج', 'nav.dashboard': 'لوحة التحكم', 'nav.claim': 'سجّل فندقك',
-    'search.placeholder': 'ابحث باسم الفندق، المدينة أو الدولة…',
-    'hotel.discount': 'خصم', 'hotel.book': 'احصل على كوبون', 'hotel.reviews': 'تقييمات',
-    'hotel.viewall': 'عرض جميع الفنادق', 'hotel.featured': 'مميز',
-    'coupon.active': 'نشط', 'coupon.expired': 'منتهي', 'coupon.redeemed': 'مستخدم',
-    'coupon.share': 'مشاركة', 'coupon.print': 'طباعة', 'coupon.save': 'حفظ',
-    'sub.subscribe': 'اشترك الآن', 'sub.monthly': '/شهر',
-    'common.loading': 'جار التحميل…', 'common.save': 'حفظ', 'common.cancel': 'إلغاء',
-    'common.search': 'بحث', 'common.filter': 'تصفية', 'common.sort': 'ترتيب',
-    'home.title': 'خصومات فندقية حصرية', 'home.subtitle': 'اشترك مرة واحدة. وفّر في كل مكان.',
-  },
-  pt: {
-    'nav.home': 'Início', 'nav.coupons': 'Meus Cupons', 'nav.favorites': 'Hotéis Salvos',
-    'nav.profile': 'Perfil', 'nav.signin': 'Entrar', 'nav.register': 'Criar conta',
-    'nav.signout': 'Sair', 'nav.dashboard': 'Painel', 'nav.claim': 'Registar o seu hotel',
-    'search.placeholder': 'Pesquisar por nome do hotel, cidade ou país…',
-    'hotel.discount': 'DESCONTO', 'hotel.book': 'Obter Cupom', 'hotel.reviews': 'avaliações',
-    'hotel.viewall': 'Ver Todos os Hotéis', 'hotel.featured': 'Destaque',
-    'coupon.active': 'Ativo', 'coupon.expired': 'Expirado', 'coupon.redeemed': 'Utilizado',
-    'coupon.share': 'Partilhar', 'coupon.print': 'Imprimir', 'coupon.save': 'Guardar',
-    'sub.subscribe': 'Assinar Agora', 'sub.monthly': '/mês',
-    'common.loading': 'A carregar…', 'common.save': 'Guardar', 'common.cancel': 'Cancelar',
-    'common.search': 'Pesquisar', 'common.filter': 'Filtrar', 'common.sort': 'Ordenar',
-    'home.title': 'Descontos Exclusivos em Hotéis', 'home.subtitle': 'Assine uma vez. Poupe em todo o lado.',
-  },
 };
 
 const LANG_NAMES: Record<Lang, string> = {
-  en: '🇬🇧 English', fr: '🇫🇷 Français', sw: '🇹🇿 Kiswahili', ar: '🇸🇦 العربية', pt: '🇵🇹 Português'
+  en: '🇬🇧 English',
+  sw: '🇹🇿 Kiswahili',
 };
 
 interface LanguageContextType {
@@ -89,7 +48,7 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  lang: 'en', setLang: () => {}, t: k => k, langNames: LANG_NAMES, isRTL: false
+  lang: 'en', setLang: () => {}, t: k => k, langNames: LANG_NAMES, isRTL: false as boolean
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -108,13 +67,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLangState(l);
     localStorage.setItem('bb_lang', l);
     document.documentElement.lang = l;
-    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = 'ltr';
   };
 
   const t = (key: string) => translations[lang]?.[key] || translations.en[key] || key;
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t, langNames: LANG_NAMES, isRTL: lang === 'ar' }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, langNames: LANG_NAMES, isRTL: false }}>
       {children}
     </LanguageContext.Provider>
   );
