@@ -45,10 +45,18 @@ const CurrencyContext = createContext<CurrencyContextType>({
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>('USD');
+  // Live rates fetched from admin-configured database values (fallback to hardcoded defaults)
+  const [liveRates, setLiveRates] = useState<Partial<Record<Currency, number>>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem('bb_currency') as Currency;
     if (saved && CURRENCIES[saved]) setCurrencyState(saved);
+
+    // Load admin-configured rates from the database
+    fetch('/api/currency-rates')
+      .then(r => r.json())
+      .then(data => { if (data.rates) setLiveRates(data.rates); })
+      .catch(() => {}); // silently fall back to hardcoded defaults
   }, []);
 
   const setCurrency = (c: Currency) => {
@@ -57,7 +65,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   };
 
   const info = CURRENCIES[currency];
-  const rate = info.rate;
+  // Use live rate from DB if available, otherwise fall back to hardcoded default
+  const rate = liveRates[currency] ?? info.rate;
 
   const convert = (usdAmount: number) => usdAmount * rate;
 

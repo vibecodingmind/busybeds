@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type SettingGroup = {
   id: string;
@@ -88,6 +88,13 @@ const SETTING_GROUPS: SettingGroup[] = [
       { key: 'maintenanceMode',        label: 'Maintenance Mode',   placeholder: '', type: 'toggle', hint: 'Shows a maintenance page to non-admins' },
     ],
   },
+  {
+    id: 'currency',
+    label: 'Currency Rates',
+    icon: '💱',
+    description: 'Live conversion rates used to display prices site-wide',
+    fields: [],   // rendered separately
+  },
 ];
 
 // Local state — persisted to .env.local / config in a real app via the API
@@ -96,12 +103,65 @@ const DEFAULT_VALS: Record<string, string> = {
   defaultCouponValidDays: '30', maxCouponsPerUser: '10', maintenanceMode: 'false',
 };
 
+const CURRENCY_META: Record<string, { name: string; symbol: string; flag: string }> = {
+  USD: { name: 'US Dollar',           symbol: '$',   flag: '🇺🇸' },
+  EUR: { name: 'Euro',                 symbol: '€',   flag: '🇪🇺' },
+  GBP: { name: 'British Pound',       symbol: '£',   flag: '🇬🇧' },
+  TZS: { name: 'Tanzanian Shilling',  symbol: 'TSh', flag: '🇹🇿' },
+};
+
 export default function SettingsPage() {
   const [values, setValues]     = useState<Record<string, string>>(DEFAULT_VALS);
   const [saved, setSaved]       = useState<Record<string, boolean>>({});
   const [saving, setSaving]     = useState<Record<string, boolean>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('general');
+
+  // Currency rates state
+  const [rates, setRates]         = useState<Record<string, string>>({ USD: '1', EUR: '0.92', GBP: '0.79', TZS: '2600' });
+  const [ratesSaved, setRatesSaved]   = useState(false);
+  const [ratesSaving, setRatesSaving] = useState(false);
+  const [ratesError, setRatesError]   = useState('');
+
+  useEffect(() => {
+    if (activeTab === 'currency') {
+      fetch('/api/admin/currency-rates')
+        .then(r => r.json())
+        .then(data => {
+          if (data.rates) {
+            const strRates: Record<string, string> = {};
+            for (const [k, v] of Object.entries(data.rates)) strRates[k] = String(v);
+            setRates(strRates);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeTab]);
+
+  const saveRates = async () => {
+    setRatesSaving(true);
+    setRatesError('');
+    try {
+      const numRates: Record<string, number> = {};
+      for (const [k, v] of Object.entries(rates)) {
+        const n = parseFloat(v);
+        if (isNaN(n) || n <= 0) throw new Error(`Invalid rate for ${k}`);
+        numRates[k] = n;
+      }
+      const res = await fetch('/api/admin/currency-rates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rates: numRates }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      setRatesSaved(true);
+      setTimeout(() => setRatesSaved(false), 3000);
+    } catch (e: any) {
+      setRatesError(e.message || 'Save failed');
+    } finally {
+      setRatesSaving(false);
+    }
+  };
 
   const set = (k: string, v: string) => { setValues(prev => ({ ...prev, [k]: v })); setSaved(prev => ({ ...prev, [activeTab]: false })); };
 
@@ -138,70 +198,144 @@ export default function SettingsPage() {
 
         {/* Right: fields */}
         <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <span>{activeGroup.icon}</span> {activeGroup.label}
-              </h2>
-              <p className="text-sm text-gray-500 mt-0.5">{activeGroup.description}</p>
-            </div>
-            <button
-              onClick={() => saveGroup(activeGroup.id)}
-              disabled={saving[activeGroup.id]}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${saved[activeGroup.id] ? 'bg-green-50 text-green-700' : 'text-white hover:opacity-90'}`}
-              style={!saved[activeGroup.id] ? { background: '#E8395A' } : {}}>
-              {saving[activeGroup.id] ? (
-                <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
-              ) : saved[activeGroup.id] ? (
-                <><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg> Saved!</>
-              ) : 'Save Changes'}
-            </button>
-          </div>
 
-          <div className="space-y-5">
-            {activeGroup.fields.map(f => (
-              <div key={f.key}>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">{f.label}</label>
-                {f.type === 'toggle' ? (
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => set(f.key, values[f.key] === 'true' ? 'false' : 'true')}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${values[f.key] === 'true' ? 'bg-[#E8395A]' : 'bg-gray-200'}`}>
-                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${values[f.key] === 'true' ? 'translate-x-7' : 'translate-x-1'}`} />
-                    </button>
-                    <span className="text-sm text-gray-600">{values[f.key] === 'true' ? 'Enabled' : 'Disabled'}</span>
-                    {f.hint && <span className="text-xs text-gray-400">— {f.hint}</span>}
-                  </div>
-                ) : f.type === 'select' ? (
-                  <select value={values[f.key] || ''} onChange={e => set(f.key, e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] bg-white max-w-xs">
-                    {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                ) : (
-                  <div className="relative max-w-lg">
-                    <input
-                      type={f.type === 'password' ? (showKeys[f.key] ? 'text' : 'password') : f.type}
-                      value={values[f.key] || ''}
-                      onChange={e => set(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] font-mono pr-10"
-                    />
-                    {f.type === 'password' && (
-                      <button onClick={() => setShowKeys(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        {showKeys[f.key] ? (
-                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                        ) : (
-                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                )}
-                {f.hint && f.type !== 'toggle' && <p className="text-xs text-gray-400 mt-1">{f.hint}</p>}
+          {/* ── Currency Rates tab ── */}
+          {activeTab === 'currency' ? (
+            <>
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <span>💱</span> Currency Rates
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Set how many units of each currency equal <strong>1 USD</strong>. Changes apply site-wide instantly.
+                  </p>
+                </div>
+                <button onClick={saveRates} disabled={ratesSaving}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${ratesSaved ? 'bg-green-50 text-green-700' : 'text-white hover:opacity-90'}`}
+                  style={!ratesSaved ? { background: '#E8395A' } : {}}>
+                  {ratesSaving ? (
+                    <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+                  ) : ratesSaved ? (
+                    <><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg> Saved!</>
+                  ) : 'Save Rates'}
+                </button>
               </div>
-            ))}
-          </div>
+
+              {ratesError && (
+                <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{ratesError}</div>
+              )}
+
+              <div className="space-y-4 max-w-lg">
+                {Object.entries(CURRENCY_META).map(([code, meta]) => (
+                  <div key={code} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+                    <span className="text-2xl flex-shrink-0">{meta.flag}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900">{code} — {meta.name}</p>
+                      <p className="text-xs text-gray-400">1 USD = ? {code}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {code === 'USD' ? (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-xl">
+                          <span className="text-sm font-mono font-semibold text-gray-500">1.00</span>
+                          <span className="text-xs text-gray-400">(base)</span>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-sm text-gray-500 font-medium">1 USD =</span>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0.0001"
+                              step="any"
+                              value={rates[code] ?? ''}
+                              onChange={e => setRates(prev => ({ ...prev, [code]: e.target.value }))}
+                              className="w-32 px-3 py-2 text-sm font-mono border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] text-right"
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-gray-600 w-8">{code}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 p-4 bg-blue-50 border border-blue-100 rounded-2xl text-sm text-blue-700">
+                <strong>How it works:</strong> Enter the current exchange rate for each currency against USD.
+                For example if today 1 USD = 2,650 Tanzanian Shillings, enter <code className="bg-blue-100 px-1 rounded">2650</code> next to TZS.
+                All hotel prices across the site will update immediately for users who have selected that currency.
+              </div>
+            </>
+          ) : (
+            /* ── All other tabs ── */
+            <>
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <span>{activeGroup.icon}</span> {activeGroup.label}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">{activeGroup.description}</p>
+                </div>
+                <button
+                  onClick={() => saveGroup(activeGroup.id)}
+                  disabled={saving[activeGroup.id]}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${saved[activeGroup.id] ? 'bg-green-50 text-green-700' : 'text-white hover:opacity-90'}`}
+                  style={!saved[activeGroup.id] ? { background: '#E8395A' } : {}}>
+                  {saving[activeGroup.id] ? (
+                    <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+                  ) : saved[activeGroup.id] ? (
+                    <><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg> Saved!</>
+                  ) : 'Save Changes'}
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                {activeGroup.fields.map(f => (
+                  <div key={f.key}>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">{f.label}</label>
+                    {f.type === 'toggle' ? (
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => set(f.key, values[f.key] === 'true' ? 'false' : 'true')}
+                          className={`relative w-12 h-6 rounded-full transition-colors ${values[f.key] === 'true' ? 'bg-[#E8395A]' : 'bg-gray-200'}`}>
+                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${values[f.key] === 'true' ? 'translate-x-7' : 'translate-x-1'}`} />
+                        </button>
+                        <span className="text-sm text-gray-600">{values[f.key] === 'true' ? 'Enabled' : 'Disabled'}</span>
+                        {f.hint && <span className="text-xs text-gray-400">— {f.hint}</span>}
+                      </div>
+                    ) : f.type === 'select' ? (
+                      <select value={values[f.key] || ''} onChange={e => set(f.key, e.target.value)}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] bg-white max-w-xs">
+                        {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <div className="relative max-w-lg">
+                        <input
+                          type={f.type === 'password' ? (showKeys[f.key] ? 'text' : 'password') : f.type}
+                          value={values[f.key] || ''}
+                          onChange={e => set(f.key, e.target.value)}
+                          placeholder={f.placeholder}
+                          className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] font-mono pr-10"
+                        />
+                        {f.type === 'password' && (
+                          <button onClick={() => setShowKeys(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            {showKeys[f.key] ? (
+                              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            ) : (
+                              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {f.hint && f.type !== 'toggle' && <p className="text-xs text-gray-400 mt-1">{f.hint}</p>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
