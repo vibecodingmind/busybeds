@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       await sendEmail({
         to: user.email,
         subject: `Your ${effectiveDiscount}% off coupon for ${hotel.name} — Busy Beds`,
-        html: emailCouponGenerated(recipientName, hotel.name, effectiveDiscount, code, expiresAt),
+        html: emailCouponGenerated(recipientName, hotel.name, effectiveDiscount, code, expiresAt, qrDataUrl),
       });
     }
   } catch (e) { console.error('Email error:', e); }

@@ -71,17 +71,19 @@ export function emailWelcome(name: string) {
   `);
 }
 
-export function emailCouponGenerated(name: string, hotelName: string, discount: number, code: string, expiresAt: Date) {
+export function emailCouponGenerated(name: string, hotelName: string, discount: number, code: string, expiresAt: Date, qrDataUrl?: string) {
   return baseTemplate(`
     <h2>Your coupon is ready! 🎫</h2>
     <p>Hi ${name}, here's your discount coupon for <strong>${hotelName}</strong>.</p>
-    <div class="box">
+    <div class="box" style="text-align:center">
       <div style="font-size:13px;color:#666;margin-bottom:4px">Coupon Code</div>
       <div class="code">${code}</div>
       <div style="margin-top:10px;font-size:22px;font-weight:bold;color:#0E7C7B">${discount}% OFF</div>
       <div style="font-size:12px;color:#888;margin-top:4px">Valid until ${expiresAt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR Code" style="width:160px;height:160px;margin:16px auto 4px;display:block;border-radius:8px;" />
+      <div style="font-size:11px;color:#aaa;margin-top:2px">Scan at hotel reception</div>` : ''}
     </div>
-    <p>Show this code (or your QR code) at the hotel reception. Staff will scan it and apply your discount instantly.</p>
+    <p>Show this code or QR code at the hotel reception. Staff will scan it and apply your discount instantly.</p>
     <a href="${process.env.NEXT_PUBLIC_APP_URL}/coupons" class="btn">View My Coupons →</a>
   `);
 }

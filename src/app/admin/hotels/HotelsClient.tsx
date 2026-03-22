@@ -202,9 +202,12 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                       <Link href={`/hotels/${h.slug}`} target="_blank" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="View live page">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                       </Link>
-                      <button onClick={() => openEdit(h)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Edit">
+                      <button onClick={() => openEdit(h)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Quick edit">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
+                      <Link href={`/admin/hotels/${h.id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors" title="Full edit">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                      </Link>
                       <button onClick={() => toggleStatus(h)} className={`p-1.5 rounded-lg transition-colors ${h.status === 'active' ? 'hover:bg-orange-50 text-orange-500' : 'hover:bg-green-50 text-green-600'}`} title={h.status === 'active' ? 'Deactivate' : 'Activate'}>
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/>{h.status === 'active' ? <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/> : <polyline points="9 11 12 14 22 4"/>}</svg>
                       </button>
