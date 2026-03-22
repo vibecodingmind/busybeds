@@ -7,7 +7,6 @@ import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import PriceAlertButton from '@/components/PriceAlertButton';
 import SocialShareButtons from '@/components/SocialShareButtons';
-import BookingRequestForm from '@/components/BookingRequestForm';
 import GetCouponButton from './GetCouponButton';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
@@ -27,7 +26,6 @@ export interface HotelData {
   coverImage: string | null; discountPercent: number; couponValidDays: number;
   avgRating: number | null; reviewCount: number; isFeatured: boolean;
   latitude: number | null; longitude: number | null;
-  allowBookingRequests: boolean;
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
@@ -522,15 +520,6 @@ export default function HotelPageClient({
             <p className="text-xs text-gray-400 mb-3">Get notified when the discount increases</p>
             <PriceAlertButton hotelId={hotel.id} hotelName={hotel.name} discountPercent={hotel.discountPercent} />
           </div>
-
-          {/* ── Booking Request ── */}
-          {hotel.allowBookingRequests !== false && (
-            <BookingRequestForm
-              hotelId={hotel.id}
-              hotelName={hotel.name}
-              roomTypes={hotel.roomTypes.map(rt => ({ id: rt.id, name: rt.name, pricePerNight: rt.pricePerNight }))}
-            />
-          )}
 
           {/* ── Share This Deal ── */}
           <SocialShareButtons

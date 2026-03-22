@@ -153,7 +153,6 @@ export default async function HotelPage({ params }: PageProps) {
     avgRating: (hotel as any).avgRating ?? null,
     reviewCount: (hotel as any).reviewCount ?? 0,
     isFeatured: hotel.isFeatured,
-    allowBookingRequests: (hotel as any).allowBookingRequests ?? true,
     roomTypes: hotel.roomTypes.map(r => ({
       id: r.id,
       name: r.name,

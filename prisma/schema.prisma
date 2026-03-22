@@ -55,7 +55,6 @@ model User {
   notifications   Notification[]
   priceAlerts     PriceAlert[]
   pushSubscription PushSubscription?
-  bookingRequests  BookingRequest[]
 }
 
 model HotelType {
@@ -112,7 +111,6 @@ model Hotel {
   longitude        Float?
   reviewCount      Int       @default(0)
   googlePlaceId        String?   @unique
-  allowBookingRequests Boolean   @default(true)
 
   // Relations
   owner            HotelOwner?
@@ -125,7 +123,6 @@ model Hotel {
   favorites        Favorite[]
   priceAlerts      PriceAlert[]
   flashDeals       FlashDeal[]
-  bookingRequests  BookingRequest[]
 }
 
 model HotelOwner {
@@ -472,28 +469,4 @@ model AffiliateLinkClick {
   @@index([hotelId])
   @@index([platform])
   @@index([clickedAt])
-}
-
-model BookingRequest {
-  id          String    @id @default(cuid())
-  hotelId     String
-  userId      String?
-  name        String
-  email       String
-  phone       String?
-  checkIn     DateTime?
-  checkOut    DateTime?
-  guests      Int       @default(1)
-  roomTypeId  String?
-  message     String
-  status      String    @default("pending")
-  hotelNotes  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  hotel       Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([hotelId])
-  @@index([userId])
-  @@index([status])
 }

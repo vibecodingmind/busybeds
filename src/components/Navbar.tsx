@@ -217,9 +217,6 @@ export default function Navbar() {
                       <MenuItem href="/coupons" onClick={() => setMenuOpen(false)} icon={
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M7 7h.01M17 17h.01M3 12h1m16 0h1M12 3v1m0 16v1m-8.66-13.5.707.707m14.85 12.02.707.707M4.34 18.34l.707-.707m14.85-12.02.707-.707M7 7l10 10"/></svg>
                       }>My Coupons</MenuItem>
-                      <MenuItem href="/my-bookings" onClick={() => setMenuOpen(false)} icon={
-                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
-                      }>My Bookings</MenuItem>
                       <MenuItem href="/favorites" onClick={() => setMenuOpen(false)} icon={
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z"/></svg>
                       }>Saved Hotels</MenuItem>

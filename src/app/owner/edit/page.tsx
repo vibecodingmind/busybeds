@@ -8,7 +8,7 @@ interface Hotel {
   name: string; city: string; country: string; slug: string;
   descriptionShort: string; descriptionLong: string; address: string | null;
   email: string | null; whatsapp: string | null; websiteUrl: string | null;
-  coverImage: string | null; allowBookingRequests: boolean;
+  coverImage: string | null;
   socialFacebook: string | null; socialInstagram: string | null;
   socialTwitter: string | null; socialTiktok: string | null;
 }
@@ -41,7 +41,6 @@ export default function OwnerEditHotelPage() {
           socialInstagram:      d.hotel?.socialInstagram || '',
           socialTwitter:        d.hotel?.socialTwitter || '',
           socialTiktok:         d.hotel?.socialTiktok || '',
-          allowBookingRequests: d.hotel?.allowBookingRequests ?? true,
         });
         setLoading(false);
       })
@@ -118,18 +117,6 @@ export default function OwnerEditHotelPage() {
                 {field('websiteUrl', 'Website URL', 'url')}
               </div>
 
-              {/* Booking Requests Toggle */}
-              <div className="mt-4 flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">Accept Direct Booking Requests</p>
-                  <p className="text-xs text-gray-500 mt-0.5">When enabled, guests can submit booking requests from your hotel page.</p>
-                </div>
-                <button type="button"
-                  onClick={() => setForm(f => ({ ...f, allowBookingRequests: !f.allowBookingRequests }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 ${form.allowBookingRequests ? 'bg-[#0E7C7B]' : 'bg-gray-300'}`}>
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.allowBookingRequests ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">

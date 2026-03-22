@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest) {
     'descriptionShort', 'descriptionLong', 'address',
     'email', 'whatsapp', 'websiteUrl',
     'socialFacebook', 'socialInstagram', 'socialTwitter', 'socialTiktok',
-    'coverImage', 'allowBookingRequests',
+    'coverImage',
   ];
   const data: Record<string, any> = {};
   for (const key of ALLOWED) {

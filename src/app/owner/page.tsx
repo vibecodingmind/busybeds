@@ -15,7 +15,7 @@ async function getData(userId: string) {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
 
-  const [totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, bookingRequests, affiliateClicks] = await Promise.all([
+  const [totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks] = await Promise.all([
     prisma.coupon.count({ where: { hotelId: hotel.id } }),
     prisma.coupon.count({ where: { hotelId: hotel.id, status: 'active', expiresAt: { gt: now } } }),
     prisma.coupon.count({ where: { hotelId: hotel.id, status: 'redeemed' } }),
@@ -25,11 +25,6 @@ async function getData(userId: string) {
       take: 10,
       include: { user: { select: { fullName: true, email: true } } },
     }),
-    prisma.bookingRequest.findMany({
-      where: { hotelId: hotel.id },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
     prisma.affiliateLinkClick.groupBy({
       by: ['platform'],
       where: { hotelId: hotel.id, clickedAt: { gte: thirtyDaysAgo } },
@@ -38,7 +33,7 @@ async function getData(userId: string) {
     }),
   ]);
 
-  return { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, bookingRequests, affiliateClicks };
+  return { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks };
 }
 
 const STATUS_PILL: Record<string, string> = {
@@ -77,14 +72,13 @@ export default async function OwnerDashboardPage() {
     );
   }
 
-  const { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, bookingRequests, affiliateClicks } = data;
+  const { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks } = data;
   const kyc = KYC_INFO[hotelOwner.kycStatus] || KYC_INFO.pending;
 
   const stats = [
     { label: 'Total Coupons', value: totalCoupons, icon: '🎫', color: '#1A3C5E' },
     { label: 'Active Coupons', value: activeCoupons, icon: '✅', color: '#0E7C7B' },
     { label: 'Times Redeemed', value: redeemedCoupons, icon: '🏷️', color: '#FF385C' },
-    { label: 'Booking Requests', value: bookingRequests.length, icon: '📩', color: '#F59E0B' },
   ];
 
   return (
@@ -224,51 +218,6 @@ export default async function OwnerDashboardPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {new Date(c.generatedAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Booking Requests */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-bold text-gray-900">Booking Requests</h2>
-          </div>
-          {bookingRequests.length === 0 ? (
-            <p className="text-sm text-gray-400 p-5">No booking requests yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                <tr>
-                  <th className="px-4 py-3 text-left">Guest</th>
-                  <th className="px-4 py-3 text-left">Check-in</th>
-                  <th className="px-4 py-3 text-left">Guests</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Received</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {bookingRequests.map(r => (
-                  <tr key={r.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{r.name}</div>
-                      <div className="text-xs text-gray-400">{r.email}</div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">
-                      {r.checkIn ? new Date(r.checkIn).toLocaleDateString() : '—'}
-                      {r.checkOut ? ` → ${new Date(r.checkOut).toLocaleDateString()}` : ''}
-                    </td>
-                    <td className="px-4 py-3">{r.guests}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_PILL[r.status] || 'bg-gray-100 text-gray-500'}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
-                      {new Date(r.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
