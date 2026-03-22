@@ -86,7 +86,7 @@ export default function Navbar() {
         {/* Right side */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link href="/onboarding" className="hidden lg:flex items-center px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap">
-            Claim your property
+            Become Host
           </Link>
 
           <div className="hidden md:block">
@@ -194,7 +194,7 @@ export default function Navbar() {
                     <div className="border-t border-gray-100 my-1" />
                     <Link href="/onboarding" onClick={() => setMenuOpen(false)}
                       className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                      Claim your property
+                      Become Host
                     </Link>
                   </div>
                 )}
