@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import AffiliateTab from './AffiliateTab';
+import { VIBE_TAGS } from '@/lib/vibeTags';
 
 interface RoomType { id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number; displayOrder: number; }
 interface Photo { id: string; url: string; displayOrder: number; isPrimary?: boolean; }
@@ -9,7 +10,7 @@ interface AffiliateLink { id: string; platform: string; url: string; isActive: b
 interface Hotel {
   id: string; name: string; city: string; country: string; starRating: number;
   category: string;
-  descriptionShort: string; descriptionLong: string; amenities: string[];
+  descriptionShort: string; descriptionLong: string; amenities: string[]; vibeTags?: string[];
   discountPercent: number; couponValidDays: number; websiteUrl?: string;
   coverImage?: string; roomTypes: RoomType[]; affiliateLinks?: AffiliateLink[];
   email?: string; whatsapp?: string; address?: string;
@@ -275,6 +276,7 @@ function OverviewTab({ hotel, saving, onSave }: {
     starRating: hotel.starRating,
     websiteUrl: hotel.websiteUrl || '',
     amenities: hotel.amenities as string[],
+    vibeTags: (hotel.vibeTags || []) as string[],
   });
   const [masterAmenities, setMasterAmenities] = useState<Array<{ id: string; name: string; icon: string; category: string }>>([]);
   const [hotelTypes, setHotelTypes] = useState<Array<{ id: string; name: string }>>([]);
@@ -384,8 +386,38 @@ function OverviewTab({ hotel, saving, onSave }: {
           <p className="text-xs text-gray-400 mt-2">{form.amenities.length} selected: {form.amenities.join(', ')}</p>
         )}
       </div>
+      {/* Vibe Tags selector */}
+      <div>
+        <label className="label">Vibe Tags <span className="text-gray-400 font-normal">(describe the atmosphere)</span></label>
+        <div className="flex flex-wrap gap-2">
+          {VIBE_TAGS.map(vt => {
+            const selected = form.vibeTags.includes(vt.id);
+            return (
+              <button
+                key={vt.id}
+                type="button"
+                onClick={() => setForm(prev => ({
+                  ...prev,
+                  vibeTags: selected
+                    ? prev.vibeTags.filter(id => id !== vt.id)
+                    : [...prev.vibeTags, vt.id],
+                }))}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                  selected
+                    ? 'border-rose-500 bg-rose-50 text-rose-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-rose-300'
+                }`}
+              >
+                <span>{vt.emoji}</span>
+                <span>{vt.label}</span>
+                {selected && <span className="text-rose-500">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <button
-        onClick={() => onSave({ ...form, amenities: form.amenities })}
+        onClick={() => onSave({ ...form, amenities: form.amenities, vibeTags: form.vibeTags })}
         disabled={saving} className="w-full btn-primary disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Changes'}
       </button>

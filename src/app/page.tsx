@@ -6,7 +6,10 @@ import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
+import NearMeButton from '@/components/NearMeButton';
+import { Suspense } from 'react';
 import prisma from '@/lib/prisma';
+import { VIBE_TAGS } from '@/lib/vibeTags';
 
 const PAGE_SIZE = 18;
 
@@ -110,6 +113,15 @@ async function getTrending() {
   } catch { return []; }
 }
 
+/* Haversine distance in km */
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 async function getHotels(
   page: number = 1,
   search?: string,
@@ -122,12 +134,19 @@ async function getHotels(
   minPrice?: string,
   maxPrice?: string,
   sort?: string,
+  vibeTag?: string,         // single vibe tag id
+  lat?: string,             // Near Me Now latitude
+  lng?: string,             // Near Me Now longitude
+  radius?: string,          // km radius (default 50)
 ) {
   const starsArr    = stars ? stars.split(',').map(s => parseInt(s)).filter(Boolean) : [];
   const discountNum = minDiscount ? parseInt(minDiscount) : undefined;
   const minPriceNum = minPrice ? parseFloat(minPrice) : undefined;
   const maxPriceNum = maxPrice ? parseFloat(maxPrice) : undefined;
   const amenityArr  = amenities ? amenities.split(',').filter(Boolean) : [];
+  const latNum      = lat ? parseFloat(lat) : undefined;
+  const lngNum      = lng ? parseFloat(lng) : undefined;
+  const radiusNum   = radius ? parseFloat(radius) : 50;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = { status: 'active' };
@@ -154,12 +173,25 @@ async function getHotels(
     where.AND = amenityArr.map((a: string) => ({ amenities: { contains: a } }));
   }
 
+  /* vibe tag filter */
+  if (vibeTag) {
+    const existing = where.AND as Array<Record<string, unknown>> | undefined;
+    const vibeFilter = { vibeTags: { contains: vibeTag } };
+    where.AND = existing ? [...existing, vibeFilter] : [vibeFilter];
+  }
+
   /* price range — filter on related roomTypes */
   if (minPriceNum !== undefined || maxPriceNum !== undefined) {
     const priceFilter: Record<string, number> = {};
     if (minPriceNum !== undefined) priceFilter.gte = minPriceNum;
     if (maxPriceNum !== undefined) priceFilter.lte = maxPriceNum;
     where.roomTypes = { some: { pricePerNight: priceFilter } };
+  }
+
+  /* Near Me Now: require geo data */
+  if (latNum !== undefined && lngNum !== undefined) {
+    where.latitude  = { not: null };
+    where.longitude = { not: null };
   }
 
   /* sort order */
@@ -179,11 +211,22 @@ async function getHotels(
         photos:    { orderBy: { displayOrder: 'asc' }, take: 5 },
       },
       orderBy,
-      skip:  (page - 1) * PAGE_SIZE,
-      take:  PAGE_SIZE,
+      skip:  latNum !== undefined ? 0 : (page - 1) * PAGE_SIZE, // fetch all for geo sort
+      take:  latNum !== undefined ? 1000 : PAGE_SIZE,
     }),
     prisma.hotel.count({ where }),
   ]);
+
+  /* Near Me Now: filter + sort by distance */
+  if (latNum !== undefined && lngNum !== undefined) {
+    const withDist = rawHotels
+      .filter(h => h.latitude != null && h.longitude != null)
+      .map(h => ({ ...h, _distKm: haversine(latNum, lngNum, h.latitude!, h.longitude!) }))
+      .filter(h => h._distKm <= radiusNum)
+      .sort((a, b) => a._distKm - b._distKm);
+    const paged = withDist.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    return { hotels: paged, total: withDist.length };
+  }
 
   /* client-side price sort (prices live on roomTypes relation) */
   let hotels = rawHotels;
@@ -213,17 +256,20 @@ export default async function HomePage({
     search?: string; city?: string; stars?: string; minDiscount?: string;
     page?: string; featured?: string; amenities?: string; category?: string;
     minPrice?: string; maxPrice?: string; sort?: string;
+    vibeTag?: string; lat?: string; lng?: string; radius?: string;
   };
 }) {
   const currentPage    = searchParams.page ? parseInt(searchParams.page) : 1;
   const activeCategory = searchParams.category || 'all';
+  const nearMe = !!(searchParams.lat && searchParams.lng);
 
   /* detect if ANY filter/search is active */
   const isFiltered = !!(
     searchParams.search || searchParams.city || searchParams.stars ||
     searchParams.minDiscount || searchParams.featured || searchParams.amenities ||
     (searchParams.category && searchParams.category !== 'all') ||
-    searchParams.minPrice || searchParams.maxPrice || searchParams.sort
+    searchParams.minPrice || searchParams.maxPrice || searchParams.sort ||
+    searchParams.vibeTag || nearMe
   );
 
   const [{ hotels, total }, cities, hotelTypes, trending] = await Promise.all([
@@ -232,7 +278,8 @@ export default async function HomePage({
       searchParams.search, searchParams.city, searchParams.stars,
       searchParams.minDiscount, searchParams.featured, searchParams.amenities,
       searchParams.category, searchParams.minPrice, searchParams.maxPrice,
-      searchParams.sort,
+      searchParams.sort, searchParams.vibeTag,
+      searchParams.lat, searchParams.lng, searchParams.radius,
     ),
     getCities(),
     getHotelTypes(),
@@ -276,9 +323,15 @@ export default async function HomePage({
     };
     activeChips.push({ label: sortLabels[searchParams.sort] || searchParams.sort, removeKey: 'sort' });
   }
+  if (searchParams.vibeTag) {
+    const vt = VIBE_TAGS.find(v => v.id === searchParams.vibeTag);
+    if (vt) activeChips.push({ label: `${vt.emoji} ${vt.label}`, removeKey: 'vibeTag' });
+  }
+  if (nearMe) activeChips.push({ label: '📍 Near Me', removeKey: '_nearme' });
 
   const removeChip = (key: string) => {
     if (key === '_price') return buildHref({ minPrice: undefined, maxPrice: undefined, page: undefined });
+    if (key === '_nearme') return buildHref({ lat: undefined, lng: undefined, radius: undefined, page: undefined });
     if (key.startsWith('amenity_')) {
       const a = key.slice(8);
       const remaining = (searchParams.amenities || '').split(',').filter(x => x && x !== a).join(',');
@@ -299,6 +352,7 @@ export default async function HomePage({
     minPrice:    searchParams.minPrice,
     maxPrice:    searchParams.maxPrice,
     sort:        searchParams.sort,
+    vibeTag:     searchParams.vibeTag,
   };
 
   return (
@@ -423,6 +477,28 @@ export default async function HomePage({
             </div>
           </section>
         )}
+
+        {/* ── Vibe Tags row ── */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 mb-5 -mx-1 px-1">
+          <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
+          {VIBE_TAGS.map(vt => {
+            const active = searchParams.vibeTag === vt.id;
+            return (
+              <Link
+                key={vt.id}
+                href={buildHref({ vibeTag: active ? undefined : vt.id, page: undefined })}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all border ${
+                  active
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                }`}
+              >
+                <span>{vt.emoji}</span>
+                <span>{vt.label}</span>
+              </Link>
+            );
+          })}
+        </div>
 
         {/* ── Results header: count + filter controls ── */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">

@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({
-    hotel: { ...hotel, amenities: JSON.parse(hotel.amenities || '[]') },
+    hotel: { ...hotel, amenities: JSON.parse(hotel.amenities || '[]'), vibeTags: JSON.parse((hotel as any).vibeTags || '[]') },
     redemptions,
     stats,
   });
@@ -85,6 +85,7 @@ const updateSchema = z.object({
   // Geo
   latitude: z.number().optional(),
   longitude: z.number().optional(),
+  vibeTags: z.array(z.string()).optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -107,9 +108,10 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const data = updateSchema.parse(body);
-  const { amenities, ...rest } = data;
+  const { amenities, vibeTags, ...rest } = data;
   const updateData: Record<string, unknown> = { ...rest };
   if (amenities) updateData.amenities = JSON.stringify(amenities);
+  if (vibeTags) updateData.vibeTags = JSON.stringify(vibeTags);
 
   const hotel = await prisma.hotel.update({ where: { id: hotelId }, data: updateData as any });
   return NextResponse.json({ hotel });

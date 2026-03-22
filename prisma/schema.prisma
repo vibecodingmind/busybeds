@@ -76,6 +76,8 @@ model Hotel {
   descriptionLong  String
   starRating       Int       @default(3)
   amenities        String    @default("[]")
+  vibeTags         String    @default("[]")
+  discountRules    String    @default("[]")
   websiteUrl       String?
   status           String    @default("active")
   isFeatured       Boolean   @default(false)

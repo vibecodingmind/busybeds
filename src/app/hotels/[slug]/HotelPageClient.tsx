@@ -7,6 +7,7 @@ import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import InquiryForm from '@/components/InquiryForm';
 import PriceAlertButton from '@/components/PriceAlertButton';
+import { VIBE_TAGS } from '@/lib/vibeTags';
 
 export interface HotelData {
   id: string;
@@ -20,6 +21,7 @@ export interface HotelData {
   descriptionLong: string;
   starRating: number;
   amenities: string[];
+  vibeTags?: string[];
   websiteUrl: string | null;
   whatsapp: string | null;
   email: string | null;
@@ -233,6 +235,26 @@ export default function HotelPageClient({ hotel }: { hotel: HotelData }) {
                     <span className="text-[#FF385C]">✓</span> {amenity}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Vibe Tags */}
+          {Array.isArray(hotel.vibeTags) && hotel.vibeTags.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">Vibes</h2>
+              <div className="flex flex-wrap gap-2">
+                {hotel.vibeTags.map(tagId => {
+                  const vt = VIBE_TAGS.find(v => v.id === tagId);
+                  if (!vt) return null;
+                  return (
+                    <a key={tagId} href={`/?vibeTag=${tagId}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gray-50 border border-gray-200 text-sm text-gray-700 hover:border-gray-400 hover:bg-gray-100 transition-colors">
+                      <span className="text-base">{vt.emoji}</span>
+                      <span className="font-medium">{vt.label}</span>
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -5,6 +5,7 @@ import FavoriteButton from './FavoriteButton';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCompare } from '@/context/CompareContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { VIBE_TAGS } from '@/lib/vibeTags';
 
 interface Hotel {
   id: string;
@@ -18,6 +19,7 @@ interface Hotel {
   avgRating: number | null;
   reviewCount: number;
   isFeatured: boolean;
+  vibeTags?: string; // JSON string array
   roomTypes: Array<{ pricePerNight: number }>;
   photos: Array<{ id: string; url: string }>;
 }
@@ -47,6 +49,8 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
   const basePrice = hotel.roomTypes[0]?.pricePerNight ?? null;
   const discountedPrice = basePrice ? Math.round(basePrice * (1 - hotel.discountPercent / 100)) : null;
   const rating = hotel.avgRating ?? hotel.starRating ?? null;
+  const parsedVibeTags: string[] = (() => { try { return JSON.parse(hotel.vibeTags || '[]'); } catch { return []; } })();
+  const vibeTagObjects = parsedVibeTags.slice(0, 3).map(id => VIBE_TAGS.find(v => v.id === id)).filter(Boolean);
 
   return (
     <Link 
@@ -169,6 +173,18 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
         {/* Row 2: City, Country */}
         <p className="text-gray-500 text-sm truncate">{hotel.city}, {hotel.country}</p>
+
+        {/* Row 2b: Vibe tags */}
+        {vibeTagObjects.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap mt-0.5">
+            {vibeTagObjects.map(vt => vt && (
+              <span key={vt.id} className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium">
+                <span>{vt.emoji}</span>
+                <span>{vt.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Row 3: Price */}
         {basePrice && (

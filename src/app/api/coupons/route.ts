@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { generateCouponCode, generateQRDataUrl } from '@/lib/qr';
 import { sendEmail, emailCouponGenerated } from '@/lib/email';
+import { getEffectiveDiscount } from '@/lib/discountRules';
 
 // GET /api/coupons — list caller's coupons (supports ?hotelId=&status= filters)
 export async function GET(req: NextRequest) {
@@ -103,6 +104,12 @@ export async function POST(req: NextRequest) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + hotel.couponValidDays);
 
+  // Apply dynamic discount rules if any match today
+  const { discount: effectiveDiscount } = getEffectiveDiscount(
+    (hotel as any).discountRules || '[]',
+    hotel.discountPercent,
+  );
+
   const coupon = await prisma.coupon.create({
     data: {
       code,
@@ -110,7 +117,7 @@ export async function POST(req: NextRequest) {
       userId: session.userId,
       hotelId,
       subscriptionId: sub.id,
-      discountPercent: hotel.discountPercent,
+      discountPercent: effectiveDiscount,
       guestName: guestName || null,
       expiresAt,
     },
@@ -124,8 +131,8 @@ export async function POST(req: NextRequest) {
       const recipientName = guestName ? `${guestName} (via ${user.fullName})` : user.fullName;
       await sendEmail({
         to: user.email,
-        subject: `Your ${hotel.discountPercent}% off coupon for ${hotel.name} — Busy Beds`,
-        html: emailCouponGenerated(recipientName, hotel.name, hotel.discountPercent, code, expiresAt),
+        subject: `Your ${effectiveDiscount}% off coupon for ${hotel.name} — Busy Beds`,
+        html: emailCouponGenerated(recipientName, hotel.name, effectiveDiscount, code, expiresAt),
       });
     }
   } catch (e) { console.error('Email error:', e); }

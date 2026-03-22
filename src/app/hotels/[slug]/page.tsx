@@ -65,6 +65,9 @@ export default async function HotelPage({ params }: PageProps) {
     amenities: (() => {
       try { return JSON.parse(hotel.amenities as unknown as string); } catch { return []; }
     })(),
+    vibeTags: (() => {
+      try { return JSON.parse((hotel as any).vibeTags || '[]'); } catch { return []; }
+    })(),
     websiteUrl: (hotel as any).websiteUrl ?? null,
     whatsapp: (hotel as any).whatsapp ?? null,
     email: (hotel as any).email ?? null,
