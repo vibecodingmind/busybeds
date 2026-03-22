@@ -1,10 +1,16 @@
 export const dynamic = 'force-dynamic';
+import { rateLimit, getIp } from '@/lib/rateLimit';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 import { sendEmail, emailPasswordReset } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
+  // 5 attempts per IP per hour to prevent abuse
+  const rl = rateLimit(`forgot-password:${getIp(request)}`, { limit: 5, windowSec: 3600 });
+  if (!rl.success) {
+    return NextResponse.json({ ok: true }, { status: 200 }); // silent to prevent enumeration
+  }
   try {
     const { email } = await request.json();
 
