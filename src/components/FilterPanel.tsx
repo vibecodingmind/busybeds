@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { VIBE_TAGS } from '@/lib/vibeTags';
 
 interface Props {
   params: Record<string, string | undefined>;
@@ -36,12 +37,14 @@ export default function FilterPanel({ params }: Props) {
   const [amenities,   setAmenities]   = useState<string[]>(
     params.amenities ? params.amenities.split(',').filter(Boolean) : [],
   );
+  const [vibeTag,     setVibeTag]     = useState(params.vibeTag || '');
 
   const activeFilterCount = [
     stars.length > 0,
     minPrice || maxPrice,
     minDiscount,
     amenities.length > 0,
+    vibeTag,
   ].filter(Boolean).length;
 
   const buildQs = (overrides: Record<string, string | undefined> = {}) => {
@@ -53,6 +56,7 @@ export default function FilterPanel({ params }: Props) {
       maxPrice:    maxPrice || undefined,
       minDiscount: minDiscount || undefined,
       amenities:   amenities.join(',') || undefined,
+      vibeTag:     vibeTag || undefined,
       ...overrides,
       page: undefined,
     };
@@ -70,7 +74,7 @@ export default function FilterPanel({ params }: Props) {
   };
 
   const resetFilters = () => {
-    setStars([]); setMinPrice(''); setMaxPrice(''); setMinDiscount(''); setAmenities([]);
+    setStars([]); setMinPrice(''); setMaxPrice(''); setMinDiscount(''); setAmenities([]); setVibeTag('');
     const p = new URLSearchParams();
     if (params.search)   p.set('search',   params.search);
     if (params.city)     p.set('city',     params.city);
@@ -109,13 +113,17 @@ export default function FilterPanel({ params }: Props) {
         <div className="relative">
           <button
             onClick={() => { setShowSort(!showSort); setShowFilters(false); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-sm font-medium hover:border-gray-700 transition-colors bg-white whitespace-nowrap"
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap ${
+              params.sort && params.sort !== 'best'
+                ? 'border-gray-900 bg-gray-900 text-white'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
+            }`}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/>
             </svg>
             {currentSortLabel}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
               className={`transition-transform ${showSort ? 'rotate-180' : ''}`}>
               <polyline points="6 9 12 15 18 9"/>
             </svg>
@@ -124,7 +132,7 @@ export default function FilterPanel({ params }: Props) {
           {showSort && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowSort(false)} />
-              <div className="absolute left-0 top-12 z-50 bg-white border border-gray-200 rounded-2xl shadow-2xl py-2 min-w-[210px]">
+              <div className="absolute right-0 top-11 z-50 bg-white border border-gray-100 rounded-2xl shadow-2xl py-2 min-w-[200px]">
                 {SORT_OPTIONS.map(o => {
                   const active = (params.sort || 'best') === o.value;
                   return (
@@ -145,13 +153,13 @@ export default function FilterPanel({ params }: Props) {
         {/* Filters button */}
         <button
           onClick={() => { setShowFilters(true); setShowSort(false); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap ${
             activeFilterCount > 0
               ? 'border-gray-900 bg-gray-900 text-white'
-              : 'border-gray-200 text-gray-700 bg-white hover:border-gray-700'
+              : 'border-gray-200 text-gray-700 bg-white hover:border-gray-400'
           }`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
           </svg>
           Filters
@@ -274,6 +282,27 @@ export default function FilterPanel({ params }: Props) {
                           <polyline points="20 6 9 17 4 12"/>
                         </svg>
                         {a}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100" />
+
+              {/* Vibe Tags */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 mb-3">Vibe</h4>
+                <div className="flex flex-wrap gap-2">
+                  {VIBE_TAGS.map(vt => {
+                    const on = vibeTag === vt.id;
+                    return (
+                      <button key={vt.id} onClick={() => setVibeTag(on ? '' : vt.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all ${
+                          on ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                        }`}>
+                        <span>{vt.emoji}</span>
+                        <span>{vt.label}</span>
                       </button>
                     );
                   })}

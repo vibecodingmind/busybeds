@@ -359,73 +359,66 @@ export default async function HomePage({
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      {/* ── Category filter bar (Airbnb-style, sticky) ── */}
-      <div className="border-b border-gray-200 bg-white sticky top-20 z-40">
+      {/* ── Unified sticky bar: Categories + Controls in one row ── */}
+      <div className="border-b border-gray-100 bg-white sticky top-[65px] z-40 shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
         <div className="max-w-[1760px] mx-auto px-6 sm:px-10">
-          <div className="flex items-end gap-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center h-[58px] gap-0">
 
-            {/* "All" tab */}
-            <Link href="/"
-              className={`flex flex-col items-center gap-1.5 px-5 py-3.5 whitespace-nowrap transition-all flex-shrink-0 min-w-[72px] border-b-2 group ${
-                activeCategory === 'all' ? 'border-gray-900' : 'border-transparent hover:border-gray-300'
-              }`}>
-              <span className={`transition-colors ${activeCategory === 'all' ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-700'}`}>
-                <CategoryIcon icon="all" size={24} />
-              </span>
-              <span className={`text-xs font-medium transition-colors ${activeCategory === 'all' ? 'text-gray-900 font-semibold' : 'text-gray-500 group-hover:text-gray-800'}`}>All</span>
-            </Link>
+            {/* LEFT — scrollable category pills (max 10: All + 9 types) */}
+            <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
 
-            {/* DB-driven hotel type categories */}
-            {hotelTypes.map((ht: { id: string; name: string; icon: string }) => {
-              const isActive = activeCategory === ht.name;
-              return (
-                <Link key={ht.id} href={`/?category=${encodeURIComponent(ht.name)}`}
-                  className={`flex flex-col items-center gap-1.5 px-5 py-3.5 whitespace-nowrap transition-all flex-shrink-0 min-w-[72px] border-b-2 group ${
-                    isActive ? 'border-gray-900' : 'border-transparent hover:border-gray-300'
-                  }`}>
-                  <span className={`transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-700'}`}>
-                    <CategoryIcon icon={ht.icon} size={24} />
-                  </span>
-                  <span className={`text-xs font-medium transition-colors ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-500 group-hover:text-gray-800'}`}>{ht.name}</span>
-                </Link>
-              );
-            })}
-
-            {/* Separator */}
-            {cities.length > 0 && hotelTypes.length > 0 && (
-              <div className="w-px h-8 bg-gray-200 flex-shrink-0 mx-2 self-center" />
-            )}
-
-            {/* City quick filters */}
-            {cities.slice(0, 8).map((city: string) => {
-              const isActive = searchParams.city === city;
-              return (
-                <Link key={city} href={buildHref({ city: isActive ? undefined : city, page: undefined })}
-                  className={`flex flex-col items-center gap-1.5 px-5 py-3.5 whitespace-nowrap transition-all flex-shrink-0 min-w-[72px] border-b-2 group ${
-                    isActive ? 'border-gray-900' : 'border-transparent hover:border-gray-300'
-                  }`}>
-                  <span className={`transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-700'}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                  </span>
-                  <span className={`text-xs font-medium transition-colors ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-500 group-hover:text-gray-800'}`}>{city}</span>
-                </Link>
-              );
-            })}
-
-            {/* Clear all */}
-            {isFiltered && (
+              {/* All */}
               <Link href="/"
-                className="flex flex-col items-center gap-1.5 px-5 py-3.5 whitespace-nowrap flex-shrink-0 min-w-[72px] border-b-2 border-transparent hover:border-red-200 group ml-1">
-                <span className="text-gray-300 group-hover:text-red-400 transition-colors">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </span>
-                <span className="text-xs font-medium text-gray-400 group-hover:text-red-500 transition-colors">Clear</span>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap flex-shrink-0 transition-all group ${
+                  activeCategory === 'all'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                }`}>
+                <CategoryIcon icon="all" size={15} />
+                <span className="text-xs font-semibold">All</span>
               </Link>
-            )}
+
+              {/* Hotel types — capped at 9 (= 10 total with All) */}
+              {hotelTypes.slice(0, 9).map((ht: { id: string; name: string; icon: string }) => {
+                const isActive = activeCategory === ht.name;
+                return (
+                  <Link key={ht.id} href={`/?category=${encodeURIComponent(ht.name)}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap flex-shrink-0 transition-all ${
+                      isActive
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                    }`}>
+                    <CategoryIcon icon={ht.icon} size={15} />
+                    <span className="text-xs font-semibold">{ht.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Vertical divider */}
+            <div className="w-px h-7 bg-gray-200 flex-shrink-0 mx-3" />
+
+            {/* RIGHT — fixed controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+
+              {/* Near Me */}
+              <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
+
+              {/* Map View */}
+              <Link href="/map"
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all whitespace-nowrap">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                  <line x1="8" y1="2" x2="8" y2="18"/>
+                  <line x1="16" y1="6" x2="16" y2="22"/>
+                </svg>
+                Map
+              </Link>
+
+              {/* Sort + Filters (FilterPanel handles both) */}
+              <FilterPanel params={filterPanelParams} />
+
+            </div>
           </div>
         </div>
       </div>
@@ -478,68 +471,39 @@ export default async function HomePage({
           </section>
         )}
 
-        {/* ── Vibe Tags row ── */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 mb-5 -mx-1 px-1">
-          <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
-          {VIBE_TAGS.map(vt => {
-            const active = searchParams.vibeTag === vt.id;
-            return (
-              <Link
-                key={vt.id}
-                href={buildHref({ vibeTag: active ? undefined : vt.id, page: undefined })}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all border ${
-                  active
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
-                }`}
-              >
-                <span>{vt.emoji}</span>
-                <span>{vt.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* ── Results header: count + filter controls ── */}
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div className="flex items-center gap-4">
-            <p className="text-sm font-semibold text-gray-900">
+        {/* ── Active filter chips + results count ── */}
+        {(activeChips.length > 0 || total > 0) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            {/* Count */}
+            <p className="text-sm text-gray-500">
               {total === 0 ? 'No hotels found' : (
                 <>
-                  {total > PAGE_SIZE ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, total)} of ` : ''}{total} hotel{total !== 1 ? 's' : ''}
-                  {searchParams.city ? ` in ${searchParams.city}` : ''}
-                  {searchParams.category && searchParams.category !== 'all' ? ` · ${searchParams.category}` : ''}
-                  {searchParams.search ? ` matching "${searchParams.search}"` : ''}
+                  <span className="font-semibold text-gray-900">{total}</span> hotel{total !== 1 ? 's' : ''}
+                  {searchParams.city ? <> in <span className="font-medium text-gray-700">{searchParams.city}</span></> : ''}
+                  {searchParams.category && searchParams.category !== 'all' ? <> · {searchParams.category}</> : ''}
+                  {searchParams.search ? <> matching &ldquo;{searchParams.search}&rdquo;</> : ''}
                 </>
               )}
             </p>
-            <Link href="/map" className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:border-gray-400 transition-colors">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-              Map view
-            </Link>
-          </div>
 
-          {/* Sort + Filters (client component) */}
-          <FilterPanel params={filterPanelParams} />
-        </div>
-
-        {/* ── Active filter chips ── */}
-        {activeChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-5">
-            <span className="text-xs text-gray-400 font-medium">Active filters:</span>
-            {activeChips.map(chip => (
-              <Link key={chip.removeKey} href={removeChip(chip.removeKey)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition-colors">
-                {chip.label}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </Link>
-            ))}
-            {activeChips.length > 1 && (
-              <Link href="/" className="text-xs font-medium text-gray-500 hover:text-gray-900 underline transition-colors">
-                Clear all
-              </Link>
+            {/* Active filter chips */}
+            {activeChips.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeChips.map(chip => (
+                  <Link key={chip.removeKey} href={removeChip(chip.removeKey)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition-colors">
+                    {chip.label}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </Link>
+                ))}
+                {activeChips.length > 1 && (
+                  <Link href="/" className="text-xs font-medium text-gray-400 hover:text-gray-900 underline transition-colors ml-1">
+                    Clear all
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         )}
