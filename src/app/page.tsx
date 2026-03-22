@@ -205,19 +205,18 @@ async function getHotels(
     default:         orderBy = [{ isFeatured: 'desc' }, { avgRating: 'desc' }, { createdAt: 'desc' }];
   }
 
-  const [rawHotels, total] = await prisma.$transaction([
-    prisma.hotel.findMany({
-      where,
-      include: {
-        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
-        photos:    { orderBy: { displayOrder: 'asc' }, take: 5 },
-      },
-      orderBy,
-      skip:  latNum !== undefined ? 0 : (page - 1) * PAGE_SIZE, // fetch all for geo sort
-      take:  latNum !== undefined ? 1000 : PAGE_SIZE,
-    }),
-    prisma.hotel.count({ where }),
-  ]);
+  // Sequential queries to avoid connection pool exhaustion on Supabase (connection_limit=1)
+  const rawHotels = await prisma.hotel.findMany({
+    where,
+    include: {
+      roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+      photos:    { orderBy: { displayOrder: 'asc' }, take: 5 },
+    },
+    orderBy,
+    skip:  latNum !== undefined ? 0 : (page - 1) * PAGE_SIZE, // fetch all for geo sort
+    take:  latNum !== undefined ? 1000 : PAGE_SIZE,
+  });
+  const total = await prisma.hotel.count({ where });
 
   /* Near Me Now: filter + sort by distance */
   if (latNum !== undefined && lngNum !== undefined) {
