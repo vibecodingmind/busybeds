@@ -113,5 +113,46 @@ export default async function HotelPage({ params }: PageProps) {
     affiliateLinks: hotel.affiliateLinks.map(l => ({ id: l.id, platform: l.platform, url: l.url })),
   };
 
-  return <HotelPageClient hotel={hotelData} relatedHotels={relatedHotels} />;
+  // JSON-LD structured data for Google rich results
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Hotel',
+    name: hotel.name,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: hotel.city,
+      addressCountry: hotel.country,
+      ...(hotel as any).address ? { streetAddress: (hotel as any).address } : {},
+    },
+    ...(hotel.coverImage ? { image: hotel.coverImage } : {}),
+    ...((hotel as any).avgRating && (hotel as any).reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: Number((hotel as any).avgRating).toFixed(1),
+        reviewCount: (hotel as any).reviewCount,
+        bestRating: 5,
+      },
+    } : {}),
+    ...(hotel.roomTypes[0]?.pricePerNight ? {
+      priceRange: `From $${Math.round(Number(hotel.roomTypes[0].pricePerNight) * (1 - hotel.discountPercent / 100))}/night`,
+    } : {}),
+    starRating: { '@type': 'Rating', ratingValue: hotel.starRating },
+    url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com'}/hotels/${hotel.slug}`,
+    description: hotel.descriptionShort || `Save ${hotel.discountPercent}% at ${hotel.name} in ${hotel.city}, ${hotel.country}.`,
+    makesOffer: {
+      '@type': 'Offer',
+      description: `${hotel.discountPercent}% discount coupon`,
+      eligibleRegion: { '@type': 'Country', name: hotel.country },
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <HotelPageClient hotel={hotelData} relatedHotels={relatedHotels} />
+    </>
+  );
 }
