@@ -8,25 +8,23 @@ export default async function CouponsPage() {
   const session = await getSession();
   if (!session) redirect('/login?next=/coupons');
 
-  const [rawCoupons, userRecord] = await Promise.all([
-    prisma.coupon.findMany({
-      where: { userId: session.userId },
-      include: {
-        hotel: {
-          select: {
-            name: true, city: true, country: true, slug: true,
-            coverImage: true, starRating: true, address: true,
-            discountPercent: true,
-          },
+  const rawCoupons = await prisma.coupon.findMany({
+    where: { userId: session.userId },
+    include: {
+      hotel: {
+        select: {
+          name: true, city: true, country: true, slug: true,
+          coverImage: true, starRating: true, address: true,
+          discountPercent: true,
         },
       },
-      orderBy: { generatedAt: 'desc' },
-    }),
-    prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { fullName: true, avatar: true },
-    }),
-  ]);
+    },
+    orderBy: { generatedAt: 'desc' },
+  });
+  const userRecord = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { fullName: true, avatar: true },
+  });
 
   // Auto-expire active coupons past their expiry
   const now = new Date();

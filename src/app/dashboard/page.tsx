@@ -9,25 +9,21 @@ import LoyaltyWidget from '@/components/LoyaltyWidget';
 
 async function getData(userId: string) {
   const now = new Date();
-  const [sub, coupons, user, favCount, activeCount] = await Promise.all([
-    prisma.subscription.findFirst({
-      where: { userId, status: 'active', expiresAt: { gt: now } },
-      include: { package: true },
-      orderBy: { expiresAt: 'desc' },
-    }),
-    prisma.coupon.findMany({
-      where: { userId },
-      include: { hotel: { select: { name: true, city: true, coverImage: true } } },
-      orderBy: { generatedAt: 'desc' },
-      take: 6,
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { avatar: true, fullName: true },
-    }),
-    prisma.favorite.count({ where: { userId } }),
-    prisma.coupon.count({ where: { userId, status: 'active', expiresAt: { gt: now } } }),
-  ]);
+  // Sequential queries to avoid connection pool exhaustion (Supabase connection_limit=1)
+  const sub = await prisma.subscription.findFirst({
+    where: { userId, status: 'active', expiresAt: { gt: now } },
+    include: { package: true },
+    orderBy: { expiresAt: 'desc' },
+  });
+  const coupons = await prisma.coupon.findMany({
+    where: { userId },
+    include: { hotel: { select: { name: true, city: true, coverImage: true } } },
+    orderBy: { generatedAt: 'desc' },
+    take: 6,
+  });
+  const user        = await prisma.user.findUnique({ where: { id: userId }, select: { avatar: true, fullName: true } });
+  const favCount    = await prisma.favorite.count({ where: { userId } });
+  const activeCount = await prisma.coupon.count({ where: { userId, status: 'active', expiresAt: { gt: now } } });
   return { sub, coupons, user, favCount, activeCount };
 }
 

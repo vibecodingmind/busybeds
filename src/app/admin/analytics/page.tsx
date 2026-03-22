@@ -8,12 +8,11 @@ async function getAnalyticsData() {
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   const oneYearAgo  = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
 
-  const [dailyRedemptions, topHotelsData, subscriptionsByPlan, monthlySignupsData] = await Promise.all([
-    prisma.coupon.groupBy({ by: ['redeemedAt'], where: { redeemedAt: { gte: twoWeeksAgo, lte: now }, status: 'redeemed' }, _count: true }),
-    prisma.coupon.groupBy({ by: ['hotelId'], where: { status: 'redeemed' }, _count: true, orderBy: { _count: { hotelId: 'desc' } }, take: 8 }),
-    prisma.subscription.groupBy({ by: ['packageId'], where: { status: 'active', expiresAt: { gt: now } }, _count: true }),
-    prisma.user.groupBy({ by: ['createdAt'], where: { createdAt: { gte: oneYearAgo } }, _count: true }),
-  ]);
+  // Sequential queries to avoid connection pool exhaustion (Supabase connection_limit=1)
+  const dailyRedemptions    = await prisma.coupon.groupBy({ by: ['redeemedAt'], where: { redeemedAt: { gte: twoWeeksAgo, lte: now }, status: 'redeemed' }, _count: true });
+  const topHotelsData       = await prisma.coupon.groupBy({ by: ['hotelId'], where: { status: 'redeemed' }, _count: true, orderBy: { _count: { hotelId: 'desc' } }, take: 8 });
+  const subscriptionsByPlan = await prisma.subscription.groupBy({ by: ['packageId'], where: { status: 'active', expiresAt: { gt: now } }, _count: true });
+  const monthlySignupsData  = await prisma.user.groupBy({ by: ['createdAt'], where: { createdAt: { gte: oneYearAgo } }, _count: true });
 
   const dailyRedemptionsFormatted = Array.from({ length: 14 }, (_, i) => {
     const date = new Date(twoWeeksAgo); date.setDate(date.getDate() + i);
@@ -22,15 +21,17 @@ async function getAnalyticsData() {
     return { date: dateStr, count };
   });
 
-  const topHotels = await Promise.all(topHotelsData.map(async h => {
+  const topHotels: { name: string; redeemed: number }[] = [];
+  for (const h of topHotelsData) {
     const hotel = await prisma.hotel.findUnique({ where: { id: h.hotelId } });
-    return { name: hotel?.name || 'Unknown', redeemed: h._count };
-  }));
+    topHotels.push({ name: hotel?.name || 'Unknown', redeemed: h._count });
+  }
 
-  const revenueByPlan = await Promise.all(subscriptionsByPlan.map(async s => {
+  const revenueByPlan: { plan: string; count: number }[] = [];
+  for (const s of subscriptionsByPlan) {
     const pkg = await prisma.subscriptionPackage.findUnique({ where: { id: s.packageId } });
-    return { plan: pkg?.name || 'Unknown', count: s._count };
-  }));
+    revenueByPlan.push({ plan: pkg?.name || 'Unknown', count: s._count });
+  }
 
   const monthlySignupsMap: Record<string, number> = {};
   Array.from({ length: 12 }, (_, i) => {

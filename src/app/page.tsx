@@ -273,19 +273,18 @@ export default async function HomePage({
     searchParams.vibeTag || nearMe
   );
 
-  const [{ hotels, total }, cities, hotelTypes, trending] = await Promise.all([
-    getHotels(
-      currentPage,
-      searchParams.search, searchParams.city, searchParams.stars,
-      searchParams.minDiscount, searchParams.featured, searchParams.amenities,
-      searchParams.category, searchParams.minPrice, searchParams.maxPrice,
-      searchParams.sort, searchParams.vibeTag,
-      searchParams.lat, searchParams.lng, searchParams.radius,
-    ),
-    getCities(),
-    getHotelTypes(),
-    isFiltered ? Promise.resolve([]) : getTrending(),
-  ]);
+  // Sequential to avoid connection pool exhaustion (Supabase connection_limit=1)
+  const { hotels, total } = await getHotels(
+    currentPage,
+    searchParams.search, searchParams.city, searchParams.stars,
+    searchParams.minDiscount, searchParams.featured, searchParams.amenities,
+    searchParams.category, searchParams.minPrice, searchParams.maxPrice,
+    searchParams.sort, searchParams.vibeTag,
+    searchParams.lat, searchParams.lng, searchParams.radius,
+  );
+  const cities     = await getCities();
+  const hotelTypes = await getHotelTypes();
+  const trending   = isFiltered ? [] : await getTrending();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
