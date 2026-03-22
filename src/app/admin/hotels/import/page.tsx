@@ -9,6 +9,7 @@ import type { PlaceSearchResult } from '@/app/api/admin/import-hotels/route';
 type ImportResult = {
   placeId: string;
   success: boolean;
+  skipped?: boolean;
   hotelId?: string;
   hotelSlug?: string;
   name?: string;
@@ -88,7 +89,8 @@ export default function ImportHotelsPage() {
       return next;
     });
   };
-  const selectAll = () => setSelected(new Set(results.map(r => r.placeId)));
+  // Only select hotels that haven't been imported yet
+  const selectAll = () => setSelected(new Set(results.filter(r => !r.alreadyImported).map(r => r.placeId)));
   const clearAll  = () => setSelected(new Set());
 
   /* ── Import ── */
@@ -251,9 +253,14 @@ export default function ImportHotelsPage() {
                     <span className="text-green-700 font-semibold">
                       ✓ {importResults.filter(r => r.success).length} imported
                     </span>
-                    {importResults.filter(r => !r.success).length > 0 && (
+                    {importResults.filter(r => !r.success && r.skipped).length > 0 && (
+                      <span className="text-amber-600 font-semibold">
+                        ↩ {importResults.filter(r => r.skipped).length} skipped
+                      </span>
+                    )}
+                    {importResults.filter(r => !r.success && !r.skipped).length > 0 && (
                       <span className="text-red-600 font-semibold">
-                        ✗ {importResults.filter(r => !r.success).length} failed
+                        ✗ {importResults.filter(r => !r.success && !r.skipped).length} failed
                       </span>
                     )}
                   </div>
@@ -277,6 +284,16 @@ export default function ImportHotelsPage() {
                           >
                             View →
                           </Link>
+                        </>
+                      ) : r.skipped ? (
+                        <>
+                          <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-700 truncate">Already in BusyBeds</p>
+                            <p className="text-xs text-amber-600 truncate">{r.error}</p>
+                          </div>
                         </>
                       ) : (
                         <>
@@ -321,14 +338,17 @@ export default function ImportHotelsPage() {
                 {/* Cards grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {results.map(place => {
-                    const isSelected = selected.has(place.placeId);
+                    const isSelected   = selected.has(place.placeId);
+                    const isImported   = place.alreadyImported;
                     return (
                       <button
                         key={place.placeId}
-                        onClick={() => toggle(place.placeId)}
-                        disabled={isImporting}
+                        onClick={() => !isImported && toggle(place.placeId)}
+                        disabled={isImporting || isImported}
                         className={`relative text-left rounded-2xl overflow-hidden border-2 transition-all duration-200 focus:outline-none group ${
-                          isSelected
+                          isImported
+                            ? 'border-green-400 opacity-75 cursor-default'
+                            : isSelected
                             ? 'border-[#E8395A] shadow-lg shadow-[#E8395A]/15 scale-[1.01]'
                             : 'border-transparent hover:border-gray-200 hover:shadow-md'
                         } bg-white`}
@@ -351,6 +371,17 @@ export default function ImportHotelsPage() {
                           {/* Gradient */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
+                          {/* Already imported banner */}
+                          {isImported && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
+                                style={{ background: 'rgba(22,163,74,0.90)', backdropFilter: 'blur(8px)' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Already imported
+                              </div>
+                            </div>
+                          )}
+
                           {/* Category pill */}
                           <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
                             style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(8px)' }}>
@@ -365,16 +396,18 @@ export default function ImportHotelsPage() {
                             </div>
                           )}
 
-                          {/* Checkbox */}
-                          <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                            isSelected
-                              ? 'border-[#E8395A] bg-[#E8395A]'
-                              : 'border-white/70 bg-white/20 backdrop-blur-sm'
-                          }`}>
-                            {isSelected && (
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                            )}
-                          </div>
+                          {/* Checkbox — hidden for already-imported */}
+                          {!isImported && (
+                            <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isSelected
+                                ? 'border-[#E8395A] bg-[#E8395A]'
+                                : 'border-white/70 bg-white/20 backdrop-blur-sm'
+                            }`}>
+                              {isSelected && (
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              )}
+                            </div>
+                          )}
 
                           {/* Rating */}
                           {place.rating && (

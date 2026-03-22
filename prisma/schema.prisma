@@ -109,6 +109,7 @@ model Hotel {
   latitude         Float?
   longitude        Float?
   reviewCount      Int       @default(0)
+  googlePlaceId    String?   @unique
 
   // Relations
   owner            HotelOwner?

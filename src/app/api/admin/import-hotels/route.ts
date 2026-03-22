@@ -27,16 +27,23 @@ function mapCategory(types: string[]): string {
   return 'Hotel';
 }
 
-/** Maps Google price_level (0–4) → estimated price per night in USD */
-function mapPrice(priceLevel?: number): number {
-  switch (priceLevel) {
-    case 0: return 30;
-    case 1: return 60;
-    case 2: return 120;
-    case 3: return 220;
-    case 4: return 400;
-    default: return 100;
-  }
+/**
+ * Maps Google price_level (0–4) + rating → estimated price per night in USD.
+ * Uses rating as a modifier so hotels in the same price tier get varied prices.
+ */
+function mapPrice(priceLevel?: number, rating?: number): number {
+  // Base ranges per price level
+  const bases: Record<number, [number, number]> = {
+    0: [20,  45],
+    1: [45,  90],
+    2: [90,  180],
+    3: [180, 350],
+    4: [350, 700],
+  };
+  const [lo, hi] = bases[priceLevel ?? -1] ?? [70, 150];
+  // rating 1–5 → interpolate within range (higher rating = higher price)
+  const t = rating ? Math.min(1, Math.max(0, (rating - 1) / 4)) : 0.5;
+  return Math.round(lo + t * (hi - lo));
 }
 
 /** Google rating (0–5 float) → star rating (1–5 int) */
@@ -82,23 +89,25 @@ interface GoogleAddressComponent {
 }
 
 export interface PlaceSearchResult {
-  placeId:       string;
-  name:          string;
-  address:       string;
-  lat:           number;
-  lng:           number;
-  rating:        number | null;
-  reviewCount:   number | null;
-  priceLevel:    number | null;
-  photoUrl:      string | null;
-  types:         string[];
-  category:      string;
+  placeId:        string;
+  name:           string;
+  address:        string;
+  lat:            number;
+  lng:            number;
+  rating:         number | null;
+  reviewCount:    number | null;
+  priceLevel:     number | null;
+  photoUrl:       string | null;
+  types:          string[];
+  category:       string;
   estimatedPrice: number;
+  alreadyImported: boolean;   // ← new: true if placeId already in DB
 }
 
 /* ────────────────────────────────────────────────────────────────
    GET /api/admin/import-hotels?q=...&pagetoken=...
-   → Text-search Google Places and return candidate results
+   → Text-search Google Places and return candidate results.
+     Results include alreadyImported flag based on googlePlaceId.
 ──────────────────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -113,17 +122,13 @@ export async function GET(req: NextRequest) {
     );
 
   const { searchParams } = new URL(req.url);
-  const q          = searchParams.get('q')?.trim();
-  const pagetoken  = searchParams.get('pagetoken') || '';
+  const q         = searchParams.get('q')?.trim();
+  const pagetoken = searchParams.get('pagetoken') || '';
 
   if (!q) return NextResponse.json({ error: 'query (q) is required' }, { status: 400 });
 
   // Build text-search URL
-  const params = new URLSearchParams({
-    query: q,
-    type:  'lodging',
-    key,
-  });
+  const params = new URLSearchParams({ query: q, type: 'lodging', key });
   if (pagetoken) params.set('pagetoken', pagetoken);
 
   const raw = await fetch(`${PLACES_BASE}/textsearch/json?${params}`);
@@ -138,40 +143,53 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Fetch photo redirect URLs in parallel (max 10 per page)
-  const results: PlaceSearchResult[] = await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (json.results as any[]).map(async (p) => {
-      const photoRef = p.photos?.[0]?.photo_reference;
-      const photoUrl = photoRef ? await resolvePhotoUrl(photoRef) : null;
-      return {
-        placeId:        p.place_id,
-        name:           p.name,
-        address:        p.formatted_address,
-        lat:            p.geometry.location.lat,
-        lng:            p.geometry.location.lng,
-        rating:         p.rating   ?? null,
-        reviewCount:    p.user_ratings_total ?? null,
-        priceLevel:     p.price_level ?? null,
-        photoUrl,
-        types:          p.types ?? [],
-        category:       mapCategory(p.types ?? []),
-        estimatedPrice: mapPrice(p.price_level),
-      } satisfies PlaceSearchResult;
-    }),
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawResults = (json.results as any[]) ?? [];
+
+  // Check which placeIds are already in DB (single query)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = prisma as any;
+  const placeIds = rawResults.map((p) => p.place_id as string);
+  const existing: { googlePlaceId: string | null }[] = await db.hotel.findMany({
+    where: { googlePlaceId: { in: placeIds } },
+    select: { googlePlaceId: true },
+  });
+  const importedSet = new Set(existing.map((h) => h.googlePlaceId));
+
+  // Fetch photo redirect URLs sequentially to avoid rate-limits
+  const results: PlaceSearchResult[] = [];
+  for (const p of rawResults) {
+    const photoRef = p.photos?.[0]?.photo_reference;
+    const photoUrl = photoRef ? await resolvePhotoUrl(photoRef) : null;
+    results.push({
+      placeId:         p.place_id,
+      name:            p.name,
+      address:         p.formatted_address,
+      lat:             p.geometry.location.lat,
+      lng:             p.geometry.location.lng,
+      rating:          p.rating          ?? null,
+      reviewCount:     p.user_ratings_total ?? null,
+      priceLevel:      p.price_level     ?? null,
+      photoUrl,
+      types:           p.types           ?? [],
+      category:        mapCategory(p.types ?? []),
+      estimatedPrice:  mapPrice(p.price_level, p.rating),
+      alreadyImported: importedSet.has(p.place_id),
+    });
+  }
 
   return NextResponse.json({
     results,
     nextPageToken: json.next_page_token || null,
-    total:         json.results?.length ?? 0,
+    total:         results.length,
   });
 }
 
 /* ────────────────────────────────────────────────────────────────
    POST /api/admin/import-hotels
-   Body: { placeIds: string[], discountPercent?: number, couponValidDays?: number }
-   → Fetch full details for each placeId, create hotel records, return results
+   Body: { placeIds: string[], discountPercent?, couponValidDays?, pricePerNight? }
+   → Fetches details sequentially (avoids connection-pool exhaustion),
+     skips placeIds already in DB, creates hotel records.
 ──────────────────────────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -183,7 +201,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Google Places API key not configured' }, { status: 503 });
 
   const body = await req.json();
-  const placeIds: string[]    = body.placeIds ?? [];
+  const placeIds: string[]      = body.placeIds        ?? [];
   const discountPercent: number = Number(body.discountPercent) || 15;
   const couponValidDays: number = Number(body.couponValidDays) || 30;
   const pricePerNight: number   = Number(body.pricePerNight)   || 0;
@@ -191,113 +209,138 @@ export async function POST(req: NextRequest) {
   if (!placeIds.length)
     return NextResponse.json({ error: 'placeIds array is required' }, { status: 400 });
 
-  const importResults = await Promise.all(
-    placeIds.map(async (placeId) => {
-      try {
-        /* ── 1. Fetch Place Details ── */
-        const detailParams = new URLSearchParams({
-          place_id: placeId,
-          fields: [
-            'name', 'formatted_address', 'address_components',
-            'geometry', 'rating', 'user_ratings_total',
-            'website', 'formatted_phone_number', 'international_phone_number',
-            'photos', 'price_level', 'types',
-          ].join(','),
-          key,
-        });
-        const detailRes = await fetch(`${PLACES_BASE}/details/json?${detailParams}`);
-        const detail    = await detailRes.json();
+  // Pre-check which placeIds already exist — skip them entirely
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = prisma as any;
+  const alreadyInDb: { googlePlaceId: string | null; name: string }[] = await db.hotel.findMany({
+    where: { googlePlaceId: { in: placeIds } },
+    select: { googlePlaceId: true, name: true },
+  });
+  const alreadySet = new Set(alreadyInDb.map((h) => h.googlePlaceId));
 
-        if (detail.status !== 'OK' || !detail.result) {
-          return { placeId, success: false, error: `Places API: ${detail.status}` };
-        }
+  // ── Import SEQUENTIALLY to avoid connection-pool timeout ──────
+  type ImportResult =
+    | { placeId: string; success: true; hotelId: string; hotelSlug: string; name: string; city: string; country: string; coverImage: string | null }
+    | { placeId: string; success: false; error: string; skipped?: boolean };
 
-        const p = detail.result;
+  const importResults: ImportResult[] = [];
 
-        /* ── 2. Resolve fields ── */
-        const { city, country } = extractLocation(p.address_components ?? []);
-        const category  = mapCategory(p.types ?? []);
-        const stars     = mapStars(p.rating);
-        const price     = pricePerNight || mapPrice(p.price_level);
+  for (const placeId of placeIds) {
+    // Skip already-imported hotels
+    if (alreadySet.has(placeId)) {
+      const existing = alreadyInDb.find((h) => h.googlePlaceId === placeId);
+      importResults.push({
+        placeId,
+        success: false,
+        skipped: true,
+        error: `Already imported as "${existing?.name}"`,
+      });
+      continue;
+    }
 
-        // Resolve cover image (follow redirect → key-free CDN URL)
-        const photoRef  = p.photos?.[0]?.photo_reference;
-        const coverImage = photoRef ? await resolvePhotoUrl(photoRef) : null;
+    try {
+      /* ── 1. Fetch Place Details ── */
+      const detailParams = new URLSearchParams({
+        place_id: placeId,
+        fields: [
+          'name', 'formatted_address', 'address_components',
+          'geometry', 'rating', 'user_ratings_total',
+          'website', 'formatted_phone_number', 'international_phone_number',
+          'photos', 'price_level', 'types',
+        ].join(','),
+        key,
+      });
+      const detailRes = await fetch(`${PLACES_BASE}/details/json?${detailParams}`);
+      const detail    = await detailRes.json();
 
-        // Resolve extra photos (up to 4 more)
-        const extraPhotos: string[] = [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const ph of (p.photos ?? []).slice(1, 5) as any[]) {
-          const url = await resolvePhotoUrl(ph.photo_reference);
-          extraPhotos.push(url);
-        }
-
-        /* ── 3. Build slug ── */
-        const slug =
-          p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') +
-          '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
-
-        /* ── 4. Create hotel record ── */
-        const hotel = await prisma.hotel.create({
-          data: {
-            name:             p.name,
-            slug,
-            city,
-            country,
-            address:          p.formatted_address || null,
-            category,
-            starRating:       stars,
-            discountPercent,
-            couponValidDays,
-            coverImage:       coverImage ?? undefined,
-            websiteUrl:       p.website || null,
-            whatsapp:         p.international_phone_number || p.formatted_phone_number || null,
-            latitude:         p.geometry?.location?.lat ?? null,
-            longitude:        p.geometry?.location?.lng ?? null,
-            amenities:        '[]',
-            status:           'active',
-            descriptionShort: `${category} in ${city}, ${country}`,
-            descriptionLong:  `${p.name} is a ${stars}-star ${category.toLowerCase()} located in ${city}, ${country}. ${p.rating ? `Rated ${p.rating.toFixed(1)}/5 by ${(p.user_ratings_total ?? 0).toLocaleString()} guests on Google.` : ''} Imported via Google Places.`,
-            isFeatured:       false,
-            // Extra photos
-            photos: extraPhotos.length > 0 ? {
-              create: extraPhotos.map((url, idx) => ({
-                url,
-                displayOrder: idx,
-              })),
-            } : undefined,
-            // Default room type
-            roomTypes: {
-              create: [{
-                name:          'Standard Room',
-                description:   'Standard room imported from Google Places.',
-                pricePerNight: price,
-                displayOrder:  0,
-              }],
-            },
-          },
-        });
-
-        return {
-          placeId,
-          success: true,
-          hotelId:  hotel.id,
-          hotelSlug: hotel.slug,
-          name:      hotel.name,
-          city:      hotel.city,
-          country:   hotel.country,
-          coverImage: hotel.coverImage,
-        };
-
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        return { placeId, success: false, error: msg };
+      if (detail.status !== 'OK' || !detail.result) {
+        importResults.push({ placeId, success: false, error: `Places API: ${detail.status}` });
+        continue;
       }
-    }),
-  );
 
-  const succeeded = importResults.filter(r => r.success).length;
-  const failed    = importResults.filter(r => !r.success).length;
+      const p = detail.result;
 
-  return NextResponse.json({ results: importResults, succeeded, failed }, { status: 201 });
+      /* ── 2. Resolve fields ── */
+      const { city, country } = extractLocation(p.address_components ?? []);
+      const category  = mapCategory(p.types ?? []);
+      const stars     = mapStars(p.rating);
+      const price     = pricePerNight || mapPrice(p.price_level, p.rating);
+
+      // Resolve cover image (follow redirect → key-free CDN URL)
+      const photoRef   = p.photos?.[0]?.photo_reference;
+      const coverImage = photoRef ? await resolvePhotoUrl(photoRef) : null;
+
+      // Resolve extra photos (up to 4 more) — sequential to avoid rate-limits
+      const extraPhotos: string[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const ph of (p.photos ?? []).slice(1, 5) as any[]) {
+        const url = await resolvePhotoUrl(ph.photo_reference);
+        extraPhotos.push(url);
+      }
+
+      /* ── 3. Build unique slug ── */
+      const slug =
+        p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') +
+        '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
+
+      /* ── 4. Create hotel record ── */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hotel = await (prisma as any).hotel.create({
+        data: {
+          name:             p.name,
+          slug,
+          city,
+          country,
+          address:          p.formatted_address || null,
+          category,
+          starRating:       stars,
+          discountPercent,
+          couponValidDays,
+          coverImage:       coverImage ?? undefined,
+          websiteUrl:       p.website || null,
+          whatsapp:         p.international_phone_number || p.formatted_phone_number || null,
+          latitude:         p.geometry?.location?.lat ?? null,
+          longitude:        p.geometry?.location?.lng ?? null,
+          googlePlaceId:    placeId,
+          amenities:        '[]',
+          status:           'active',
+          descriptionShort: `${category} in ${city}, ${country}`,
+          descriptionLong:  `${p.name} is a ${stars}-star ${category.toLowerCase()} located in ${city}, ${country}. ${p.rating ? `Rated ${p.rating.toFixed(1)}/5 by ${(p.user_ratings_total ?? 0).toLocaleString()} guests on Google.` : ''} Imported via Google Places.`,
+          isFeatured:       false,
+          photos: extraPhotos.length > 0 ? {
+            create: extraPhotos.map((url, idx) => ({ url, displayOrder: idx })),
+          } : undefined,
+          roomTypes: {
+            create: [{
+              name:          'Standard Room',
+              description:   'Standard room imported from Google Places.',
+              pricePerNight: price,
+              displayOrder:  0,
+            }],
+          },
+        },
+      });
+
+      importResults.push({
+        placeId,
+        success:    true,
+        hotelId:    hotel.id,
+        hotelSlug:  hotel.slug,
+        name:       hotel.name,
+        city:       hotel.city,
+        country:    hotel.country,
+        coverImage: hotel.coverImage,
+      });
+
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      importResults.push({ placeId, success: false, error: msg });
+    }
+  }
+
+  const succeeded = importResults.filter((r) => r.success).length;
+  const skipped   = importResults.filter((r) => !r.success && (r as { skipped?: boolean }).skipped).length;
+  const failed    = importResults.filter((r) => !r.success && !(r as { skipped?: boolean }).skipped).length;
+
+  return NextResponse.json({ results: importResults, succeeded, skipped, failed }, { status: 201 });
 }
