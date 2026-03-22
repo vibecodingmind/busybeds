@@ -1,6 +1,7 @@
 import NewsletterSignup from '@/components/NewsletterSignup';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import Logo from '@/components/Logo';
 import HotelGridClient from '@/components/HotelGridClient';
 import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
@@ -356,58 +357,77 @@ export default async function HomePage({
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       <Navbar />
 
-      {/* ── Unified sticky bar: Categories + Controls in one row ── */}
-      <div className="border-b border-gray-100 bg-white sticky top-[65px] z-40 shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
-        <div className="max-w-[1760px] mx-auto px-6 sm:px-10">
-          <div className="flex items-center h-[58px] gap-0">
+      {/* ══════════════════════════════════════════════════════
+          STICKY CATEGORY + CONTROLS BAR
+      ══════════════════════════════════════════════════════ */}
+      <div
+        className="sticky z-40"
+        style={{
+          top: 70,
+          background: 'rgba(255,255,255,0.82)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderBottom: '1px solid rgba(0,0,0,0.07)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        }}
+      >
+        <div className="max-w-[1760px] mx-auto px-5 sm:px-10">
+          <div className="flex items-center h-[56px] gap-0">
 
-            {/* LEFT — scrollable category pills (max 10: All + 9 types) */}
-            <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
+            {/* LEFT — scrollable category pills */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
 
               {/* All */}
-              <Link href="/"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap flex-shrink-0 transition-all group ${
+              <Link
+                href="/"
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full whitespace-nowrap flex-shrink-0 transition-all duration-200 text-xs font-semibold ${
                   activeCategory === 'all'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-                }`}>
-                <CategoryIcon icon="all" size={15} />
-                <span className="text-xs font-semibold">All</span>
+                    ? 'cat-pill-active'
+                    : 'text-gray-500 hover:bg-black/[0.05] hover:text-gray-800'
+                }`}
+              >
+                <CategoryIcon icon="all" size={14} />
+                All
               </Link>
 
-              {/* Hotel types — capped at 9 (= 10 total with All) */}
+              {/* Hotel types */}
               {hotelTypes.slice(0, 9).map((ht: { id: string; name: string; icon: string }) => {
                 const isActive = activeCategory === ht.name;
                 return (
-                  <Link key={ht.id} href={`/?category=${encodeURIComponent(ht.name)}`}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap flex-shrink-0 transition-all ${
+                  <Link
+                    key={ht.id}
+                    href={`/?category=${encodeURIComponent(ht.name)}`}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full whitespace-nowrap flex-shrink-0 transition-all duration-200 text-xs font-semibold ${
                       isActive
-                        ? 'bg-gray-900 text-white'
-                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-                    }`}>
-                    <CategoryIcon icon={ht.icon} size={15} />
-                    <span className="text-xs font-semibold">{ht.name}</span>
+                        ? 'cat-pill-active'
+                        : 'text-gray-500 hover:bg-black/[0.05] hover:text-gray-800'
+                    }`}
+                  >
+                    <CategoryIcon icon={ht.icon} size={14} />
+                    {ht.name}
                   </Link>
                 );
               })}
             </div>
 
-            {/* Vertical divider */}
-            <div className="w-px h-7 bg-gray-200 flex-shrink-0 mx-3" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-black/10 flex-shrink-0 mx-3" />
 
-            {/* RIGHT — fixed controls */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* RIGHT — controls */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
 
               {/* Near Me */}
               <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
 
               {/* Map View */}
-              <Link href="/map"
-                className="flex items-center gap-1.5 px-3.5 py-2 border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all whitespace-nowrap">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <Link
+                href="/map"
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-black/10 rounded-full text-xs font-semibold text-gray-600 hover:border-black/20 hover:bg-black/[0.04] transition-all duration-200 whitespace-nowrap"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                   <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
                   <line x1="8" y1="2" x2="8" y2="18"/>
                   <line x1="16" y1="6" x2="16" y2="22"/>
@@ -415,7 +435,7 @@ export default async function HomePage({
                 Map
               </Link>
 
-              {/* Sort + Filters (FilterPanel handles both) */}
+              {/* Sort + Filters */}
               <FilterPanel params={filterPanelParams} />
 
             </div>
@@ -423,46 +443,79 @@ export default async function HomePage({
         </div>
       </div>
 
-      {/* ── Main content ── */}
-      <div className="max-w-[1760px] mx-auto px-6 sm:px-10 py-6 pb-24">
+      {/* ══════════════════════════════════════════════════════
+          MAIN CONTENT
+      ══════════════════════════════════════════════════════ */}
+      <div className="max-w-[1760px] mx-auto px-5 sm:px-10 py-7 pb-24">
 
-        {/* ── Trending section (only when no active filters) ── */}
+        {/* ── Trending this week ── */}
         {!isFiltered && trending.length > 0 && (
           <section className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <span>🔥</span> Trending this week
-              </h2>
-              <span className="text-xs text-gray-400">Most reviewed</span>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl">🔥</span> Trending this week
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">Highest rated · most reviewed</p>
+              </div>
+              <Link href="/?sort=rating" className="text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
+                View all
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-none pb-2 -mx-1 px-1">
+
+            <div className="flex gap-4 overflow-x-auto scrollbar-none pb-3 -mx-1 px-1">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(trending as any[]).map((hotel) => (
-                <Link key={hotel.id} href={`/hotels/${hotel.slug}`}
-                  className="flex-shrink-0 w-52 group">
-                  <div className="relative rounded-2xl overflow-hidden h-36 mb-2">
+              {(trending as any[]).map((hotel, idx) => (
+                <Link
+                  key={hotel.id}
+                  href={`/hotels/${hotel.slug}`}
+                  className="flex-shrink-0 w-56 group"
+                  style={{ animationDelay: `${idx * 60}ms` }}
+                >
+                  {/* Image */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden mb-2.5"
+                    style={{ height: 148, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}
+                  >
                     <img
                       src={hotel.photos[0]?.url || hotel.coverImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'}
                       alt={hotel.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
                     />
-                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-bold text-gray-800 flex items-center gap-1">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#FF385C"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                      {hotel.avgRating?.toFixed(1) ?? '—'}
-                    </div>
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+
+                    {/* Rating badge */}
+                    {hotel.avgRating && (
+                      <div
+                        className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold text-gray-900"
+                        style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)' }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        {hotel.avgRating.toFixed(1)}
+                      </div>
+                    )}
+
+                    {/* Discount pill */}
                     {hotel.discountPercent >= 10 && (
-                      <div className="absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-xs font-bold text-white"
-                        style={{ background: '#FF385C' }}>
+                      <div
+                        className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                        style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
+                      >
                         {hotel.discountPercent}% off
                       </div>
                     )}
                   </div>
+
+                  {/* Info */}
                   <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-600 transition-colors">{hotel.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{hotel.city}, {hotel.country}</p>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{hotel.city}, {hotel.country}</p>
                   {hotel.roomTypes[0] && (
-                    <p className="text-xs text-gray-700 font-medium mt-0.5">
+                    <p className="text-xs text-gray-700 font-medium mt-1">
                       <span className="line-through text-gray-400 mr-1">${hotel.roomTypes[0].pricePerNight.toFixed(0)}</span>
-                      ${Math.round(hotel.roomTypes[0].pricePerNight * (1 - hotel.discountPercent / 100))}/night
+                      <span className="font-bold text-gray-900">${Math.round(hotel.roomTypes[0].pricePerNight * (1 - hotel.discountPercent / 100))}</span>
+                      <span className="text-gray-400 font-normal">/night</span>
                     </p>
                   )}
                 </Link>
@@ -473,33 +526,36 @@ export default async function HomePage({
 
         {/* ── Active filter chips + results count ── */}
         {(activeChips.length > 0 || total > 0) && (
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            {/* Count */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <p className="text-sm text-gray-500">
               {total === 0 ? 'No hotels found' : (
                 <>
-                  <span className="font-semibold text-gray-900">{total}</span> hotel{total !== 1 ? 's' : ''}
-                  {searchParams.city ? <> in <span className="font-medium text-gray-700">{searchParams.city}</span></> : ''}
+                  <span className="font-bold text-gray-900">{total.toLocaleString()}</span>{' '}
+                  hotel{total !== 1 ? 's' : ''}
+                  {searchParams.city ? <> in <span className="font-semibold text-gray-800">{searchParams.city}</span></> : ''}
                   {searchParams.category && searchParams.category !== 'all' ? <> · {searchParams.category}</> : ''}
                   {searchParams.search ? <> matching &ldquo;{searchParams.search}&rdquo;</> : ''}
                 </>
               )}
             </p>
 
-            {/* Active filter chips */}
             {activeChips.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {activeChips.map(chip => (
-                  <Link key={chip.removeKey} href={removeChip(chip.removeKey)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition-colors">
+                  <Link
+                    key={chip.removeKey}
+                    href={removeChip(chip.removeKey)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-semibold transition-all hover:opacity-90 hover:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 2px 8px rgba(232,57,90,0.30)' }}
+                  >
                     {chip.label}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
                       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                   </Link>
                 ))}
                 {activeChips.length > 1 && (
-                  <Link href="/" className="text-xs font-medium text-gray-400 hover:text-gray-900 underline transition-colors ml-1">
+                  <Link href="/" className="text-xs font-semibold text-gray-400 hover:text-gray-900 transition-colors ml-1 underline underline-offset-2">
                     Clear all
                   </Link>
                 )}
@@ -510,19 +566,24 @@ export default async function HomePage({
 
         <RecentlyViewed />
 
-        {/* ── Hotel grid ── */}
+        {/* ── Hotel grid / empty state ── */}
         {hotels.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={1.5}>
+          <div className="text-center py-28">
+            <div
+              className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6"
+              style={{ background: 'rgba(232,57,90,0.08)', border: '1px solid rgba(232,57,90,0.15)' }}
+            >
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8395A" strokeWidth={1.5} strokeLinecap="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No hotels found</h3>
-            <p className="text-gray-500 mb-6">Try adjusting your search or clearing some filters</p>
-            <Link href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ background: '#FF385C' }}>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No hotels found</h3>
+            <p className="text-gray-500 mb-8 text-sm">Try adjusting your search or clearing some filters</p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white text-sm font-bold transition-all hover:opacity-90 hover:shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 20px rgba(232,57,90,0.35)' }}
+            >
               Clear all filters
             </Link>
           </div>
@@ -535,55 +596,154 @@ export default async function HomePage({
         )}
       </div>
 
-        <PersonalizedRecommendations />
+      <PersonalizedRecommendations />
 
       <NewsletterSignup variant="banner" />
 
-      {/* ── How it works ── */}
-      <div className="border-t border-gray-100 py-14 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">How BusyBeds works</h2>
-          <p className="text-gray-500 mb-10 text-sm">Three steps from subscription to savings</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+      {/* ══════════════════════════════════════════════════════
+          HOW IT WORKS
+      ══════════════════════════════════════════════════════ */}
+      <section className="py-20 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #0D3D5E 0%, #0a2d48 60%, #0D3D5E 100%)',
+        }}>
+        {/* Subtle mesh */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(at 20% 50%, rgba(232,57,90,0.15) 0px, transparent 55%), radial-gradient(at 80% 20%, rgba(14,124,123,0.20) 0px, transparent 50%)',
+        }} />
+
+        <div className="relative max-w-5xl mx-auto px-6 text-center">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold text-white/80 mb-5"
+            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            ✦ How it works
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+            Save up to <span style={{ color: '#E8395A' }}>70%</span> on hotels
+          </h2>
+          <p className="text-white/60 mb-14 text-base max-w-md mx-auto">
+            Three simple steps from subscription to real savings at reception
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
             {[
-              { n: '1', title: 'Subscribe',      desc: 'Pick a plan and unlock all hotel discount coupons.' },
-              { n: '2', title: 'Get Your QR',    desc: 'Choose a hotel and generate your unique QR coupon instantly.' },
-              { n: '3', title: 'Redeem at Hotel',desc: 'Show the QR at reception. Staff scans it. Discount applied.' },
-            ].map(({ n, title, desc }) => (
-              <div key={n} className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mb-4" style={{ background: '#FF385C' }}>{n}</div>
-                <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-                <p className="text-sm text-gray-500">{desc}</p>
+              {
+                n: '01', icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                ),
+                title: 'Subscribe',
+                desc: 'Pick a monthly plan and instantly unlock exclusive discount coupons for all partner hotels.',
+              },
+              {
+                n: '02', icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                ),
+                title: 'Get Your QR',
+                desc: 'Browse hotels and generate a unique QR coupon instantly — delivered straight to your inbox.',
+              },
+              {
+                n: '03', icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><path d="M9 12l2 2 4-4"/><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                ),
+                title: 'Redeem at Hotel',
+                desc: 'Show the QR at check-in. Staff scans it and the discount is applied — no negotiation needed.',
+              },
+            ].map(({ n, icon, title, desc }) => (
+              <div
+                key={n}
+                className="relative flex flex-col items-center text-center p-8 rounded-3xl transition-all duration-300 hover:-translate-y-1"
+                style={{
+                  background: 'rgba(255,255,255,0.07)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
+              >
+                {/* Step number */}
+                <span className="absolute top-5 right-6 text-5xl font-black text-white/[0.06] select-none">{n}</span>
+
+                {/* Icon circle */}
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-5"
+                  style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 6px 20px rgba(232,57,90,0.40)' }}
+                >
+                  {icon}
+                </div>
+                <h3 className="font-bold text-white text-lg mb-2">{title}</h3>
+                <p className="text-white/55 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
-          <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/subscribe"
-              className="px-8 py-3 rounded-full text-white text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ background: '#FF385C' }}>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/subscribe"
+              className="px-8 py-4 rounded-full text-white text-sm font-bold transition-all hover:opacity-90 hover:shadow-xl hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 6px 24px rgba(232,57,90,0.45)' }}
+            >
               Get Started — from $9/mo
             </Link>
             <SuggestHotelModal trigger={
-              <span className="px-8 py-3 rounded-full border border-gray-300 text-sm font-semibold text-gray-700 hover:border-gray-900 transition-colors cursor-pointer inline-flex items-center justify-center">
+              <span
+                className="px-8 py-4 rounded-full text-sm font-bold cursor-pointer inline-flex items-center justify-center transition-all hover:-translate-y-0.5"
+                style={{
+                  background: 'rgba(255,255,255,0.10)',
+                  border: '1.5px solid rgba(255,255,255,0.25)',
+                  color: 'rgba(255,255,255,0.85)',
+                }}
+              >
                 Suggest a Hotel
               </span>
             } />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-gray-200 py-8 bg-white">
-        <div className="max-w-[1760px] mx-auto px-6 sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg" style={{ color: '#FF385C' }}>busybeds</span>
-            <span className="text-xs text-gray-400">© {new Date().getFullYear()}</span>
+      {/* ══════════════════════════════════════════════════════
+          FOOTER
+      ══════════════════════════════════════════════════════ */}
+      <footer style={{ background: '#070D1C', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-[1760px] mx-auto px-6 sm:px-10 py-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+
+            {/* Brand */}
+            <div>
+              <Logo height={28} variant="light" />
+              <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Exclusive hotel discounts · Verified coupons · Africa &amp; beyond
+              </p>
+            </div>
+
+            {/* Links */}
+            <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {[
+                { href: '/subscribe', label: 'Pricing' },
+                { href: '/apply', label: 'List Your Hotel' },
+                { href: '/profile', label: 'Account' },
+                { href: '/apply', label: 'Privacy' },
+                { href: '/apply', label: 'Terms' },
+              ].map(({ href, label }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className="transition-colors hover:text-white"
+                  style={{ color: 'inherit' }}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-6 text-sm text-gray-500">
-            <Link href="/subscribe" className="hover:text-gray-900 transition-colors">Pricing</Link>
-            <Link href="/apply" className="hover:text-gray-900 transition-colors">List Your Hotel</Link>
-            <Link href="/profile" className="hover:text-gray-900 transition-colors">Account</Link>
-            <Link href="/" className="hover:text-gray-900 transition-colors">Privacy</Link>
+
+          <div
+            className="mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.25)' }}
+          >
+            <p>© {new Date().getFullYear()} BusyBeds. All rights reserved.</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span>All systems operational</span>
+            </div>
           </div>
         </div>
       </footer>

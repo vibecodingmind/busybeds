@@ -98,6 +98,9 @@ const createSchema = z.object({
   socialInstagram: z.string().optional().or(z.literal('')),
   socialTwitter:   z.string().optional().or(z.literal('')),
   socialTiktok:    z.string().optional().or(z.literal('')),
+  // GPS coordinates
+  latitude:  z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
   // Gallery photos (array of URLs)
   photos: z.array(z.string().url()).default([]),
   // Affiliate links
@@ -122,7 +125,7 @@ export async function POST(req: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
 
-    const { amenities, websiteUrl, photos, affiliateLinks, pricePerNight, roomName, ...rest } = data;
+    const { amenities, websiteUrl, photos, affiliateLinks, pricePerNight, roomName, latitude, longitude, ...rest } = data;
 
     // Create hotel
     const hotel = await prisma.hotel.create({
@@ -139,6 +142,8 @@ export async function POST(req: NextRequest) {
         socialTwitter:    rest.socialTwitter   || null,
         socialTiktok:     rest.socialTiktok    || null,
         coverImage:       rest.coverImage   || undefined,
+        latitude:         latitude  ?? null,
+        longitude:        longitude ?? null,
       },
     });
 

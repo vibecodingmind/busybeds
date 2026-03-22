@@ -54,6 +54,8 @@ export default function AddHotelPage() {
     socialTwitter: '',
     socialTiktok: '',
     isFeatured: false,
+    latitude: '',
+    longitude: '',
   });
 
   const cities = CITIES_BY_COUNTRY[form.country] || [];
@@ -121,7 +123,9 @@ export default function AddHotelPage() {
           socialInstagram: form.socialInstagram || undefined,
           socialTwitter:   form.socialTwitter   || undefined,
           socialTiktok:    form.socialTiktok    || undefined,
-          address: form.address || undefined,
+          address:   form.address   || undefined,
+          latitude:  form.latitude  ? parseFloat(form.latitude)  : undefined,
+          longitude: form.longitude ? parseFloat(form.longitude) : undefined,
         }),
       });
       const data = await res.json();
@@ -197,6 +201,42 @@ export default function AddHotelPage() {
               <Label>Street Address</Label>
               <input value={form.address} onChange={e => f('address', e.target.value)}
                 placeholder="e.g. Plot 12, Dodoma Road, Arusha" className={input} />
+            </div>
+
+            {/* Coordinates */}
+            <div>
+              <Label>Latitude</Label>
+              <div className="relative">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                <input
+                  type="number"
+                  step="any"
+                  min="-90" max="90"
+                  value={form.latitude}
+                  onChange={e => f('latitude', e.target.value)}
+                  placeholder="e.g. -3.386925"
+                  className={input}
+                  style={{ paddingLeft: '2.25rem' }}
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">Decimal degrees · −90 to 90 · used for Near Me</p>
+            </div>
+            <div>
+              <Label>Longitude</Label>
+              <div className="relative">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="22"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                <input
+                  type="number"
+                  step="any"
+                  min="-180" max="180"
+                  value={form.longitude}
+                  onChange={e => f('longitude', e.target.value)}
+                  placeholder="e.g. 36.682339"
+                  className={input}
+                  style={{ paddingLeft: '2.25rem' }}
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">Decimal degrees · −180 to 180 · used for Near Me</p>
             </div>
 
             {/* Hotel Type */}

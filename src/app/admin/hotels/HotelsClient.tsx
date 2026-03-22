@@ -7,6 +7,7 @@ type Hotel = {
   id: string; name: string; slug: string; city: string; country: string;
   starRating: number; status: string; isFeatured: boolean; discountPercent: number;
   coverImage: string | null; createdAt: string; category: string;
+  latitude: number | null; longitude: number | null;
   _count: { coupons: number; roomTypes: number };
 };
 
@@ -29,7 +30,8 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
     name: '', city: '', country: 'Tanzania',
     starRating: 3, discountPercent: 15,
     status: 'active', isFeatured: false,
-    coverImage: '',  category: 'Hotel',
+    coverImage: '', category: 'Hotel',
+    latitude: '', longitude: '',
   });
 
   const cities = CITIES_BY_COUNTRY[form.country] || [];
@@ -49,6 +51,8 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       starRating: h.starRating, discountPercent: h.discountPercent,
       status: h.status, isFeatured: h.isFeatured,
       coverImage: h.coverImage || '', category: h.category,
+      latitude:  h.latitude  != null ? String(h.latitude)  : '',
+      longitude: h.longitude != null ? String(h.longitude) : '',
     });
   };
 
@@ -62,12 +66,17 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
     if (!form.name || !form.city || !form.country) { showToast('Name, city, and country are required'); return; }
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        latitude:  form.latitude  ? parseFloat(form.latitude)  : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
+      };
       const res = await fetch(`/api/admin/hotels/${editHotel!.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Update failed');
-      setHotels(prev => prev.map(h => h.id === editHotel!.id ? { ...h, ...form } : h));
+      setHotels(prev => prev.map(h => h.id === editHotel!.id ? { ...h, ...payload } : h));
       showToast('Hotel updated');
       closeModal();
     } catch (e: any) { showToast('Error: ' + e.message); }
@@ -313,6 +322,34 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                     <span className="text-sm font-medium text-gray-700">Featured hotel</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Coordinates */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                  📍 GPS Coordinates <span className="font-normal normal-case text-gray-400">(for Near Me feature)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="number" step="any" min="-90" max="90"
+                    value={form.latitude}
+                    onChange={e => setForm({ ...form, latitude: e.target.value })}
+                    placeholder="Latitude e.g. -3.3869"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+                  />
+                  <input
+                    type="number" step="any" min="-180" max="180"
+                    value={form.longitude}
+                    onChange={e => setForm({ ...form, longitude: e.target.value })}
+                    placeholder="Longitude e.g. 36.6823"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Find coordinates on{' '}
+                  <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="underline hover:text-gray-700">Google Maps</a>
+                  {' '}→ right-click on the hotel location → copy lat, lng
+                </p>
               </div>
             </div>
             <div className="flex gap-3 px-6 pb-6">
