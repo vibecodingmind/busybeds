@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-type Tab = 'broadcast' | 'flashsale' | 'reminders';
+type Tab = 'broadcast' | 'flashsale' | 'reminders' | 'push';
 
 // ── In-app Broadcast ──────────────────────────────────────────────────────────
 function BroadcastTab() {
@@ -221,12 +221,77 @@ function RemindersTab() {
   );
 }
 
+// ── Push Notification Tab ─────────────────────────────────────────────────────
+function PushTab() {
+  const [title, setTitle]     = useState('');
+  const [message, setMessage] = useState('');
+  const [url, setUrl]         = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult]   = useState('');
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    setResult('');
+    try {
+      const res = await fetch('/api/admin/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, message, url: url || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResult(`✓ Sent to ${data.sent} subscriber${data.sent !== 1 ? 's' : ''}${data.failed > 0 ? ` (${data.failed} failed)` : ''}`);
+        setTitle(''); setMessage(''); setUrl('');
+      } else {
+        setResult(`✗ ${data.error || 'Failed to send'}`);
+      }
+    } catch { setResult('✗ Network error.'); }
+    setSending(false);
+    setTimeout(() => setResult(''), 5000);
+  };
+
+  return (
+    <form onSubmit={send} className="space-y-4">
+      <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-700">
+        Sends a browser push notification to all users who have opted in via their dashboard.
+        Requires <code className="bg-amber-100 px-1 rounded">VAPID_PUBLIC_KEY</code>, <code className="bg-amber-100 px-1 rounded">VAPID_PRIVATE_KEY</code>, and <code className="bg-amber-100 px-1 rounded">VAPID_SUBJECT</code> env vars.
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Title</label>
+        <input value={title} onChange={e => setTitle(e.target.value)} required
+          className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+          placeholder="🔥 New deal just dropped!" />
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Message</label>
+        <textarea value={message} onChange={e => setMessage(e.target.value)} required rows={3}
+          className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+          placeholder="Up to 50% off at top hotels this weekend only..." />
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Link (optional)</label>
+        <input value={url} onChange={e => setUrl(e.target.value)} type="url"
+          className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+          placeholder="https://busybeds.com/hotels/..." />
+      </div>
+      <button type="submit" disabled={sending}
+        className="w-full py-3 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}>
+        {sending ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Sending…</> : '🔔 Send Push to All Subscribers'}
+      </button>
+      {result && <p className={`text-sm font-medium ${result.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>{result}</p>}
+    </form>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function BroadcastClient() {
   const [tab, setTab] = useState<Tab>('broadcast');
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'broadcast', label: 'In-App Broadcast', icon: '📣' },
+    { id: 'push',      label: 'Push Notification', icon: '🔔' },
     { id: 'flashsale', label: 'Flash Sale Email', icon: '🔥' },
     { id: 'reminders', label: 'Reminders',        icon: '⏰' },
   ];
@@ -253,6 +318,7 @@ export default function BroadcastClient() {
       {/* Panel */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 max-w-xl">
         {tab === 'broadcast' && <BroadcastTab />}
+        {tab === 'push'      && <PushTab />}
         {tab === 'flashsale' && <FlashSaleTab />}
         {tab === 'reminders' && <RemindersTab />}
       </div>

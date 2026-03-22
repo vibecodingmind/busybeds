@@ -54,6 +54,7 @@ model User {
   pointTransactions PointTransaction[]
   notifications   Notification[]
   priceAlerts     PriceAlert[]
+  pushSubscription PushSubscription?
 }
 
 model HotelType {
@@ -427,4 +428,13 @@ model PriceAlert {
   @@index([hotelId])
   @@index([email])
   @@index([isActive])
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  subscription String   // JSON string of PushSubscriptionJSON
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
