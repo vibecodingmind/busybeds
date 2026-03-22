@@ -21,6 +21,10 @@ export function useInfiniteHotels({ initialHotels, pageSize = 18, params = {} }:
       const nextPage = pageRef.current + 1;
       const qs = new URLSearchParams({ ...params, page: String(nextPage), limit: String(pageSize) });
       const res = await fetch(`/api/hotels?${qs}`);
+      if (!res.ok) {
+        setHasMore(false);
+        return;
+      }
       const data = await res.json();
       const newHotels: Hotel[] = data.hotels || [];
       if (newHotels.length < pageSize) setHasMore(false);
@@ -33,6 +37,9 @@ export function useInfiniteHotels({ initialHotels, pageSize = 18, params = {} }:
       } else {
         setHasMore(false);
       }
+    } catch {
+      // Network or parse error — stop trying to load more to prevent crash
+      setHasMore(false);
     } finally {
       setLoading(false);
     }

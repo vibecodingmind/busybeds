@@ -41,33 +41,38 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '18');
   const skip  = (page - 1) * limit;
 
-  let hotels = await prisma.hotel.findMany({
-    where,
-    include: {
-      roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
-      _count: { select: { coupons: true } },
-    },
-    orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
-           : sortBy === 'rating'   ? [{ avgRating: 'desc' }]
-           : [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
-    skip,
-    take: limit,
-  });
+  try {
+    let hotels = await prisma.hotel.findMany({
+      where,
+      include: {
+        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        _count: { select: { coupons: true } },
+      },
+      orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
+             : sortBy === 'rating'   ? [{ avgRating: 'desc' }]
+             : [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+      skip,
+      take: limit,
+    });
 
-  // Filter by amenities (JSON array stored as string)
-  if (amenities) {
-    const required = amenities.split(',').map(a => a.trim().toLowerCase()).filter(Boolean);
-    if (required.length) {
-      hotels = hotels.filter(h => {
-        try {
-          const arr: string[] = JSON.parse(h.amenities || '[]');
-          return required.every(r => arr.some(a => a.toLowerCase().includes(r)));
-        } catch { return false; }
-      });
+    // Filter by amenities (JSON array stored as string)
+    if (amenities) {
+      const required = amenities.split(',').map(a => a.trim().toLowerCase()).filter(Boolean);
+      if (required.length) {
+        hotels = hotels.filter(h => {
+          try {
+            const arr: string[] = JSON.parse(h.amenities || '[]');
+            return required.every(r => arr.some(a => a.toLowerCase().includes(r)));
+          } catch { return false; }
+        });
+      }
     }
-  }
 
-  return NextResponse.json({ hotels, total: hotels.length });
+    return NextResponse.json({ hotels, total: hotels.length });
+  } catch (err) {
+    console.error('[GET /api/hotels]', err);
+    return NextResponse.json({ hotels: [], total: 0 }, { status: 500 });
+  }
 }
 
 const affiliateLinkSchema = z.object({
