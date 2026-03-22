@@ -52,7 +52,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
     <Link 
       href={`/hotels/${hotel.slug}`} 
       className="group block"
-      onClick={() => addToRecent({ id: hotel.id, name: hotel.name, slug: hotel.slug, coverImage: hotel.coverImage, city: hotel.city, country: hotel.country, discountPercent: hotel.discountPercent, starRating: hotel.starRating, avgRating: hotel.avgRating })}
+      onClick={() => addToRecent({ id: hotel.id, name: hotel.name, slug: hotel.slug, coverImage: hotel.coverImage, city: hotel.city, country: hotel.country, discountPercent: hotel.discountPercent, starRating: hotel.starRating })}
     >
       {/* Image container — square aspect ratio like Airbnb */}
       <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">

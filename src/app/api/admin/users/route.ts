@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         select: {
           id: true, fullName: true, email: true, role: true,
           createdAt: true, isBanned: true,
-          _count: { select: { coupons: true, hotelOwner: true } },
+          _count: { select: { coupons: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,

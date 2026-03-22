@@ -77,18 +77,20 @@ export async function POST(
     // Upsert review
     const review = await prisma.review.upsert({
       where: {
-        userId_hotelId: {
+        hotelId_userId: {
           userId,
           hotelId,
         },
       },
       update: {
         rating: validatedData.rating,
-        comment: validatedData.comment || null,
+        title: 'Review',
+        body: validatedData.comment ?? '',
       },
       create: {
         rating: validatedData.rating,
-        comment: validatedData.comment || null,
+        title: 'Review',
+        body: validatedData.comment ?? '',
         userId,
         hotelId,
       },

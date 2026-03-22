@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Find the alert
-  const alert = await prisma.priceAlert.findUnique({
+  const alert = await (prisma as any).priceAlert.findUnique({
     where: { id },
     include: { hotel: { select: { name: true } } },
   });
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Deactivate the alert
-  await prisma.priceAlert.update({
+  await (prisma as any).priceAlert.update({
     where: { id },
     data: { isActive: false },
   });

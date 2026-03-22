@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   // Count active sessions (proxy: recent users)
   const recentlyActive = await prisma.user.count({
-    where: { updatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+    where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
   }).catch(() => 0);
 
   const envChecks = {

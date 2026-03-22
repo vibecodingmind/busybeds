@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
         viewCount: true, status: true,
         roomTypes: { select: { pricePerNight: true }, take: 1 },
         coupons: {
-          where: { createdAt: { gte: since } },
-          select: { id: true, createdAt: true }
+          where: { generatedAt: { gte: since } },
+          select: { id: true, generatedAt: true }
         }
       },
     });

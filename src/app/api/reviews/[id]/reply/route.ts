@@ -13,13 +13,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   try {
     const review = await prisma.review.findUnique({
       where: { id: params.id },
-      include: { hotel: { select: { ownerId: true } } },
+      include: { hotel: { include: { owner: { select: { userId: true } } } } },
     });
 
     if (!review) return NextResponse.json({ error: 'Review not found' }, { status: 404 });
 
     const s = session as any;
-    const isOwner = (review.hotel as any).ownerId === session.userId;
+    const isOwner = (review as any).hotel?.owner?.userId === session.userId;
     const isAdmin = s.role === 'admin';
 
     if (!isOwner && !isAdmin) {

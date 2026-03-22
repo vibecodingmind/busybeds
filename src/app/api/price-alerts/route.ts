@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const hotel = await prisma.hotel.findUnique({ where: { id: hotelId }, select: { id: true, name: true } });
     if (!hotel) return NextResponse.json({ error: 'Hotel not found' }, { status: 404 });
 
-    await prisma.priceAlert.upsert({
+    await (prisma as any).priceAlert.upsert({
       where: { hotelId_email: { hotelId, email } },
       update: {
         minDiscount,
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const alerts = await prisma.priceAlert.findMany({
+  const alerts = await (prisma as any).priceAlert.findMany({
     where: { userId: session.userId, isActive: true },
     include: {
       hotel: { select: { id: true, name: true, slug: true, city: true, country: true, discountPercent: true, coverImage: true } },
@@ -70,12 +70,12 @@ export async function DELETE(req: NextRequest) {
   const hotelId = searchParams.get('hotelId');
 
   if (alertId) {
-    await prisma.priceAlert.updateMany({
+    await (prisma as any).priceAlert.updateMany({
       where: { id: alertId, userId: session.userId },
       data: { isActive: false },
     });
   } else if (hotelId) {
-    await prisma.priceAlert.updateMany({
+    await (prisma as any).priceAlert.updateMany({
       where: { hotelId, userId: session.userId },
       data: { isActive: false },
     });

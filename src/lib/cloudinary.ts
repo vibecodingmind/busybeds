@@ -49,7 +49,7 @@ export async function uploadToCloudinary(
 
   // Build form data
   const form = new FormData();
-  const blob = new Blob([buffer]);
+  const blob = new Blob([new Uint8Array(buffer)]);
   form.append('file', blob, 'upload');
   form.append('api_key', apiKey);
   form.append('timestamp', String(timestamp));

@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
   };
 
   // Get all active alerts
-  const alerts = await prisma.priceAlert.findMany({
+  const alerts = await (prisma as any).priceAlert.findMany({
     where,
     include: {
       hotel: {
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Update lastAlertAt
-        await prisma.priceAlert.update({
+        await (prisma as any).priceAlert.update({
           where: { id: alert.id },
           data: { lastAlertAt: new Date() },
         });

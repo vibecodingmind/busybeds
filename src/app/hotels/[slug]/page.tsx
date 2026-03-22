@@ -408,7 +408,7 @@ export default function HotelPage({ params }: PageProps) {
       {/* Lightbox */}
       {showLightbox && (
         <PhotoLightbox
-          photos={[{ url: mainImage }, ...otherImages]}
+          photos={[{ url: mainImage, id: 'main' }, ...otherImages]}
           initialIndex={lightboxIndex}
           onClose={() => setShowLightbox(false)}
         />

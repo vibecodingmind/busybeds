@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const bannedUsers = await prisma.user.findMany({
       where: { isBanned: true },
       select: { id: true, fullName: true, email: true, createdAt: true },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 10,
     }).catch(() => []);
 
