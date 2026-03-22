@@ -6,6 +6,8 @@ import Navbar from '@/components/Navbar';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import PriceAlertButton from '@/components/PriceAlertButton';
+import SocialShareButtons from '@/components/SocialShareButtons';
+import BookingRequestForm from '@/components/BookingRequestForm';
 import GetCouponButton from './GetCouponButton';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
@@ -119,13 +121,19 @@ export default function HotelPageClient({
   const [subState, setSubState] = useState<SubState>('loading');
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [flashDeal, setFlashDeal] = useState<{ title: string; discountPercent: number; endsAt: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/subscription-status')
       .then(r => r.ok ? r.json() : { state: 'not_logged_in' })
       .then(({ state }) => setSubState(state || 'not_logged_in'))
       .catch(() => setSubState('not_logged_in'));
-  }, []);
+
+    fetch(`/api/flash-deals?hotelId=${hotel.id}`)
+      .then(r => r.json())
+      .then(d => { if (d.deals?.length) setFlashDeal(d.deals[0]); })
+      .catch(() => {});
+  }, [hotel.id]);
 
   const allPhotos = [
     ...(hotel.coverImage ? [{ id: 'cover', url: hotel.coverImage }] : []),
@@ -188,6 +196,11 @@ export default function HotelPageClient({
               )}
               {hotel.isFeatured && (
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100">⭐ Featured</span>
+              )}
+              {flashDeal && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500 text-white animate-pulse">
+                  ⚡ Flash Deal: {flashDeal.discountPercent}% Off
+                </span>
               )}
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2 leading-tight">{hotel.name}</h1>
@@ -454,8 +467,16 @@ export default function HotelPageClient({
               <div className="grid grid-cols-2 gap-2">
                 {hotel.affiliateLinks.map(link => {
                   const p = PARTNERS[link.platform] || { name: link.platform, bg: '#374151', text: '#fff', logo: '' };
+                  const trackClick = () => {
+                    fetch('/api/affiliate-clicks', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ hotelId: hotel.id, platform: link.platform }),
+                    }).catch(() => {});
+                  };
                   return canClickPartner ? (
                     <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                      onClick={trackClick}
                       className="flex flex-col items-center gap-1.5 p-3 border-2 border-gray-100 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all group bg-white">
                       {p.logo ? (
                         <img src={p.logo} alt={p.name} className="h-6 w-auto object-contain"
@@ -500,6 +521,21 @@ export default function HotelPageClient({
             <p className="text-xs text-gray-400 mb-3">Get notified when the discount increases</p>
             <PriceAlertButton hotelId={hotel.id} hotelName={hotel.name} discountPercent={hotel.discountPercent} />
           </div>
+
+          {/* ── Booking Request ── */}
+          <BookingRequestForm
+            hotelId={hotel.id}
+            hotelName={hotel.name}
+            roomTypes={hotel.roomTypes.map(rt => ({ id: rt.id, name: rt.name, pricePerNight: rt.pricePerNight }))}
+          />
+
+          {/* ── Share This Deal ── */}
+          <SocialShareButtons
+            url={typeof window !== 'undefined' ? window.location.href : `${process.env.NEXT_PUBLIC_APP_URL || ''}/hotels/${hotel.slug}`}
+            title={hotel.name}
+            discount={hotel.discountPercent}
+            hotelName={hotel.name}
+          />
 
           {/* ── Contact via WhatsApp ── */}
           {hotel.whatsapp && (

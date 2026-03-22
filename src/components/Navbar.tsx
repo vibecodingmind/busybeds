@@ -65,7 +65,8 @@ export default function Navbar() {
   const getDashboardLink = () => {
     if (!user) return null;
     if (user.role === 'admin') return { href: '/admin', label: 'Admin Panel' };
-    if (user.role === 'hotel_owner' || user.role === 'hotel_manager') return { href: '/portal', label: 'Hotel Portal' };
+    if (user.role === 'hotel_owner') return { href: '/owner', label: 'Owner Dashboard' };
+    if (user.role === 'hotel_manager') return { href: '/portal', label: 'Hotel Portal' };
     return { href: '/dashboard', label: 'Dashboard' };
   };
   const dash = getDashboardLink();

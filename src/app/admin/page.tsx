@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
+import CouponExpiryReminderButton from '@/components/CouponExpiryReminderButton';
 
 async function getStats() {
   const now = new Date();
@@ -270,10 +271,12 @@ export default async function AdminPage() {
       {/* Quick links row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { href: '/admin/hotels/new', label: 'Add Hotel', icon: '🏨', color: 'bg-teal-50 border-teal-100 text-teal-800' },
-          { href: '/admin/packages',   label: 'Manage Plans', icon: '💳', color: 'bg-purple-50 border-purple-100 text-purple-800' },
-          { href: '/admin/kyc',        label: `KYC (${stats.pendingKyc})`, icon: '⏳', color: 'bg-orange-50 border-orange-100 text-orange-800' },
-          { href: '/admin/settings',   label: 'API Settings', icon: '⚙️', color: 'bg-gray-50 border-gray-200 text-gray-700' },
+          { href: '/admin/hotels/new',       label: 'Add Hotel',      icon: '🏨', color: 'bg-teal-50 border-teal-100 text-teal-800' },
+          { href: '/admin/packages',         label: 'Manage Plans',   icon: '💳', color: 'bg-purple-50 border-purple-100 text-purple-800' },
+          { href: '/admin/kyc',              label: `KYC (${stats.pendingKyc})`, icon: '⏳', color: 'bg-orange-50 border-orange-100 text-orange-800' },
+          { href: '/admin/flash-deals',      label: 'Flash Deals',    icon: '⚡', color: 'bg-yellow-50 border-yellow-100 text-yellow-800' },
+          { href: '/admin/affiliate-clicks', label: 'Affiliate Clicks', icon: '🔗', color: 'bg-blue-50 border-blue-100 text-blue-800' },
+          { href: '/admin/settings',         label: 'API Settings',   icon: '⚙️', color: 'bg-gray-50 border-gray-200 text-gray-700' },
         ].map(q => (
           <Link key={q.href} href={q.href} className={`flex items-center gap-3 p-4 rounded-2xl border font-semibold text-sm transition-all hover:shadow-sm ${q.color}`}>
             <span className="text-xl">{q.icon}</span>
@@ -281,6 +284,9 @@ export default async function AdminPage() {
           </Link>
         ))}
       </div>
+
+      {/* ── Coupon Expiry Reminder ── */}
+      <CouponExpiryReminderButton />
     </div>
   );
 }

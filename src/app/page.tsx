@@ -7,6 +7,7 @@ import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
+import FlashDealsWidget from '@/components/FlashDealsWidget';
 import NearMeButton from '@/components/NearMeButton';
 import { Suspense } from 'react';
 import prisma from '@/lib/prisma';
@@ -564,6 +565,7 @@ export default async function HomePage({
         )}
 
         <RecentlyViewed />
+        <FlashDealsWidget />
 
         {/* ── Hotel grid / empty state ── */}
         {hotels.length === 0 ? (
