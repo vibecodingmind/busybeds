@@ -15,7 +15,9 @@ async function getData(userId: string) {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
 
-  const [totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks] = await Promise.all([
+  // 4-week coupon analytics
+  const fourWeeksAgo = new Date(now.getTime() - 28 * 86400000);
+  const [totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks, weekCoupons] = await Promise.all([
     prisma.coupon.count({ where: { hotelId: hotel.id } }),
     prisma.coupon.count({ where: { hotelId: hotel.id, status: 'active', expiresAt: { gt: now } } }),
     prisma.coupon.count({ where: { hotelId: hotel.id, status: 'redeemed' } }),
@@ -31,9 +33,22 @@ async function getData(userId: string) {
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
     }),
+    prisma.coupon.findMany({
+      where: { hotelId: hotel.id, generatedAt: { gte: fourWeeksAgo } },
+      select: { generatedAt: true, status: true },
+    }),
   ]);
 
-  return { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks };
+  // Group weekCoupons into 4 buckets (week 1 = oldest, week 4 = latest)
+  const weeks: { label: string; generated: number; redeemed: number }[] = Array.from({ length: 4 }, (_, i) => {
+    const weekStart = new Date(fourWeeksAgo.getTime() + i * 7 * 86400000);
+    const weekEnd   = new Date(weekStart.getTime() + 7 * 86400000);
+    const label = `W${i + 1}`;
+    const bucket = weekCoupons.filter(c => c.generatedAt >= weekStart && c.generatedAt < weekEnd);
+    return { label, generated: bucket.length, redeemed: bucket.filter(c => c.status === 'redeemed').length };
+  });
+
+  return { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks, weeks };
 }
 
 const STATUS_PILL: Record<string, string> = {
@@ -72,7 +87,7 @@ export default async function OwnerDashboardPage() {
     );
   }
 
-  const { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks } = data;
+  const { hotel, hotelOwner, totalCoupons, activeCoupons, redeemedCoupons, recentCoupons, affiliateClicks, weeks } = data;
   const kyc = KYC_INFO[hotelOwner.kycStatus] || KYC_INFO.pending;
 
   const stats = [
@@ -183,6 +198,82 @@ export default async function OwnerDashboardPage() {
             )}
           </div>
         </div>
+
+        {/* 4-week coupon trend */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h2 className="font-bold text-gray-900 mb-4">Coupon Trend — Last 4 Weeks</h2>
+          {(() => {
+            const maxVal = Math.max(1, ...weeks.map(w => w.generated));
+            const BAR_H = 80;
+            return (
+              <div className="flex items-end gap-3">
+                {weeks.map(w => (
+                  <div key={w.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-gray-400">{w.generated}</span>
+                    <div className="w-full flex flex-col-reverse gap-0.5">
+                      <div
+                        className="w-full rounded-t-md"
+                        style={{ height: `${Math.round((w.generated / maxVal) * BAR_H)}px`, background: '#1A3C5E', minHeight: w.generated > 0 ? '4px' : '0' }}
+                      />
+                      {w.redeemed > 0 && (
+                        <div
+                          className="w-full rounded-t-md"
+                          style={{ height: `${Math.round((w.redeemed / maxVal) * BAR_H)}px`, background: '#0E7C7B', minHeight: '4px' }}
+                          title={`${w.redeemed} redeemed`}
+                        />
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">{w.label}</span>
+                  </div>
+                ))}
+                <div className="ml-2 text-[10px] text-gray-400 space-y-1 self-center">
+                  <div className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm" style={{ background: '#1A3C5E' }}/> Generated</div>
+                  <div className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm" style={{ background: '#0E7C7B' }}/> Redeemed</div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Feature Your Hotel */}
+        {(() => {
+          const featuredUntil = (hotel as any).featuredUntil ? new Date((hotel as any).featuredUntil) : null;
+          const isFeaturedActive = hotel.isFeatured && featuredUntil && featuredUntil > new Date();
+          const isExpired = hotel.isFeatured && featuredUntil && featuredUntil <= new Date();
+          return (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h2 className="font-bold text-gray-900 mb-1">⭐ Feature Your Hotel</h2>
+                  <p className="text-sm text-gray-500 mb-3">
+                    {isFeaturedActive
+                      ? `Your hotel is featured until ${featuredUntil!.toLocaleDateString()}. It appears at the top of search results.`
+                      : isExpired
+                        ? 'Your featuring has expired. Renew to stay at the top.'
+                        : 'Get a prominent placement at the top of search results and the homepage.'}
+                  </p>
+                  {!isFeaturedActive && (
+                    <div className="flex flex-wrap gap-2">
+                      {[{ days: 7, price: 19 }, { days: 14, price: 35 }, { days: 30, price: 59 }].map(opt => (
+                        <a
+                          key={opt.days}
+                          href={`/api/owner/feature?days=${opt.days}`}
+                          className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+                          style={{ background: 'linear-gradient(135deg, #1A3C5E, #0E7C7B)' }}
+                        >
+                          {opt.days} days — ${opt.price}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {isFeaturedActive && (
+                  <span className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-100 text-amber-700">⭐ Featured</span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Recent Coupon Redemptions */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

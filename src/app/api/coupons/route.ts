@@ -5,7 +5,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { generateCouponCode, generateQRDataUrl } from '@/lib/qr';
-import { sendEmail, emailCouponGenerated } from '@/lib/email';
+import { sendEmail, emailCouponGenerated, emailGiftCoupon } from '@/lib/email';
 import { getEffectiveDiscount } from '@/lib/discountRules';
 
 // GET /api/coupons — list caller's coupons (supports ?hotelId=&status= filters)
@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
 const schema = z.object({
   hotelId: z.string(),
   guestName: z.string().trim().max(80).optional(),
+  guestEmail: z.string().email().optional(),
 });
 
 // POST /api/coupons — generate a coupon (supports guestName for extra friend coupons)
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { hotelId, guestName } = schema.parse(body);
+  const { hotelId, guestName, guestEmail } = schema.parse(body);
 
   // Check active subscription
   const now = new Date();
@@ -124,16 +125,28 @@ export async function POST(req: NextRequest) {
     include: { hotel: true },
   });
 
+  // Update hotel's lastCouponAt timestamp
+  await prisma.hotel.update({ where: { id: hotelId }, data: { lastCouponAt: new Date() } }).catch(() => {});
+
   // Send coupon email
   try {
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (user) {
-      const recipientName = guestName ? `${guestName} (via ${user.fullName})` : user.fullName;
-      await sendEmail({
-        to: user.email,
-        subject: `Your ${effectiveDiscount}% off coupon for ${hotel.name} — Busy Beds`,
-        html: emailCouponGenerated(recipientName, hotel.name, effectiveDiscount, code, expiresAt, qrDataUrl),
-      });
+      if (guestName && guestEmail) {
+        // Send gift coupon directly to friend's email
+        await sendEmail({
+          to: guestEmail,
+          subject: `🎁 ${user.fullName} gifted you ${effectiveDiscount}% off at ${hotel.name} — Busy Beds`,
+          html: emailGiftCoupon(guestName, user.fullName, hotel.name, effectiveDiscount, code, expiresAt, qrDataUrl),
+        });
+      } else {
+        const recipientName = guestName ? `${guestName} (via ${user.fullName})` : user.fullName;
+        await sendEmail({
+          to: user.email,
+          subject: `Your ${effectiveDiscount}% off coupon for ${hotel.name} — Busy Beds`,
+          html: emailCouponGenerated(recipientName, hotel.name, effectiveDiscount, code, expiresAt, qrDataUrl),
+        });
+      }
     }
   } catch (e) { console.error('Email error:', e); }
 

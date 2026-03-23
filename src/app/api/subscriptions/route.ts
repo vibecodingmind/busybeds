@@ -87,6 +87,34 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) { console.error('Email error:', e); }
 
+    // Create referral earning for the user who referred this subscriber
+    try {
+      const referralUse = await prisma.referralUse.findUnique({ where: { referredId: session.userId } });
+      if (referralUse) {
+        const earningAmount = Math.round(pkg.priceMonthly * 0.20 * 100) / 100;
+        const availableAt = new Date();
+        availableAt.setDate(availableAt.getDate() + 30);
+        await prisma.referralEarning.create({
+          data: {
+            referrerId: referralUse.referrerId,
+            referredId: session.userId,
+            amount: earningAmount,
+            subscriptionId: sub.id,
+            availableAt,
+          },
+        });
+        await prisma.notification.create({
+          data: {
+            userId: referralUse.referrerId,
+            title: 'Referral Commission Earned!',
+            message: `You earned $${earningAmount.toFixed(2)} from a referral. Available in 30 days.`,
+            type: 'referral',
+            link: '/referral#earnings',
+          },
+        });
+      }
+    } catch (e) { console.error('Referral earning error:', e); }
+
     return NextResponse.json({ subscription: sub, mode: 'mock' }, { status: 201 });
 
   } catch (err) {

@@ -52,6 +52,15 @@ export default async function HotelPage({ params }: PageProps) {
 
   if (!hotel) notFound();
 
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  const redeemedThisMonth = await prisma.coupon.count({
+    where: { hotelId: hotel.id, status: 'redeemed', redeemedAt: { gte: startOfMonth } },
+  });
+
+  if (!hotel) notFound();
+
   // Fetch related hotels — prefer vibe tag matches across all cities, fall back to same city
   const currentVibeTags: string[] = (() => {
     try { return JSON.parse((hotel as any).vibeTags || '[]'); } catch { return []; }
@@ -162,6 +171,8 @@ export default async function HotelPage({ params }: PageProps) {
     })),
     photos: hotel.photos.map(p => ({ id: p.id, url: p.url })),
     affiliateLinks: hotel.affiliateLinks.map(l => ({ id: l.id, platform: l.platform, url: l.url })),
+    redeemedThisMonth,
+    lastCouponAt: (hotel as any).lastCouponAt ? (hotel as any).lastCouponAt.toISOString() : null,
   };
 
   // JSON-LD structured data for Google rich results

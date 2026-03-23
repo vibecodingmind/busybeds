@@ -45,9 +45,12 @@ model User {
   referralCode         String?   @unique
   referralUseGiven     ReferralUse[] @relation("ReferralGiven")
   referralUseReceived  ReferralUse?  @relation("ReferralReceived")
-  referralsMade     Referral[]       @relation("ReferralsMade")
-  referralReceived  Referral[]       @relation("ReferralReceived")
-  loyaltyPoints     LoyaltyPoints?
+  referralsMade        Referral[]    @relation("ReferralsMade")
+  referralReceived     Referral[]    @relation("ReferralReceived")
+  earningsGiven        ReferralEarning[] @relation("EarningsGiven")
+  earningsReceived     ReferralEarning[] @relation("EarningsReceived")
+  referralPayouts      ReferralPayout[]
+  loyaltyPoints        LoyaltyPoints?
   giftCardsPurchased GiftCard[] @relation("GiftCardsPurchased")
   giftCardsRedeemed  GiftCard[] @relation("GiftCardsRedeemed")
   auditLogs        AuditLog[]
@@ -102,6 +105,7 @@ model Hotel {
 
   // Analytics
   viewCount        Int       @default(0)
+  lastCouponAt     DateTime?
 
   // Computed average (updated on review save)
   avgRating        Float?
@@ -182,6 +186,7 @@ model SubscriptionPackage {
   priceAnnual          Float?
   durationDays         Int
   couponLimitPerPeriod Int      @default(5)
+  tier                 String   @default("basic")
   isActive             Boolean  @default(true)
   stripePriceIdMonthly String?
   paypalPlanId         String?
@@ -469,4 +474,35 @@ model AffiliateLinkClick {
   @@index([hotelId])
   @@index([platform])
   @@index([clickedAt])
+}
+
+model ReferralEarning {
+  id             String   @id @default(cuid())
+  referrerId     String
+  referredId     String
+  amount         Float
+  status         String   @default("pending")
+  subscriptionId String?
+  createdAt      DateTime @default(now())
+  availableAt    DateTime
+  referrer       User     @relation("EarningsGiven",    fields: [referrerId], references: [id], onDelete: Cascade)
+  referred       User     @relation("EarningsReceived", fields: [referredId],  references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+model ReferralPayout {
+  id          String    @id @default(cuid())
+  userId      String
+  amount      Float
+  paypalEmail String
+  status      String    @default("requested")
+  adminNotes  String?
+  requestedAt DateTime  @default(now())
+  processedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }

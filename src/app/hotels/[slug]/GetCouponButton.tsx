@@ -39,7 +39,7 @@ export default function GetCouponButton({ hotelId, hotelName }: Props) {
       const res = await fetch('/api/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hotelId, ...(guestName ? { guestName } : {}) }),
+        body: JSON.stringify({ hotelId, ...(guestName ? { guestName, ...(friendEmail ? { guestEmail: friendEmail } : {}) } : {}) }),
       });
       const data = await res.json();
       if (res.status === 401) { router.push('/login?next=' + encodeURIComponent(window.location.pathname)); return; }
@@ -241,10 +241,10 @@ function FriendForm({
         />
       </div>
 
-      {/* Email — optional */}
+      {/* Email — optional, sends gift email directly */}
       <div>
         <label className="block text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">
-          Email <span className="text-gray-400 font-normal normal-case">(optional)</span>
+          Email <span className="text-gray-400 font-normal normal-case">(optional — coupon sent directly)</span>
         </label>
         <input
           type="email"

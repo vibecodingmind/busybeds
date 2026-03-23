@@ -41,6 +41,12 @@ function Step({ n, icon, title, desc, last }: { n: number; icon: string; title: 
   );
 }
 
+interface EarningsSummary {
+  available: number;
+  pending: number;
+  paid: number;
+}
+
 export default function ReferralPage() {
   const [data, setData] = useState<ReferralData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +57,14 @@ export default function ReferralPage() {
   const [applyError, setApplyError] = useState('');
   const [copied, setCopied] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
+
+  // Earnings state
+  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [paypalEmail, setPaypalEmail] = useState('');
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutSuccess, setPayoutSuccess] = useState('');
+  const [payoutError, setPayoutError] = useState('');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -62,7 +76,30 @@ export default function ReferralPage() {
       else setError('Failed to load referral data');
     }).catch(() => setError('Failed to load referral data'))
       .finally(() => setLoading(false));
+
+    fetch('/api/referral/earnings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setEarnings({ available: d.available, pending: d.pending, paid: d.paid }); })
+      .catch(() => {});
   }, [router]);
+
+  const handlePayout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPayoutError(''); setPayoutSuccess(''); setPayoutLoading(true);
+    try {
+      const res = await fetch('/api/referral/payout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paypalEmail }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setPayoutError(json.error || 'Failed to request payout'); return; }
+      setPayoutSuccess(`Payout of $${earnings?.available.toFixed(2)} requested! We'll process it within 3 business days.`);
+      setEarnings(prev => prev ? { ...prev, available: 0, paid: prev.paid + (prev.available) } : prev);
+      setPaypalEmail('');
+    } catch { setPayoutError('Request failed. Please try again.'); }
+    finally { setPayoutLoading(false); }
+  };
 
   const handleCopy = async () => {
     if (!data) return;
@@ -215,8 +252,64 @@ export default function ReferralPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h2 className="font-bold text-gray-900 text-base mb-6">How it works</h2>
               <Step n={1} icon="🔗" title="Share Your Link" desc="Send your unique referral link to friends via WhatsApp, email, or any channel." />
-              <Step n={2} icon="✍️" title="Friend Signs Up" desc="They create a BusyBeds account using your link — free and takes 30 seconds." />
-              <Step n={3} icon="🎉" title="Both Get Rewarded" last desc="Once they subscribe, both of you receive 7 bonus days added to your plan." />
+              <Step n={2} icon="✍️" title="Friend Signs Up & Subscribes" desc="They create a free account, then subscribe to any plan." />
+              <Step n={3} icon="💰" title="You Earn 20% Cash" last desc="You earn 20% of their first month's payment. Held 30 days, then available to withdraw." />
+            </div>
+
+            {/* ── Earnings section ─────────────────────────────────────────── */}
+            <div id="earnings" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="font-bold text-gray-900 text-base mb-4">💰 Your Cash Earnings</h2>
+              {earnings ? (
+                <>
+                  <div className="grid grid-cols-3 gap-3 mb-5">
+                    <div className="text-center bg-green-50 rounded-xl p-3 border border-green-100">
+                      <div className="text-xl font-extrabold text-green-600">${earnings.available.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Available</div>
+                    </div>
+                    <div className="text-center bg-amber-50 rounded-xl p-3 border border-amber-100">
+                      <div className="text-xl font-extrabold text-amber-600">${earnings.pending.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Pending (30-day hold)</div>
+                    </div>
+                    <div className="text-center bg-gray-50 rounded-xl p-3 border border-gray-200">
+                      <div className="text-xl font-extrabold text-gray-700">${earnings.paid.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Paid Out</div>
+                    </div>
+                  </div>
+
+                  {earnings.available >= 20 && !payoutSuccess && (
+                    <form onSubmit={handlePayout} className="space-y-3">
+                      <p className="text-sm text-gray-600">Request a payout to your PayPal account:</p>
+                      <input
+                        type="email"
+                        value={paypalEmail}
+                        onChange={e => setPaypalEmail(e.target.value)}
+                        placeholder="your-paypal@email.com"
+                        required
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-800 focus:ring-2 focus:ring-gray-100 transition-all"
+                      />
+                      {payoutError && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-xl border border-red-100">{payoutError}</p>}
+                      <button
+                        type="submit"
+                        disabled={!paypalEmail.trim() || payoutLoading}
+                        className="w-full py-3 rounded-xl text-white text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                        style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+                      >
+                        {payoutLoading
+                          ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Requesting…</>
+                          : `Request $${earnings.available.toFixed(2)} Payout`}
+                      </button>
+                    </form>
+                  )}
+                  {payoutSuccess && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm">{payoutSuccess}</div>
+                  )}
+                  {earnings.available < 20 && !payoutSuccess && (
+                    <p className="text-xs text-gray-400">Minimum payout is $20. Keep referring to reach the threshold!</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-400">No earnings yet. Start referring friends to earn 20% cash commissions.</p>
+              )}
             </div>
 
             {/* ── Apply a code ─────────────────────────────────────────────── */}

@@ -26,6 +26,8 @@ export interface HotelData {
   coverImage: string | null; discountPercent: number; couponValidDays: number;
   avgRating: number | null; reviewCount: number; isFeatured: boolean;
   latitude: number | null; longitude: number | null;
+  redeemedThisMonth?: number;
+  lastCouponAt?: string | null;
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
@@ -93,6 +95,17 @@ function AmenityIcon({ name }: { name: string }) {
     return <svg {...base} className={cls}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
   // default
   return <svg {...base} className={cls}><polyline points="20 6 9 17 4 12"/></svg>;
+}
+
+/* ─── Time ago ──────────────────────────────────────────── */
+function timeAgo(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins || 1} minute${mins !== 1 ? 's' : ''} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
 /* ─── Stars ─────────────────────────────────────────────── */
@@ -218,6 +231,21 @@ export default function HotelPageClient({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
               {hotel.address || `${hotel.city}, ${hotel.country}`}
             </p>
+            {/* Social proof badges */}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {(hotel.redeemedThisMonth ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg>
+                  {hotel.redeemedThisMonth} coupon{hotel.redeemedThisMonth !== 1 ? 's' : ''} redeemed this month
+                </span>
+              )}
+              {hotel.lastCouponAt && (
+                <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Last coupon {timeAgo(hotel.lastCouponAt)}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Contact details */}

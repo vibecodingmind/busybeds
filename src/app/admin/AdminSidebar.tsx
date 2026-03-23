@@ -28,6 +28,7 @@ const navItems = [
       { href: '/admin/fraud',             label: 'Fraud Detection',   icon: FraudIcon },
       { href: '/admin/flash-deals',       label: 'Flash Deals',       icon: FlashIcon },
       { href: '/admin/affiliate-clicks',  label: 'Affiliate Clicks',  icon: LinkIcon },
+      { href: '/admin/referral-payouts',  label: 'Referral Payouts',  icon: PayoutIcon },
     ],
   },
   {
@@ -150,4 +151,7 @@ function FlashIcon({ active }: { active: boolean }) {
 }
 function LinkIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>;
+}
+function PayoutIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="14" x2="8" y2="14"/></svg>;
 }

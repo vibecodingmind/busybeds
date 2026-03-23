@@ -2,6 +2,7 @@ import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import CouponExpiryReminderButton from '@/components/CouponExpiryReminderButton';
 import RenewalReminderButton from '@/components/RenewalReminderButton';
+import WeeklyDigestButton from '@/components/WeeklyDigestButton';
 
 async function getStats() {
   const now = new Date();
@@ -290,6 +291,7 @@ export default async function AdminPage() {
       <div className="space-y-3">
         <CouponExpiryReminderButton />
         <RenewalReminderButton />
+        <WeeklyDigestButton />
       </div>
     </div>
   );

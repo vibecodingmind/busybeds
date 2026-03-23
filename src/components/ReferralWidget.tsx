@@ -7,8 +7,14 @@ interface ReferralData {
   usedCount: number;
 }
 
+interface EarningsData {
+  available: number;
+  pending: number;
+}
+
 export default function ReferralWidget() {
   const [data, setData] = useState<ReferralData | null>(null);
+  const [earnings, setEarnings] = useState<EarningsData | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +24,10 @@ export default function ReferralWidget() {
       .then(d => { if (d?.code) setData(d); })
       .catch(() => {})
       .finally(() => setLoading(false));
+    fetch('/api/referral/earnings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setEarnings({ available: d.available, pending: d.pending }); })
+      .catch(() => {});
   }, []);
 
   const copy = (text: string) => {
@@ -35,11 +45,17 @@ export default function ReferralWidget() {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-bold text-gray-900 dark:text-white text-lg">Invite & Earn</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Share your link, earn 100 points per friend</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Earn 20% cash per paid signup</p>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-[#FF385C]">{data.usedCount}</p>
           <p className="text-xs text-gray-500">friends joined</p>
+          {earnings && earnings.available > 0 && (
+            <a href="/referral#earnings" className="block text-sm font-bold text-green-600 mt-1">${earnings.available.toFixed(2)} ready</a>
+          )}
+          {earnings && earnings.pending > 0 && (
+            <p className="text-xs text-gray-400">${earnings.pending.toFixed(2)} pending</p>
+          )}
         </div>
       </div>
 
@@ -82,7 +98,7 @@ export default function ReferralWidget() {
         </a>
       </div>
 
-      <p className="text-xs text-gray-400 mt-3">You earn 100 points • Friend gets 50 welcome points</p>
+      <p className="text-xs text-gray-400 mt-3">You earn 20% cash • Friend gets 7 bonus days</p>
     </div>
   );
 }
