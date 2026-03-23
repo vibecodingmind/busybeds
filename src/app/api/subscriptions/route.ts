@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (hasStripe && stripe && pkg.stripePriceIdMonthly) {
       try {
         const checkoutSession = await stripe.checkout.sessions.create({
-          mode: 'subscription',
+          mode: 'payment',
           payment_method_types: ['card'],
           customer_email: user.email,
           line_items: [{ price: pkg.stripePriceIdMonthly, quantity: 1 }],
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + pkg.durationDays);
 
     const sub = await prisma.subscription.create({
-      data: { userId: session.userId, packageId, status: 'active', billingCycle: 'monthly', expiresAt },
+      data: { userId: session.userId, packageId, status: 'active', billingCycle: 'one-time', expiresAt },
       include: { package: true },
     });
 
@@ -127,17 +127,13 @@ export async function DELETE(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Cancel via Stripe if applicable
   const sub = await prisma.subscription.findFirst({
     where: { userId: session.userId, status: 'active' },
     orderBy: { expiresAt: 'desc' },
   });
   if (!sub) return NextResponse.json({ error: 'No active subscription' }, { status: 404 });
 
-  if (hasStripe && stripe && sub.stripeSubId) {
-    await stripe.subscriptions.update(sub.stripeSubId, { cancel_at_period_end: true });
-  }
-
+  // Note: One-time payments cannot be cancelled in Stripe. Just mark as cancelled in DB.
   await prisma.subscription.update({
     where: { id: sub.id },
     data: { status: 'cancelled' },
