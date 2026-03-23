@@ -6,6 +6,9 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.cloudinary.com' },
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['bcryptjs'],
+  },
 };
 
 module.exports = nextConfig;
