@@ -38,11 +38,31 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       user: { id: user.id, email: user.email, role: user.role, fullName: user.fullName },
     });
-    res.cookies.set('bb_token', token, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7, path: '/' });
+    res.cookies.set('bb_token', token, { 
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
     return res;
   } catch (err) {
-    if (err instanceof z.ZodError) return NextResponse.json({ error: err.issues }, { status: 400 });
-    console.error('[LOGIN ERROR]', err);
-    return NextResponse.json({ error: 'Server error', details: String(err) }, { status: 500 });
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ 
+        error: 'Invalid input',
+        issues: err.issues.map(issue => ({
+          field: issue.path.join('.'),
+          message: issue.message
+        }))
+      }, { status: 400 });
+    }
+    
+    const errorId = Math.random().toString(36).substring(7);
+    console.error(`[LOGIN ERROR] ${errorId}:`, err);
+    
+    return NextResponse.json({ 
+      error: 'An unexpected error occurred. Please try again later.',
+      code: errorId
+    }, { status: 500 });
   }
 }

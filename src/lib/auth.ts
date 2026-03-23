@@ -3,8 +3,14 @@ import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
 const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'busybeds-dev-secret-change-in-production'
+  process.env.JWT_SECRET || (process.env.NODE_ENV === 'development' 
+    ? 'busybeds-dev-secret-change-in-production'
+    : undefined)
 );
+
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET environment variable is required in production');
+}
 
 export interface JWTPayload {
   userId: string;
