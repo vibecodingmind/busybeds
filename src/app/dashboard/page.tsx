@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import CouponCountdown from '@/components/CouponCountdown';
 import ReferralWidget from '@/components/ReferralWidget';
 import LoyaltyWidget from '@/components/LoyaltyWidget';
+import PushSubscribeButton from '@/components/PushSubscribeButton';
 
 async function getData(userId: string) {
   const now = new Date();
@@ -195,6 +196,20 @@ export default async function DashboardPage() {
           </div>
         )}
 
+        {/* ── Change Plan / Invoice ────────────────────────────────────────── */}
+        {sub && (
+          <div className="flex flex-wrap gap-3">
+            <Link href="/subscribe?upgrade=1"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-[#0E7C7B] text-[#0E7C7B] hover:bg-[#0E7C7B] hover:text-white transition-colors">
+              ↕ Change Plan
+            </Link>
+            <Link href={`/invoices/${sub.id}`} target="_blank"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+              🧾 Download Invoice
+            </Link>
+          </div>
+        )}
+
         {/* ── Referral & Loyalty Widgets ───────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ReferralWidget />
@@ -296,6 +311,16 @@ export default async function DashboardPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* ── Push notifications opt-in ────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-xl flex-shrink-0">🔔</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm text-gray-900">Push Notifications</div>
+            <div className="text-xs text-gray-400 mt-0.5">Get alerts for flash sales, coupon expiry, and new deals</div>
+          </div>
+          <PushSubscribeButton />
         </div>
 
         {/* ── Profile reminder (no subscription) ──────────────────────────── */}

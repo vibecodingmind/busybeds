@@ -1,14 +1,13 @@
 /**
  * POST /api/subscriptions/webhook
  *
- * Stripe webhook handler — handles subscription lifecycle events:
- *  - checkout.session.completed         → activate subscription
- *  - invoice.payment_succeeded          → renew on billing cycle
- *  - invoice.payment_failed             → notify user of failure
- *  - invoice.payment_action_required    → notify 3DS / action needed
- *  - customer.subscription.deleted      → cancel subscription + email
- *  - customer.subscription.updated      → handle plan changes / past_due
- *  - customer.subscription.trial_will_end → remind about trial end
+ * Stripe webhook handler — handles one-time payment events:
+ *  - checkout.session.completed → create one-time subscription
+ *
+ * Note: Changed from recurring subscriptions to one-time payments.
+ * Other events (invoice.payment_succeeded, subscriptions.updated, etc.)
+ * are still handled below for backwards compatibility but won't trigger
+ * in one-time payment mode.
  */
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
@@ -157,9 +156,8 @@ export async function POST(req: NextRequest) {
           userId,
           packageId,
           status: 'active',
-          billingCycle: 'monthly',
+          billingCycle: 'one-time',
           expiresAt,
-          stripeSubId: typeof session.subscription === 'string' ? session.subscription : undefined,
         },
       });
       console.log(`[Stripe Webhook] Created subscription ${newSub.id} for user ${userId}`);
@@ -171,6 +169,34 @@ export async function POST(req: NextRequest) {
           html: emailSubscriptionConfirmed(user.fullName, pkg.name, expiresAt),
         });
       } catch (e) { console.error('[Stripe Webhook] Email error:', e); }
+
+      // Create referral earning for whoever referred this user
+      try {
+        const referralUse = await prisma.referralUse.findUnique({ where: { referredId: userId } });
+        if (referralUse) {
+          const earningAmount = Math.round(pkg.priceMonthly * 0.20 * 100) / 100;
+          const availableAt = new Date();
+          availableAt.setDate(availableAt.getDate() + 30);
+          await prisma.referralEarning.create({
+            data: {
+              referrerId: referralUse.referrerId,
+              referredId: userId,
+              amount: earningAmount,
+              subscriptionId: newSub.id,
+              availableAt,
+            },
+          });
+          await prisma.notification.create({
+            data: {
+              userId: referralUse.referrerId,
+              title: 'Referral Commission Earned!',
+              message: `You earned $${earningAmount.toFixed(2)} from a referral. Available in 30 days.`,
+              type: 'referral',
+              link: '/referral#earnings',
+            },
+          });
+        }
+      } catch (e) { console.error('[Stripe Webhook] Referral earning error:', e); }
     }
 
     // ── invoice.payment_succeeded (renewal) ───────────────────────────────────

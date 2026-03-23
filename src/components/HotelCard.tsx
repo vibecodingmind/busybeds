@@ -78,23 +78,26 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* Subtle gradient overlay at bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-        {/* ── Featured / Discount badge ── */}
-        {hotel.isFeatured ? (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg"
-            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', color: '#0F172A' }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            Guest favourite
-          </div>
-        ) : hotel.discountPercent >= 10 ? (
-          <div className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full text-xs font-bold text-white shadow-lg"
+        {/* ── Discount badge (always visible) ── */}
+        {hotel.discountPercent > 0 && (
+          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-lg"
             style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}>
             {hotel.discountPercent}% off
           </div>
-        ) : null}
+        )}
 
-        {/* Savings pill — only on hover */}
+        {/* ── Featured badge (top-right corner) ── */}
+        {hotel.isFeatured && (
+          <div className="absolute top-3 right-12 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg"
+            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', color: '#0F172A' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            Featured
+          </div>
+        )}
+
+        {/* Savings pill — always visible on right */}
         {savings && savings > 0 && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0"
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-lg"
             style={{ background: 'rgba(16,185,129,0.92)', backdropFilter: 'blur(8px)' }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             Save {format(savings)}/night

@@ -33,6 +33,10 @@ model User {
   passwordResetToken   String?
   passwordResetExpiry  DateTime?
 
+  // Preferences
+  language             String    @default("en")
+  timezone             String    @default("UTC")
+
   // Relations
   subscriptions        Subscription[]
   coupons              Coupon[]          @relation("CouponOwner")
@@ -45,15 +49,22 @@ model User {
   referralCode         String?   @unique
   referralUseGiven     ReferralUse[] @relation("ReferralGiven")
   referralUseReceived  ReferralUse?  @relation("ReferralReceived")
-  referralsMade     Referral[]       @relation("ReferralsMade")
-  referralReceived  Referral[]       @relation("ReferralReceived")
-  loyaltyPoints     LoyaltyPoints?
+  referralsMade        Referral[]    @relation("ReferralsMade")
+  referralReceived     Referral[]    @relation("ReferralReceived")
+  earningsGiven        ReferralEarning[] @relation("EarningsGiven")
+  earningsReceived     ReferralEarning[] @relation("EarningsReceived")
+  referralPayouts      ReferralPayout[]
+  loyaltyPoints        LoyaltyPoints?
   giftCardsPurchased GiftCard[] @relation("GiftCardsPurchased")
   giftCardsRedeemed  GiftCard[] @relation("GiftCardsRedeemed")
   auditLogs        AuditLog[]
   pointTransactions PointTransaction[]
   notifications   Notification[]
   priceAlerts     PriceAlert[]
+  pushSubscription PushSubscription?
+  messagesSent     Message[] @relation("MessagesSent")
+  messagesReceived Message[] @relation("MessagesReceived")
+  notificationPreference NotificationPreference?
 }
 
 model HotelType {
@@ -101,6 +112,7 @@ model Hotel {
 
   // Analytics
   viewCount        Int       @default(0)
+  lastCouponAt     DateTime?
 
   // Computed average (updated on review save)
   avgRating        Float?
@@ -109,7 +121,7 @@ model Hotel {
   latitude         Float?
   longitude        Float?
   reviewCount      Int       @default(0)
-  googlePlaceId    String?   @unique
+  googlePlaceId        String?   @unique
 
   // Relations
   owner            HotelOwner?
@@ -118,9 +130,11 @@ model Hotel {
   photos           HotelPhoto[]
   coupons          Coupon[]
   affiliateLinks   AffiliateLink[]
+  bookingCommissions BookingCommission[]
   reviews          Review[]
   favorites        Favorite[]
   priceAlerts      PriceAlert[]
+  flashDeals       FlashDeal[]
 }
 
 model HotelOwner {
@@ -180,6 +194,7 @@ model SubscriptionPackage {
   priceAnnual          Float?
   durationDays         Int
   couponLimitPerPeriod Int      @default(5)
+  tier                 String   @default("basic")
   isActive             Boolean  @default(true)
   stripePriceIdMonthly String?
   paypalPlanId         String?
@@ -208,6 +223,7 @@ model Subscription {
 model Coupon {
   id              String    @id @default(cuid())
   code            String    @unique
+  customCode      String?   // optional custom code like "SUMMER20"
   qrDataUrl       String?
   userId          String
   hotelId         String
@@ -217,6 +233,10 @@ model Coupon {
   status          String    @default("active")
   generatedAt     DateTime  @default(now())
   expiresAt       DateTime
+  startTime       DateTime? // when coupon becomes valid (for time-window coupons)
+  endTime         DateTime? // when coupon expires (use expiresAt as backup)
+  usageLimit      Int?      // max times this coupon can be redeemed (null = unlimited)
+  usageCount      Int       @default(0) // current redemptions
   redeemedAt      DateTime?
   redeemedBy      String?
   cancelledAt     DateTime?
@@ -225,6 +245,11 @@ model Coupon {
   user            User      @relation("CouponOwner", fields: [userId], references: [id])
   hotel           Hotel     @relation(fields: [hotelId], references: [id])
   redeemer        User?     @relation("CouponRedeemer", fields: [redeemedBy], references: [id])
+
+  @@index([hotelId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([startTime])
 }
 
 model Review {
@@ -427,4 +452,240 @@ model PriceAlert {
   @@index([hotelId])
   @@index([email])
   @@index([isActive])
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  subscription String   // JSON string of PushSubscriptionJSON
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FlashDeal {
+  id              String    @id @default(cuid())
+  hotelId         String
+  title           String
+  discountPercent Int
+  startsAt        DateTime
+  endsAt          DateTime
+  isActive        Boolean   @default(true)
+  createdBy       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  hotel           Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@index([isActive])
+  @@index([endsAt])
+}
+
+model AffiliateLinkClick {
+  id          String   @id @default(cuid())
+  hotelId     String
+  platform    String
+  userId      String?
+  ipHash      String?
+  clickedAt   DateTime @default(now())
+
+  @@index([hotelId])
+  @@index([platform])
+  @@index([clickedAt])
+}
+
+model ReferralEarning {
+  id             String   @id @default(cuid())
+  referrerId     String
+  referredId     String
+  amount         Float
+  status         String   @default("pending")
+  subscriptionId String?
+  createdAt      DateTime @default(now())
+  availableAt    DateTime
+  referrer       User     @relation("EarningsGiven",    fields: [referrerId], references: [id], onDelete: Cascade)
+  referred       User     @relation("EarningsReceived", fields: [referredId],  references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+model ReferralPayout {
+  id          String    @id @default(cuid())
+  userId      String
+  amount      Float
+  paypalEmail String
+  status      String    @default("requested")
+  adminNotes  String?
+  requestedAt DateTime  @default(now())
+  processedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ── New Models for Additional Features ────────────────────────────────────────
+
+// Message System (Guest to Hotel communication)
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  hotelId     String
+  subject     String
+  body        String
+  isRead      Boolean  @default(false)
+  repliedAt   DateTime?
+  reply       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sender      User     @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("MessagesReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+// Booking Commission Tracking
+model BookingCommission {
+  id              String   @id @default(cuid())
+  hotelId         String
+  platform        String   // "booking.com", "agoda", "airbnb"
+  commissionRate  Float    // e.g., 0.05 = 5%
+  trackingUrl     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, platform])
+  @@index([hotelId])
+}
+
+// Email Campaign Tracking
+model EmailCampaign {
+  id           String   @id @default(cuid())
+  title        String
+  content      String
+  recipientCount Int   @default(0)
+  openCount    Int     @default(0)
+  clickCount   Int     @default(0)
+  sentAt       DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  trackingEvents EmailTrackingEvent[]
+
+  @@index([sentAt])
+}
+
+model EmailTrackingEvent {
+  id         String   @id @default(cuid())
+  campaignId String
+  userId     String?
+  email      String
+  eventType  String   // "open", "click", "bounce", "unsubscribe"
+  trackingId String?
+  createdAt  DateTime @default(now())
+
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([email])
+  @@index([eventType])
+}
+
+// SMS Tracking
+model SMSLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  phone     String
+  message   String
+  provider  String   @default("twilio")
+  status    String   @default("pending") // pending, sent, failed, delivered
+  cost      Float?
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Notification Preferences
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  emailNewDeals         Boolean  @default(true)
+  emailWeeklyDigest     Boolean  @default(true)
+  emailRedemptionReminder Boolean @default(true)
+  pushNotifications     Boolean  @default(true)
+  smsAlerts             Boolean  @default(false)
+  language              String   @default("en")
+  timezone              String   @default("UTC")
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Partner API Keys
+model PartnerAPIKey {
+  id              String   @id @default(cuid())
+  partnerId       String
+  keyPrefix       String   // "pk_live_..." or "pk_test_..."
+  keyHash         String   @unique
+  name            String
+  rateLimit       Int      @default(1000)   // requests per day
+  isActive        Boolean  @default(true)
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime?
+
+  @@index([partnerId])
+  @@index([isActive])
+}
+
+// Coupon Enhancement (add custom codes & limits)
+// Note: Coupon model already has fields, just documenting what should be added:
+// customCode String? - alphanumeric coupon code like "SUMMER20"
+// usageLimit Int? - max times this coupon can be redeemed
+// usageCount Int @default(0) - current redemptions
+// startTime DateTime? - when coupon becomes valid (for time-based coupons)
+// endTime DateTime? - when coupon expires (already have expiresAt)
+
+// Analytics Event Tracking
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  eventType String   // "view_hotel", "click_coupon", "redeem_coupon", "purchase_subscription"
+  hotelId   String?
+  couponId  String?
+  metadata  String?  // JSON
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([hotelId])
+  @@index([createdAt])
+}
+
+// Bulk Upload Jobs
+model BulkUploadJob {
+  id        String   @id @default(cuid())
+  uploadedBy String
+  fileName  String
+  totalRows Int
+  processedRows Int @default(0)
+  failedRows Int @default(0)
+  status    String   @default("pending") // pending, processing, completed, failed
+  errorLog  String?  // JSON array of errors
+  startedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([uploadedBy])
+  @@index([status])
 }

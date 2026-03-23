@@ -123,6 +123,16 @@ export default function SettingsPage() {
   const [ratesSaving, setRatesSaving] = useState(false);
   const [ratesError, setRatesError]   = useState('');
 
+  // Load all saved settings on mount
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.values) setValues(prev => ({ ...prev, ...data.values }));
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'currency') {
       fetch('/api/admin/currency-rates')
@@ -167,11 +177,25 @@ export default function SettingsPage() {
 
   const saveGroup = async (groupId: string) => {
     setSaving(prev => ({ ...prev, [groupId]: true }));
-    // In production this would POST to /api/admin/settings
-    await new Promise(r => setTimeout(r, 800));
-    setSaved(prev => ({ ...prev, [groupId]: true }));
-    setSaving(prev => ({ ...prev, [groupId]: false }));
-    setTimeout(() => setSaved(prev => ({ ...prev, [groupId]: false })), 3000);
+    const group = SETTING_GROUPS.find(g => g.id === groupId);
+    const groupValues: Record<string, string> = {};
+    for (const f of group?.fields || []) {
+      if (values[f.key] !== undefined) groupValues[f.key] = values[f.key];
+    }
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: groupValues }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setSaved(prev => ({ ...prev, [groupId]: true }));
+      setTimeout(() => setSaved(prev => ({ ...prev, [groupId]: false })), 3000);
+    } catch {
+      // Show brief error state — could add error toast here
+    } finally {
+      setSaving(prev => ({ ...prev, [groupId]: false }));
+    }
   };
 
   const activeGroup = SETTING_GROUPS.find(g => g.id === activeTab)!;

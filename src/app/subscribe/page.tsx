@@ -11,6 +11,7 @@ interface Package {
   priceAnnual?: number;
   couponLimitPerPeriod: number;
   durationDays: number;
+  tier?: string;
 }
 
 type PaymentMethod = 'stripe' | 'paypal' | 'pesapal';
@@ -138,27 +139,34 @@ export default function SubscribePage() {
         ) : (
           <div className={`grid gap-6 mb-10 ${packages.length === 1 ? 'max-w-sm mx-auto' : packages.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto' : 'grid-cols-1 md:grid-cols-3'}`}>
             {packages.map((pkg, i) => {
-              const isPopular = packages.length >= 3 && i === 1;
+              const isPopular  = packages.length >= 3 && i === 1;
+              const isPremium  = pkg.tier === 'premium';
               const isSelected = selected === pkg.id;
+              const premiumPerks = ['Flash deal early access', 'Priority in search results', 'Premium support'];
               return (
                 <button
                   key={pkg.id}
                   onClick={() => setSelected(pkg.id)}
                   className="relative text-left rounded-2xl border-2 transition-all duration-200 overflow-visible"
                   style={{
-                    borderColor: isSelected ? '#0f6b6b' : isPopular ? '#1A3C5E' : '#e5e7eb',
+                    borderColor: isSelected ? '#0f6b6b' : isPremium ? '#7C3AED' : isPopular ? '#1A3C5E' : '#e5e7eb',
                     background: isSelected ? '#f0fafa' : 'white',
-                    boxShadow: isSelected ? '0 8px 30px rgba(15,107,107,0.15)' : isPopular ? '0 4px 20px rgba(26,60,94,0.1)' : '0 1px 4px rgba(0,0,0,0.06)',
+                    boxShadow: isSelected ? '0 8px 30px rgba(15,107,107,0.15)' : isPremium ? '0 4px 20px rgba(124,58,237,0.12)' : isPopular ? '0 4px 20px rgba(26,60,94,0.1)' : '0 1px 4px rgba(0,0,0,0.06)',
                     transform: isSelected ? 'translateY(-4px)' : 'none',
                   }}
                 >
-                  {isPopular && (
+                  {isPremium && !isPopular && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 text-white text-xs font-bold px-4 py-1 rounded-full shadow" style={{ background: 'linear-gradient(135deg, #6D28D9, #7C3AED)' }}>
+                      ⭐ Premium
+                    </div>
+                  )}
+                  {isPopular && !isPremium && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 text-white text-xs font-bold px-4 py-1 rounded-full shadow" style={{ background: '#1A3C5E' }}>
                       ⭐ Most Popular
                     </div>
                   )}
                   <div className="p-7">
-                    <div className="font-bold text-xl mb-1" style={{ color: '#1A3C5E' }}>{pkg.name}</div>
+                    <div className="font-bold text-xl mb-1" style={{ color: isPremium ? '#6D28D9' : '#1A3C5E' }}>{pkg.name}</div>
                     <div className="flex items-baseline gap-1 mb-5">
                       <span className="text-4xl font-extrabold text-gray-900">${pkg.priceMonthly}</span>
                       <span className="text-gray-400 text-sm font-medium">/month</span>
@@ -180,10 +188,18 @@ export default function SubscribePage() {
                         <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
                         <span>Cancel anytime</span>
                       </div>
+                      {isPremium && premiumPerks.map(perk => (
+                        <div key={perk} className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#EDE9FE', color: '#7C3AED' }}>✓</span>
+                          <span className="font-medium" style={{ color: '#6D28D9' }}>{perk}</span>
+                        </div>
+                      ))}
                     </div>
                     <div className="mt-6">
-                      <div className={`w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all ${isSelected ? 'text-white' : 'text-gray-700 border border-gray-200'}`}
-                        style={{ background: isSelected ? '#0f6b6b' : 'transparent' }}>
+                      <div
+                        className={`w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all ${isSelected ? 'text-white' : 'text-gray-700 border border-gray-200'}`}
+                        style={{ background: isSelected ? (isPremium ? 'linear-gradient(135deg, #6D28D9, #7C3AED)' : '#0f6b6b') : 'transparent' }}
+                      >
                         {isSelected ? '✓ Selected' : 'Select plan'}
                       </div>
                     </div>

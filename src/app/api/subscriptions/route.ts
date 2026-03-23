@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (hasStripe && stripe && pkg.stripePriceIdMonthly) {
       try {
         const checkoutSession = await stripe.checkout.sessions.create({
-          mode: 'subscription',
+          mode: 'payment',
           payment_method_types: ['card'],
           customer_email: user.email,
           line_items: [{ price: pkg.stripePriceIdMonthly, quantity: 1 }],
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + pkg.durationDays);
 
     const sub = await prisma.subscription.create({
-      data: { userId: session.userId, packageId, status: 'active', billingCycle: 'monthly', expiresAt },
+      data: { userId: session.userId, packageId, status: 'active', billingCycle: 'one-time', expiresAt },
       include: { package: true },
     });
 
@@ -86,6 +86,34 @@ export async function POST(req: NextRequest) {
         html: emailSubscriptionConfirmed(user.fullName, pkg.name, expiresAt),
       });
     } catch (e) { console.error('Email error:', e); }
+
+    // Create referral earning for the user who referred this subscriber
+    try {
+      const referralUse = await prisma.referralUse.findUnique({ where: { referredId: session.userId } });
+      if (referralUse) {
+        const earningAmount = Math.round(pkg.priceMonthly * 0.20 * 100) / 100;
+        const availableAt = new Date();
+        availableAt.setDate(availableAt.getDate() + 30);
+        await prisma.referralEarning.create({
+          data: {
+            referrerId: referralUse.referrerId,
+            referredId: session.userId,
+            amount: earningAmount,
+            subscriptionId: sub.id,
+            availableAt,
+          },
+        });
+        await prisma.notification.create({
+          data: {
+            userId: referralUse.referrerId,
+            title: 'Referral Commission Earned!',
+            message: `You earned $${earningAmount.toFixed(2)} from a referral. Available in 30 days.`,
+            type: 'referral',
+            link: '/referral#earnings',
+          },
+        });
+      }
+    } catch (e) { console.error('Referral earning error:', e); }
 
     return NextResponse.json({ subscription: sub, mode: 'mock' }, { status: 201 });
 
@@ -99,17 +127,13 @@ export async function DELETE(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Cancel via Stripe if applicable
   const sub = await prisma.subscription.findFirst({
     where: { userId: session.userId, status: 'active' },
     orderBy: { expiresAt: 'desc' },
   });
   if (!sub) return NextResponse.json({ error: 'No active subscription' }, { status: 404 });
 
-  if (hasStripe && stripe && sub.stripeSubId) {
-    await stripe.subscriptions.update(sub.stripeSubId, { cancel_at_period_end: true });
-  }
-
+  // Note: One-time payments cannot be cancelled in Stripe. Just mark as cancelled in DB.
   await prisma.subscription.update({
     where: { id: sub.id },
     data: { status: 'cancelled' },

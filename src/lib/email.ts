@@ -227,6 +227,94 @@ export function emailCouponShareReceived(recipientName: string, senderName: stri
   `);
 }
 
+export function emailGiftCoupon(
+  recipientName: string,
+  senderName: string,
+  hotelName: string,
+  discount: number,
+  code: string,
+  expiresAt: Date,
+  qrDataUrl?: string,
+) {
+  return baseTemplate(`
+    <h2>🎁 ${senderName} gifted you a hotel coupon!</h2>
+    <p>Hi ${recipientName}, <strong>${senderName}</strong> sent you an exclusive discount coupon for <strong>${hotelName}</strong>.</p>
+    <div class="box" style="text-align:center">
+      <div style="font-size:13px;color:#666;margin-bottom:4px">Coupon Code</div>
+      <div class="code">${code}</div>
+      <div style="margin-top:10px;font-size:22px;font-weight:bold;color:#7C3AED">${discount}% OFF</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Valid until ${expiresAt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR Code" style="width:160px;height:160px;margin:16px auto 4px;display:block;border-radius:8px;" />
+      <div style="font-size:11px;color:#aaa;margin-top:2px">Scan at hotel reception</div>` : ''}
+    </div>
+    <p>Simply show this code or QR at check-in and the discount will be applied instantly. No booking needed.</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/register" class="btn">Join BusyBeds Free →</a>
+    <p style="font-size:12px;color:#888;margin-top:16px">Already have an account? <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" style="color:#0E7C7B">Log in to manage your coupons →</a></p>
+  `);
+}
+
+export function emailWeeklyDigest(
+  name: string,
+  newHotels: Array<{ name: string; city: string; country: string; discount: number; slug: string }>,
+  topDeals: Array<{ name: string; city: string; discount: number; slug: string }>,
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
+  const hotelRows = newHotels.slice(0, 5).map(h =>
+    `<tr><td style="padding:8px 0;border-bottom:1px solid #eee"><strong><a href="${appUrl}/hotels/${h.slug}" style="color:#1A3C5E;text-decoration:none">${h.name}</a></strong><br/><span style="font-size:12px;color:#888">${h.city}, ${h.country}</span></td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-weight:bold;color:#0E7C7B">${h.discount}% OFF</td></tr>`
+  ).join('');
+  const dealRows = topDeals.slice(0, 5).map(h =>
+    `<tr><td style="padding:8px 0;border-bottom:1px solid #eee"><strong><a href="${appUrl}/hotels/${h.slug}" style="color:#1A3C5E;text-decoration:none">${h.name}</a></strong><br/><span style="font-size:12px;color:#888">${h.city}</span></td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-weight:bold;color:#E8395A">${h.discount}% OFF</td></tr>`
+  ).join('');
+
+  return baseTemplate(`
+    <h2>🏨 Your Weekly Hotel Deals Digest</h2>
+    <p>Hi ${name}, here's what's new on BusyBeds this week.</p>
+    ${newHotels.length > 0 ? `
+    <div class="box">
+      <strong style="font-size:14px">🆕 New Hotels Added</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:12px">${hotelRows}</table>
+    </div>` : ''}
+    ${topDeals.length > 0 ? `
+    <div class="box" style="margin-top:16px">
+      <strong style="font-size:14px">🔥 Top Deals This Week</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:12px">${dealRows}</table>
+    </div>` : ''}
+    <a href="${appUrl}" class="btn" style="margin-top:24px">Browse All Hotels →</a>
+    <p style="font-size:12px;color:#888;margin-top:16px">You're receiving this because you have an active BusyBeds subscription.</p>
+  `);
+}
+
+export function emailReferralEarningAvailable(name: string, amount: number) {
+  return baseTemplate(`
+    <h2>💰 Your referral earning is ready!</h2>
+    <p>Hi ${name}, your <strong>$${amount.toFixed(2)}</strong> referral commission has passed the 30-day hold period and is now available to withdraw.</p>
+    <div class="box" style="text-align:center">
+      <div style="font-size:13px;color:#666;margin-bottom:4px">Available Balance</div>
+      <div style="font-size:36px;font-weight:900;color:#0E7C7B">$${amount.toFixed(2)}</div>
+    </div>
+    <p>Head to your referral dashboard to request a payout to your PayPal account (minimum $20).</p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/referral#earnings" class="btn">Request Payout →</a>
+    <p style="font-size:12px;color:#888;margin-top:16px">Keep sharing your referral link to earn more!</p>
+  `);
+}
+
+export function emailPayoutProcessed(name: string, amount: number, status: 'paid' | 'rejected', adminNotes?: string) {
+  const isPaid = status === 'paid';
+  return baseTemplate(`
+    <h2>${isPaid ? '✅ Payout Sent!' : '❌ Payout Update'}</h2>
+    <p>Hi ${name}, ${isPaid
+      ? `your payout of <strong>$${amount.toFixed(2)}</strong> has been processed and sent to your PayPal account.`
+      : `your payout request of <strong>$${amount.toFixed(2)}</strong> could not be processed at this time.`
+    }</p>
+    ${adminNotes ? `<div class="box"><strong>Notes:</strong> ${adminNotes}</div>` : ''}
+    ${isPaid
+      ? `<p>Funds may take 1–3 business days to appear in your PayPal account.</p>`
+      : `<p>Please check that your PayPal email is correct and try again, or contact support.</p>`
+    }
+    <a href="${process.env.NEXT_PUBLIC_APP_URL}/referral#earnings" class="btn">View Earnings →</a>
+  `);
+}
+
 export function emailWelcomeOwner(ownerName: string, hotelName: string) {
   return baseTemplate(`
     <h2>Welcome to BusyBeds, ${ownerName}! 🏨</h2>

@@ -16,6 +16,38 @@ export default function TripPlannerPage() {
   const { plan, removeHotel, updateHotel, clearPlan } = useTripPlanner();
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
+  // Bulk coupon generation
+  const [bulkState, setBulkState] = useState<'idle' | 'running' | 'done'>('idle');
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [bulkResults, setBulkResults] = useState<Array<{ name: string; ok: boolean; msg: string }>>([]);
+
+  const handleBulkCoupons = async () => {
+    setBulkState('running');
+    setBulkProgress(0);
+    setBulkResults([]);
+    const results: typeof bulkResults = [];
+    for (let i = 0; i < plan.length; i++) {
+      const h = plan[i];
+      try {
+        const res = await fetch('/api/coupons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hotelId: h.hotelId }),
+        });
+        const data = await res.json();
+        if (res.status === 401) { window.location.href = '/login?next=/trip-planner'; return; }
+        if (res.status === 402) { results.push({ name: h.name, ok: false, msg: 'No active subscription' }); }
+        else if (!res.ok) { results.push({ name: h.name, ok: false, msg: data.error || 'Failed' }); }
+        else { results.push({ name: h.name, ok: true, msg: data.existing ? 'Already had coupon' : 'Generated!' }); }
+      } catch {
+        results.push({ name: h.name, ok: false, msg: 'Network error' });
+      }
+      setBulkProgress(i + 1);
+      setBulkResults([...results]);
+    }
+    setBulkState('done');
+  };
+
   const totalNights = plan.reduce((sum, h) => sum + nightsBetween(h.checkIn, h.checkOut), 0);
 
   const handleExport = () => {
@@ -99,10 +131,56 @@ export default function TripPlannerPage() {
               <p className="text-2xl font-bold text-gray-900">{totalNights}</p>
               <p className="text-xs text-gray-500">night{totalNights !== 1 ? 's' : ''} total</p>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-3">
               <Link href="/" className="text-sm font-medium hover:underline" style={{ color: '#FF385C' }}>
                 + Add more hotels
               </Link>
+              {bulkState === 'idle' && (
+                <button
+                  onClick={handleBulkCoupons}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-white transition-opacity hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #1A3C5E, #0E7C7B)' }}
+                >
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.2} strokeLinecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  Get All Coupons
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bulk coupon progress */}
+        {bulkState !== 'idle' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-gray-800">
+                {bulkState === 'running' ? `Generating coupons… (${bulkProgress}/${plan.length})` : '✅ Done!'}
+              </p>
+              {bulkState === 'done' && (
+                <div className="flex gap-2">
+                  <a href="/coupons" className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ background: '#0E7C7B' }}>
+                    View Coupons →
+                  </a>
+                  <button onClick={() => setBulkState('idle')} className="text-xs text-gray-400 px-2">Dismiss</button>
+                </div>
+              )}
+            </div>
+            {bulkState === 'running' && (
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden mb-3">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${(bulkProgress / plan.length) * 100}%`, background: 'linear-gradient(90deg, #1A3C5E, #0E7C7B)' }}
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              {bulkResults.map((r, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span>{r.ok ? '✅' : '❌'}</span>
+                  <span className="font-medium text-gray-700 flex-1 truncate">{r.name}</span>
+                  <span className={r.ok ? 'text-green-600' : 'text-red-500'}>{r.msg}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}

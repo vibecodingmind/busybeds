@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import PriceAlertButton from '@/components/PriceAlertButton';
+import SocialShareButtons from '@/components/SocialShareButtons';
 import GetCouponButton from './GetCouponButton';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
@@ -25,6 +26,8 @@ export interface HotelData {
   coverImage: string | null; discountPercent: number; couponValidDays: number;
   avgRating: number | null; reviewCount: number; isFeatured: boolean;
   latitude: number | null; longitude: number | null;
+  redeemedThisMonth?: number;
+  lastCouponAt?: string | null;
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
@@ -94,6 +97,17 @@ function AmenityIcon({ name }: { name: string }) {
   return <svg {...base} className={cls}><polyline points="20 6 9 17 4 12"/></svg>;
 }
 
+/* ─── Time ago ──────────────────────────────────────────── */
+function timeAgo(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins || 1} minute${mins !== 1 ? 's' : ''} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
+
 /* ─── Stars ─────────────────────────────────────────────── */
 function Stars({ n, max = 5, size = 16 }: { n: number; max?: number; size?: number }) {
   return (
@@ -119,13 +133,19 @@ export default function HotelPageClient({
   const [subState, setSubState] = useState<SubState>('loading');
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [flashDeal, setFlashDeal] = useState<{ title: string; discountPercent: number; endsAt: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/subscription-status')
       .then(r => r.ok ? r.json() : { state: 'not_logged_in' })
       .then(({ state }) => setSubState(state || 'not_logged_in'))
       .catch(() => setSubState('not_logged_in'));
-  }, []);
+
+    fetch(`/api/flash-deals?hotelId=${hotel.id}`)
+      .then(r => r.json())
+      .then(d => { if (d.deals?.length) setFlashDeal(d.deals[0]); })
+      .catch(() => {});
+  }, [hotel.id]);
 
   const allPhotos = [
     ...(hotel.coverImage ? [{ id: 'cover', url: hotel.coverImage }] : []),
@@ -189,6 +209,11 @@ export default function HotelPageClient({
               {hotel.isFeatured && (
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100">⭐ Featured</span>
               )}
+              {flashDeal && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500 text-white animate-pulse">
+                  ⚡ Flash Deal: {flashDeal.discountPercent}% Off
+                </span>
+              )}
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2 leading-tight">{hotel.name}</h1>
             <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -206,6 +231,21 @@ export default function HotelPageClient({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
               {hotel.address || `${hotel.city}, ${hotel.country}`}
             </p>
+            {/* Social proof badges */}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {(hotel.redeemedThisMonth ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg>
+                  {hotel.redeemedThisMonth} coupon{hotel.redeemedThisMonth !== 1 ? 's' : ''} redeemed this month
+                </span>
+              )}
+              {hotel.lastCouponAt && (
+                <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Last coupon {timeAgo(hotel.lastCouponAt)}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Contact details */}
@@ -441,7 +481,7 @@ export default function HotelPageClient({
           <div className="bg-white border border-gray-100 rounded-2xl shadow-md p-5">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-gray-900">Book Directly</h3>
-              {!canClickPartner && (
+              {!canClickPartner && hotel.affiliateLinks.length > 0 && (
                 <span className="flex items-center gap-1 text-xs text-gray-400">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                   {subState === 'not_logged_in' ? 'Sign in to access' : 'Subscription required'}
@@ -454,8 +494,16 @@ export default function HotelPageClient({
               <div className="grid grid-cols-2 gap-2">
                 {hotel.affiliateLinks.map(link => {
                   const p = PARTNERS[link.platform] || { name: link.platform, bg: '#374151', text: '#fff', logo: '' };
+                  const trackClick = () => {
+                    fetch('/api/affiliate-clicks', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ hotelId: hotel.id, platform: link.platform }),
+                    }).catch(() => {});
+                  };
                   return canClickPartner ? (
                     <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                      onClick={trackClick}
                       className="flex flex-col items-center gap-1.5 p-3 border-2 border-gray-100 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all group bg-white">
                       {p.logo ? (
                         <img src={p.logo} alt={p.name} className="h-6 w-auto object-contain"
@@ -477,20 +525,15 @@ export default function HotelPageClient({
                 })}
               </div>
             ) : (
-              /* No links yet — show all partner logos as placeholders */
-              <div className="grid grid-cols-3 gap-2">
-                {Object.values(PARTNERS).map(p => (
-                  <div key={p.name}
-                    className="flex flex-col items-center gap-1.5 p-2.5 border border-gray-100 rounded-xl bg-gray-50 opacity-40">
-                    <img src={p.logo} alt={p.name} className="h-5 w-auto object-contain grayscale"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    <span className="text-[10px] font-medium text-gray-400 text-center leading-tight">{p.name}</span>
-                  </div>
-                ))}
+              /* No links added — clean empty state */
+              <div className="flex flex-col items-center gap-2 py-5 text-center">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">🔗</div>
+                <p className="text-sm font-medium text-gray-500">No partner links yet</p>
+                <p className="text-xs text-gray-400 max-w-[180px]">The hotel hasn&apos;t added any booking platform links yet.</p>
               </div>
             )}
 
-            {!canClickPartner && (
+            {!canClickPartner && hotel.affiliateLinks.length > 0 && (
               <Link href={subState === 'not_logged_in' ? '/login' : '/subscribe'}
                 className="mt-3 w-full block text-center py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 style={{ background: '#FF385C' }}>
@@ -505,6 +548,14 @@ export default function HotelPageClient({
             <p className="text-xs text-gray-400 mb-3">Get notified when the discount increases</p>
             <PriceAlertButton hotelId={hotel.id} hotelName={hotel.name} discountPercent={hotel.discountPercent} />
           </div>
+
+          {/* ── Share This Deal ── */}
+          <SocialShareButtons
+            url={typeof window !== 'undefined' ? window.location.href : `${process.env.NEXT_PUBLIC_APP_URL || ''}/hotels/${hotel.slug}`}
+            title={hotel.name}
+            discount={hotel.discountPercent}
+            hotelName={hotel.name}
+          />
 
           {/* ── Contact via WhatsApp ── */}
           {hotel.whatsapp && (

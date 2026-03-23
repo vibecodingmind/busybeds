@@ -23,11 +23,30 @@ export default function EditHotelPage() {
   const params = useParams();
   const hotelId = params.id as string;
 
-  const [loading, setLoading]  = useState(true);
-  const [saving, setSaving]    = useState(false);
-  const [error, setError]      = useState('');
-  const [success, setSuccess]  = useState('');
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError]       = useState('');
+  const [success, setSuccess]   = useState('');
   const [hotelName, setHotelName] = useState('');
+
+  const handleDelete = async () => {
+    if (!confirm(`Permanently delete "${hotelName}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/hotels/${hotelId}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/admin/hotels');
+      } else {
+        const d = await res.json();
+        setError(d.error || 'Delete failed');
+        setDeleting(false);
+      }
+    } catch {
+      setError('Network error');
+      setDeleting(false);
+    }
+  };
 
   const [amenities, setAmenities]       = useState<Amenity[]>([]);
   const [hotelTypes, setHotelTypes]     = useState<HotelType[]>([]);
@@ -247,6 +266,18 @@ export default function EditHotelPage() {
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           View live
         </a>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting || saving}
+          className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors border border-red-200 rounded-lg px-3 py-2 disabled:opacity-40">
+          {deleting ? (
+            <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          )}
+          {deleting ? 'Deleting…' : 'Delete Hotel'}
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-4xl space-y-6">
@@ -588,6 +619,7 @@ export default function EditHotelPage() {
               <p className="text-xs text-gray-400">Featured hotels appear at the top with a badge</p>
             </div>
           </label>
+
         </Section>
 
         {/* Submit */}
