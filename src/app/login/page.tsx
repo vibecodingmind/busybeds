@@ -76,8 +76,29 @@ function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 429) { setError('Too many attempts. Please wait a few minutes.'); return; }
-        setError(data.error || 'Login failed');
+        console.error('Login failed:', { status: res.status, data });
+        
+        if (res.status === 429) {
+          setError('Too many attempts. Please wait a few minutes.');
+          return;
+        }
+        
+        if (res.status === 401) {
+          setError('Invalid email or password');
+          return;
+        }
+        
+        if (res.status === 403) {
+          setError('Account suspended. Please contact support.');
+          return;
+        }
+        
+        if (data.error) {
+          setError(data.error);
+          return;
+        }
+        
+        setError('Login failed. Please try again.');
         return;
       }
       const role = data.user?.role;
@@ -270,7 +291,12 @@ function LoginForm() {
               </div>
 
               {error && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-100 px-4 py-3 rounded-xl">
+                <div className="text-red-600 text-sm bg-red-50 border border-red-100 px-4 py-3 rounded-xl flex items-center gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12" y2="16"/>
+                  </svg>
                   {error}
                 </div>
               )}
