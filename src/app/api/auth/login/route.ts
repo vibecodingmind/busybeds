@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: err.issues }, { status: 400 });
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('[login] error:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
