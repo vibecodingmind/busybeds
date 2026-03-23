@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline — Busy Beds</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f0f4ff 0%, #e8f5e9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 24px;
+      padding: 48px 32px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #1a202c;
+    }
+    p {
+      color: #718096;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .tips {
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      margin-top: 24px;
+    }
+    .tips h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 12px;
+    }
+    .tips ul {
+      font-size: 13px;
+      color: #4a5568;
+      list-style: none;
+    }
+    .tips li {
+      padding: 6px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+    .tips li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #48bb78;
+      font-weight: bold;
+    }
+    button {
+      margin-top: 24px;
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #e8395a, #c41f40);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>Looks like you've lost your internet connection. You can still browse cached hotels and coupons.</p>
+
+    <div class="tips">
+      <h3>While offline, you can:</h3>
+      <ul>
+        <li>View cached hotel listings</li>
+        <li>Check your saved coupons</li>
+        <li>Review your trip plan</li>
+        <li>Read cached pages</li>
+      </ul>
+    </div>
+
+    <button onclick="window.location.href='/'">Try Loading Home</button>
+  </div>
+</body>
+</html>
