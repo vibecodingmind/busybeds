@@ -17,6 +17,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if ('discountRules' in body) data.discountRules = JSON.stringify(body.discountRules);
   if ('amenities'    in body) data.amenities    = JSON.stringify(body.amenities);
 
+  // Auto-set featuredUntil when toggling isFeatured
+  if (body.isFeatured === true) data.featuredUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
   const hotel = await prisma.hotel.update({ where: { id: params.id }, data, include: { _count: { select: { coupons: true, roomTypes: true } } } });
 
   // Replace affiliate links if provided

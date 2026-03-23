@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 interface Hotel {
   id: string; name: string; city: string; country: string;
   status: string; discountPercent: number; createdAt: string;
+  isFeatured?: boolean;
   owner?: { fullName: string; email: string };
 }
 
@@ -20,6 +21,7 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
 
   const deleteHotel = async (hotel: Hotel) => {
     if (!confirm(`Delete "${hotel.name}"? This cannot be undone.`)) return;
@@ -38,6 +40,28 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
       setMsg('✗ Network error');
     }
     setDeleting(null);
+  };
+
+  const toggleFeatured = async (hotel: Hotel) => {
+    setToggling(hotel.id);
+    try {
+      const res = await fetch(`/api/admin/hotels/${hotel.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFeatured: !hotel.isFeatured }),
+      });
+      if (res.ok) {
+        setHotels(prev => prev.map(h => h.id === hotel.id ? { ...h, isFeatured: !h.isFeatured } : h));
+        setMsg(`✓ "${hotel.name}" ${!hotel.isFeatured ? 'featured' : 'unfeatured'}`);
+        setTimeout(() => setMsg(''), 4000);
+      } else {
+        const d = await res.json();
+        setMsg(`✗ ${d.error || 'Toggle failed'}`);
+      }
+    } catch {
+      setMsg('✗ Network error');
+    }
+    setToggling(null);
   };
 
   const filtered = hotels.filter(h => {
@@ -187,6 +211,12 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                     </button>
                     <button onClick={() => { setSelected(new Set([hotel.id])); bulkAction('rejected'); }} className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
                       Reject
+                    </button>
+                    <button
+                      onClick={() => toggleFeatured(hotel)}
+                      disabled={toggling === hotel.id}
+                      className={`px-2 py-1 text-xs rounded-lg transition-colors disabled:opacity-40 ${hotel.isFeatured ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'}`}>
+                      {toggling === hotel.id ? '…' : hotel.isFeatured ? 'Unfeature' : 'Feature'}
                     </button>
                     <Link href={`/admin/hotels/${hotel.id}/edit`}
                       className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">

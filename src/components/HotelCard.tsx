@@ -92,9 +92,9 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           </div>
         ) : null}
 
-        {/* Savings pill — only on hover */}
+        {/* Savings pill — always visible on right */}
         {savings && savings > 0 && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0"
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-lg"
             style={{ background: 'rgba(16,185,129,0.92)', backdropFilter: 'blur(8px)' }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             Save {format(savings)}/night
