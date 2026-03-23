@@ -1,4 +1,3 @@
-import NewsletterSignup from '@/components/NewsletterSignup';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
@@ -598,8 +597,6 @@ export default async function HomePage({
       </div>
 
       <PersonalizedRecommendations />
-
-      <NewsletterSignup variant="banner" />
 
       {/* ══════════════════════════════════════════════════════
           HOW IT WORKS

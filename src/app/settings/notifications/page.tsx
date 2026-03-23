@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import NewsletterSignup from '@/components/NewsletterSignup';
 
 export default function NotificationSettingsPage() {
   const [prefs, setPrefs] = useState<any>(null);
@@ -98,6 +99,12 @@ export default function NotificationSettingsPage() {
                 <option value="PST">Pacific</option>
               </select>
             </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold">Newsletter</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Subscribe to get exclusive hotel discounts delivered to your inbox.</p>
+            <NewsletterSignup variant="inline" />
           </div>
 
           <button onClick={save} disabled={saving} className="w-full py-3 bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold rounded-xl hover:opacity-90 disabled:opacity-50">
