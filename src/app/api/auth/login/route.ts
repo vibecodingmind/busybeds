@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: err.issues }, { status: 400 });
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('[LOGIN ERROR]', err);
+    return NextResponse.json({ error: 'Server error', details: String(err) }, { status: 500 });
   }
 }
