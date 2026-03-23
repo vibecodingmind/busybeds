@@ -4,20 +4,23 @@ import { useState } from 'react';
 export default function AdminSMSPage() {
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  const [senderId, setSenderId] = useState('');
   const [sending, setSending] = useState(false);
 
   const sendSMS = async () => {
-    if (!phone || !message) return alert('Fill in all fields');
+    if (!phone || !message || !senderId) return alert('Fill in all fields');
+    if (senderId.length > 11) return alert('Sender ID must be max 11 characters');
     setSending(true);
     try {
       await fetch('/api/sms/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, message }),
+        body: JSON.stringify({ phone, message, senderId }),
       });
       alert('SMS sent!');
       setPhone('');
       setMessage('');
+      setSenderId('');
     } finally {
       setSending(false);
     }
@@ -40,6 +43,19 @@ export default function AdminSMSPage() {
             placeholder="+1234567890"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Sender ID (max 11 characters)</label>
+          <input
+            type="text"
+            value={senderId}
+            onChange={e => setSenderId(e.target.value.slice(0, 11))}
+            placeholder="e.g., BusyBeds"
+            maxLength={11}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600"
+          />
+          <div className="text-xs text-gray-500 mt-2">{senderId.length} / 11 characters</div>
         </div>
 
         <div>
