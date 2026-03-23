@@ -1,0 +1,23 @@
+# Railway Configuration for Busy Beds
+# This file configures the deployment on Railway.app
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+# Health check configuration
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# Environment variables that should be set in Railway dashboard:
+# - DATABASE_URL (automatically set when you add PostgreSQL service)
+# - DIRECT_URL (set to same as DATABASE_URL for Railway)
+# - JWT_SECRET
+# - NEXT_PUBLIC_APP_URL
+# - STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+# - PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE
+# - PESAPAL_CONSUMER_KEY, PESAPAL_CONSUMER_SECRET, PESAPAL_MODE
+# - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+# - EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM
