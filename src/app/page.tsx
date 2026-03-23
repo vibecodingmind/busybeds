@@ -243,8 +243,10 @@ async function getHotels(
 }
 
 async function getCities() {
-  const rows = await prisma.hotel.findMany({ where: { status: 'active' }, select: { city: true }, distinct: ['city'] });
-  return rows.map(h => h.city);
+  try {
+    const rows = await prisma.hotel.findMany({ where: { status: 'active' }, select: { city: true }, distinct: ['city'] });
+    return rows.map(h => h.city);
+  } catch { return []; }
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -281,7 +283,7 @@ export default async function HomePage({
     searchParams.category, searchParams.minPrice, searchParams.maxPrice,
     searchParams.sort, searchParams.vibeTag,
     searchParams.lat, searchParams.lng, searchParams.radius,
-  );
+  ).catch(() => ({ hotels: [], total: 0 }));
   const cities     = await getCities();
   const hotelTypes = await getHotelTypes();
   const trending   = isFiltered ? [] : await getTrending();

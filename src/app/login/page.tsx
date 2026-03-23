@@ -59,7 +59,7 @@ function LoginForm() {
   const [slide, setSlide] = useState(0);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/dashboard';
+  const next = searchParams.get('next') || '/';
   const verified = searchParams.get('verified') === '1';
   const tokenError = searchParams.get('error') === 'invalid_token';
   const rateLimited = searchParams.get('error') === 'rate_limit';
