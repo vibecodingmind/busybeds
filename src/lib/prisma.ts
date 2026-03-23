@@ -4,27 +4,36 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ||
-  new PrismaClient({ 
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  new PrismaClient({
+    log: ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL
       }
-    }
+    },
+    // Add connection timeout and pool configuration for Supabase
+    connection: {
+      options: {
+        connectionTimeoutMillis: 5000, // 5 seconds
+        keepAlives: true,
+        keepAlivesIdle: 5,
+      },
+    },
   });
 
-// Test database connection on startup
+// Warm up the connection pool
 prisma.$connect()
   .then(() => {
-    console.log('[Database] Connected successfully');
+    console.log('[Database] Connected successfully to Supabase');
   })
   .catch((err) => {
     console.error('[Database] Connection failed:', err);
-    // Don't exit in production, just log the error
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
   });
+
+// Handle connection errors gracefully
+prisma.$on('error', (e) => {
+  console.error('[Database] Prisma Client error:', e);
+});
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 

@@ -30,17 +30,26 @@ export async function POST(req: NextRequest) {
     const data = schema.parse(body);
     
     console.log('[LOGIN] Finding user:', data.email);
-    const user = await prisma.user.findUnique({ 
-      where: { email: data.email },
-      select: {
-        id: true,
-        email: true,
-        passwordHash: true,
-        role: true,
-        fullName: true,
-        suspendedAt: true,
-      }
-    });
+    let user;
+    try {
+      user = await prisma.user.findUnique({ 
+        where: { email: data.email },
+        select: {
+          id: true,
+          email: true,
+          passwordHash: true,
+          role: true,
+          fullName: true,
+          suspendedAt: true,
+        }
+      });
+    } catch (dbError) {
+      console.error('[LOGIN] Database error:', dbError);
+      return NextResponse.json({
+        error: 'Database connection error. Please try again.',
+        code: 'DB_ERROR'
+      }, { status: 503 });
+    }
 
     if (!user) {
       console.log('[LOGIN] User not found:', data.email);
