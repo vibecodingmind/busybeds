@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 interface User {
   id: string; fullName: string; email: string; role: string;
   createdAt: string; isBanned: boolean;
-  _count: { coupons: number; hotelOwner: number };
+  _count: { coupons: number };
+  hotelOwner?: { id: string } | null;
 }
 
 const ROLES = ['traveler', 'hotel_owner', 'hotel_manager', 'admin'];
@@ -109,7 +110,7 @@ export default function UsersClient() {
                   </select>
                 </td>
                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user._count.coupons}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user._count.hotelOwner}</td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.hotelOwner ? '1' : '0'}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
                   {user.isBanned ? (
