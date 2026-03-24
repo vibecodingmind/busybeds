@@ -15,6 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
   active:   'bg-green-50 text-green-700',
   inactive: 'bg-gray-100 text-gray-500',
   pending:  'bg-yellow-50 text-yellow-700',
+  rejected: 'bg-red-50 text-red-600',
 };
 
 export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[] }) {
@@ -24,6 +25,10 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
   const [editHotel, setEditHotel]       = useState<Hotel | null>(null);
   const [loading, setLoading]           = useState(false);
   const [toast, setToast]               = useState('');
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Edit form state
   const [form, setForm] = useState({
@@ -43,6 +48,21 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
     const matchStatus = statusFilter === 'all' || h.status === statusFilter;
     return matchSearch && matchStatus;
   }), [hotels, search, statusFilter]);
+
+  // Check if a hotel can be deleted (must be inactive or rejected)
+  const canDelete = (h: Hotel) => h.status === 'inactive' || h.status === 'rejected';
+  
+  // Get selected hotels that are deletable
+  const selectedDeletable = useMemo(() => 
+    filtered.filter(h => selectedIds.has(h.id) && canDelete(h)),
+    [filtered, selectedIds]
+  );
+  
+  // Get selected hotels that cannot be deleted
+  const selectedNotDeletable = useMemo(() => 
+    filtered.filter(h => selectedIds.has(h.id) && !canDelete(h)),
+    [filtered, selectedIds]
+  );
 
   const openEdit = (h: Hotel) => {
     setEditHotel(h);
@@ -84,15 +104,54 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
   };
 
   const deleteHotel = async (id: string) => {
-    if (!confirm('Delete this hotel? All coupons will also be removed.')) return;
+    const hotel = hotels.find(h => h.id === id);
+    if (!hotel || !canDelete(hotel)) {
+      showToast('Can only delete inactive or rejected hotels');
+      return;
+    }
+    if (!confirm(`Delete "${hotel.name}"? All coupons will also be removed.`)) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/hotels/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error || 'Delete failed');
       setHotels(prev => prev.filter(h => h.id !== id));
+      setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
       showToast('Hotel deleted');
     } catch (e: any) { showToast('Error: ' + e.message); }
     finally { setLoading(false); }
+  };
+
+  // Bulk delete selected hotels
+  const bulkDelete = async () => {
+    if (selectedDeletable.length === 0) {
+      showToast('No deletable hotels selected');
+      return;
+    }
+    
+    if (selectedNotDeletable.length > 0) {
+      showToast(`${selectedNotDeletable.length} hotels cannot be deleted (must be inactive or rejected first)`);
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedDeletable.length} hotel(s)? All their coupons will also be removed.`)) return;
+    
+    setDeleteLoading(true);
+    try {
+      const res = await fetch('/api/admin/hotels/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      
+      // Remove deleted hotels from state
+      setHotels(prev => prev.filter(h => !selectedIds.has(h.id)));
+      setSelectedIds(new Set());
+      showToast(`Deleted ${data.deleted} hotel(s)`);
+    } catch (e: any) { showToast('Error: ' + e.message); }
+    finally { setDeleteLoading(false); }
   };
 
   const toggleStatus = async (h: Hotel) => {
@@ -105,6 +164,27 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       setHotels(prev => prev.map(x => x.id === h.id ? { ...x, status: newStatus } : x));
       showToast(`Hotel ${newStatus}`);
     } catch { showToast('Failed'); }
+  };
+
+  // Selection handlers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filtered.map(h => h.id)));
+  };
+
+  const selectAllDeletable = () => {
+    setSelectedIds(new Set(filtered.filter(h => canDelete(h)).map(h => h.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
   };
 
   return (
@@ -152,9 +232,47 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="pending">Pending</option>
+          <option value="rejected">Rejected</option>
         </select>
         <span className="flex items-center text-xs text-gray-400">{filtered.length} results</span>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-100 p-3 rounded-xl">
+          <span className="text-sm font-medium text-red-700">
+            {selectedIds.size} selected
+            {selectedNotDeletable.length > 0 && (
+              <span className="text-xs text-gray-500 ml-1">
+                ({selectedNotDeletable.length} not deletable)
+              </span>
+            )}
+          </span>
+          <button
+            onClick={bulkDelete}
+            disabled={deleteLoading || selectedDeletable.length === 0}
+            className="px-4 py-1.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {deleteLoading ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
+                Delete Selected ({selectedDeletable.length})
+              </>
+            )}
+          </button>
+          <button
+            onClick={clearSelection}
+            className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -162,6 +280,14 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-xs text-gray-500 uppercase tracking-wide">
+                <th className="px-3 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === filtered.length && filtered.length > 0}
+                    onChange={() => selectedIds.size === filtered.length ? clearSelection() : selectAll()}
+                    className="w-4 h-4 rounded accent-[#E8395A]"
+                  />
+                </th>
                 <th className="px-5 py-3 font-semibold">Hotel</th>
                 <th className="px-5 py-3 font-semibold">Stars</th>
                 <th className="px-5 py-3 font-semibold">Discount</th>
@@ -171,53 +297,73 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.map(h => (
-                <tr key={h.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      {h.coverImage ? (
-                        <img src={h.coverImage} alt="" className="w-10 h-8 rounded-lg object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-10 h-8 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
-                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#0D9488" strokeWidth={2}><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+              {filtered.map(h => {
+                const isSelected = selectedIds.has(h.id);
+                const isDeletable = canDelete(h);
+                return (
+                  <tr key={h.id} className={`hover:bg-gray-50/50 transition-colors ${isSelected ? 'bg-red-50/50' : ''}`}>
+                    <td className="px-3 py-3.5">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(h.id)}
+                        className="w-4 h-4 rounded accent-[#E8395A]"
+                      />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        {h.coverImage ? (
+                          <img src={h.coverImage} alt="" className="w-10 h-8 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-8 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#0D9488" strokeWidth={2}><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 truncate max-w-[180px]">{h.name}</p>
+                          <p className="text-xs text-gray-400">{h.city}, {h.country}</p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 truncate max-w-[180px]">{h.name}</p>
-                        <p className="text-xs text-gray-400">{h.city}, {h.country}</p>
+                        {h.isFeatured && <span className="text-xs bg-purple-50 text-purple-700 font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Featured</span>}
                       </div>
-                      {h.isFeatured && <span className="text-xs bg-purple-50 text-purple-700 font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Featured</span>}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">{'⭐'.repeat(h.starRating)}</td>
-                  <td className="px-5 py-3.5">
-                    <span className="bg-teal-50 text-teal-700 text-xs font-bold px-2 py-0.5 rounded-full">{h.discountPercent}% off</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600">{h._count.coupons}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[h.status] || 'bg-gray-100 text-gray-500'}`}>{h.status}</span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Link href={`/hotels/${h.slug}`} target="_blank" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="View live page">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                      </Link>
-                      <button onClick={() => openEdit(h)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Quick edit">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                      </button>
-                      <Link href={`/admin/hotels/${h.id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors" title="Full edit">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                      </Link>
-                      <button onClick={() => toggleStatus(h)} className={`p-1.5 rounded-lg transition-colors ${h.status === 'active' ? 'hover:bg-orange-50 text-orange-500' : 'hover:bg-green-50 text-green-600'}`} title={h.status === 'active' ? 'Deactivate' : 'Activate'}>
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/>{h.status === 'active' ? <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/> : <polyline points="9 11 12 14 22 4"/>}</svg>
-                      </button>
-                      <button onClick={() => deleteHotel(h.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors" title="Delete">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/><path strokeLinecap="round" d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-5 py-3.5">{'⭐'.repeat(h.starRating)}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="bg-teal-50 text-teal-700 text-xs font-bold px-2 py-0.5 rounded-full">{h.discountPercent}% off</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-600">{h._count.coupons}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[h.status] || 'bg-gray-100 text-gray-500'}`}>{h.status}</span>
+                      {!isDeletable && h.status === 'active' && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">Set to inactive first</p>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link href={`/hotels/${h.slug}`} target="_blank" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="View live page">
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </Link>
+                        <button onClick={() => openEdit(h)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Quick edit">
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <Link href={`/admin/hotels/${h.id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors" title="Full edit">
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </Link>
+                        <button onClick={() => toggleStatus(h)} className={`p-1.5 rounded-lg transition-colors ${h.status === 'active' ? 'hover:bg-orange-50 text-orange-500' : 'hover:bg-green-50 text-green-600'}`} title={h.status === 'active' ? 'Deactivate' : 'Activate'}>
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/>{h.status === 'active' ? <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/> : <polyline points="9 11 12 14 22 4"/>}</svg>
+                        </button>
+                        <button 
+                          onClick={() => deleteHotel(h.id)} 
+                          className={`p-1.5 rounded-lg transition-colors ${isDeletable ? 'hover:bg-red-50 text-red-400' : 'text-gray-300 cursor-not-allowed'}`} 
+                          title={isDeletable ? 'Delete' : 'Must be inactive or rejected first'}
+                          disabled={!isDeletable}
+                        >
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/><path strokeLinecap="round" d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {filtered.length === 0 && (
@@ -316,6 +462,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="pending">Pending Review</option>
+                    <option value="rejected">Rejected</option>
                   </select>
                 </div>
                 <div className="flex items-end pb-1.5">
