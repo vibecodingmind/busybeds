@@ -96,8 +96,9 @@ export async function GET(req: NextRequest) {
 
     // Transform subscription data and apply search boost
     hotels = hotels.map(hotel => {
-      const subArr = hotel.subscription as unknown as Array<{ tier: { searchBoost: number } }>;
-      const subscription = subArr?.[0] || null;
+      // subscription from Prisma with where clause returns as array-like
+      const subData = hotel.subscription as unknown as { status: string; tier: { name: string; displayName: string; searchBoost: number; showVerifiedBadge: boolean; featuredOnHomepage: boolean; } } | null;
+      const subscription = (subData && 'status' in subData) ? subData : null;
       return {
         ...hotel,
         subscription,

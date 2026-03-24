@@ -5,9 +5,8 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  // directUrl is optional - needed for Supabase/Neon with connection pooling
-  // For Railway, you can set DIRECT_URL to the same value as DATABASE_URL or omit it
-  directUrl = env("DIRECT_URL")
+  // directUrl removed - Railway uses DATABASE_URL for both connections
+  // If using Supabase/Neon with connection pooling, add: directUrl = env("DIRECT_URL")
 }
 
 model User {

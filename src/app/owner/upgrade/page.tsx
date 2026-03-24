@@ -37,8 +37,14 @@ async function getData(userId: string) {
   });
 
   return { 
-    hotel: hotelOwner.hotel, 
-    subscription,
+    hotel: {
+      ...hotelOwner.hotel,
+      adminFeaturedUntil: hotelOwner.hotel.adminFeaturedUntil?.toISOString() || null,
+    }, 
+    subscription: subscription ? {
+      ...subscription,
+      currentPeriodEnd: subscription.currentPeriodEnd.toISOString(),
+    } : null,
     tiers,
   };
 }
