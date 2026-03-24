@@ -278,8 +278,8 @@ async function getHotels(
   // Transform and boost by subscription
   let processedHotels = rawHotels.map(h => ({
     ...h,
-    subscription: h.subscription?.[0] || null,
-    _boostScore: h.subscription?.[0]?.tier?.searchBoost || 0,
+    subscription: (h.subscription as unknown as Array<{ tier: { searchBoost: number } }>)?.[0] || null,
+    _boostScore: (h.subscription as unknown as Array<{ tier: { searchBoost: number } }>)?.[0]?.tier?.searchBoost || 0,
   }));
 
   // Apply subscription boost sorting when no specific sort

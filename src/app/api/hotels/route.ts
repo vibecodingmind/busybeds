@@ -96,7 +96,8 @@ export async function GET(req: NextRequest) {
 
     // Transform subscription data and apply search boost
     hotels = hotels.map(hotel => {
-      const subscription = hotel.subscription?.[0] || null;
+      const subArr = hotel.subscription as unknown as Array<{ tier: { searchBoost: number } }>;
+      const subscription = subArr?.[0] || null;
       return {
         ...hotel,
         subscription,

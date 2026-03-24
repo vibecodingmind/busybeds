@@ -242,7 +242,9 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             </p>
             {/* Verified badge for premium subscribers */}
             {hotel.subscription?.tier?.showVerifiedBadge && (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6" className="flex-shrink-0" title="Verified Partner">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6" className="flex-shrink-0" 
+                <title>Verified Partner</title>
+              >
                 <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z"/>
                 <circle cx="12" cy="12" r="10" fill="none" stroke="#3B82F6" strokeWidth="1" opacity="0.3"/>
               </svg>
