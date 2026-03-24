@@ -401,8 +401,8 @@ export async function POST(req: NextRequest) {
   const skipped   = importResults.filter((r) => !r.success && (r as { skipped?: boolean }).skipped).length;
   const failed    = importResults.filter((r) => !r.success && !(r as { skipped?: boolean }).skipped).length;
   const totalReviews = importResults
-    .filter((r): r is { success: true; reviewsImported: number } => r.success)
-    .reduce((sum, r) => sum + r.reviewsImported, 0);
+    .filter((r) => r.success)
+    .reduce((sum, r) => sum + ((r as { reviewsImported: number }).reviewsImported ?? 0), 0);
 
   return NextResponse.json({ 
     results: importResults, 
