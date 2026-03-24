@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
+import { fetchNearbyLandmarks } from '@/lib/landmarks';
 
 /* ────────────────────────────────────────────────────────────────
    Google Places helpers
@@ -546,6 +547,7 @@ export async function POST(req: NextRequest) {
   const pricePerNight: number   = Number(body.pricePerNight)   || 0;
   const categoryOverride: string | undefined = body.category; // Manual category override
   const importReviews: boolean  = body.importReviews !== false; // Default: true
+  const importLandmarks: boolean = body.importLandmarks !== false; // Default: true
 
   if (!placeIds.length)
     return NextResponse.json({ error: 'placeIds array is required' }, { status: 400 });
@@ -561,7 +563,7 @@ export async function POST(req: NextRequest) {
 
   // ── Import SEQUENTIALLY to avoid connection-pool timeout ──────
   type ImportResult =
-    | { placeId: string; success: true; hotelId: string; hotelSlug: string; name: string; city: string; country: string; coverImage: string | null; reviewsImported: number }
+    | { placeId: string; success: true; hotelId: string; hotelSlug: string; name: string; city: string; country: string; coverImage: string | null; reviewsImported: number; landmarksImported: number }
     | { placeId: string; success: false; error: string; skipped?: boolean };
 
   const importResults: ImportResult[] = [];
@@ -718,6 +720,47 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      /* ── 6. Fetch and store nearby landmarks ── */
+      let landmarksImported = 0;
+      if (importLandmarks && hotel.latitude && hotel.longitude) {
+        try {
+          const landmarks = await fetchNearbyLandmarks(
+            hotel.latitude,
+            hotel.longitude,
+            key,
+            5,    // 5km radius
+            10,   // Minimum 10 ratings for "popular"
+            3,    // Max 3 per type
+          );
+
+          if (landmarks.length > 0) {
+            // Create landmarks for this hotel
+            await prisma.landmark.createMany({
+              data: landmarks.map(l => ({
+                hotelId: hotel.id,
+                googlePlaceId: l.googlePlaceId,
+                name: l.name,
+                type: l.type,
+                typeName: l.typeName,
+                address: l.address,
+                latitude: l.latitude,
+                longitude: l.longitude,
+                distanceKm: l.distanceKm,
+                rating: l.rating,
+                totalRatings: l.totalRatings,
+                photoUrl: l.photoUrl,
+              })),
+              skipDuplicates: true,
+            });
+            landmarksImported = landmarks.length;
+            console.log(`[Import] Added ${landmarks.length} landmarks for ${hotel.name}`);
+          }
+        } catch (landmarkError) {
+          console.error(`[Import] Failed to fetch landmarks for ${hotel.name}:`, landmarkError);
+          // Don't fail the whole import if landmarks fail
+        }
+      }
+
       importResults.push({
         placeId,
         success:    true,
@@ -728,6 +771,7 @@ export async function POST(req: NextRequest) {
         country:    hotel.country,
         coverImage: hotel.coverImage,
         reviewsImported: reviewsData.length,
+        landmarksImported,
       });
 
     } catch (err: unknown) {
@@ -742,6 +786,9 @@ export async function POST(req: NextRequest) {
   const totalReviews = importResults
     .filter((r) => r.success)
     .reduce((sum, r) => sum + ((r as { reviewsImported: number }).reviewsImported ?? 0), 0);
+  const totalLandmarks = importResults
+    .filter((r) => r.success)
+    .reduce((sum, r) => sum + ((r as { landmarksImported: number }).landmarksImported ?? 0), 0);
 
   return NextResponse.json({ 
     results: importResults, 
@@ -749,5 +796,6 @@ export async function POST(req: NextRequest) {
     skipped, 
     failed,
     reviewsImported: totalReviews,
+    landmarksImported: totalLandmarks,
   }, { status: 201 });
 }

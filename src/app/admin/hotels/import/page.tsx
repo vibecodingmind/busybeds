@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import type { PlaceSearchResult } from '@/app/api/admin/import-hotels/route';
+import { COUNTRIES, CITIES_BY_COUNTRY } from '@/lib/locations';
 
 /* ────────────────────────────────────────────────────────────────
    Types
@@ -17,6 +18,7 @@ type ImportResult = {
   country?: string;
   coverImage?: string | null;
   reviewsImported?: number;
+  landmarksImported?: number;
   error?: string;
 };
 
@@ -53,7 +55,14 @@ export default function ImportHotelsPage() {
   const [defaultPrice, setDefaultPrice]       = useState(0); // 0 = auto from price_level
   const [selectedCategory, setSelectedCategory] = useState(''); // Hotel type category
   const [importReviews, setImportReviews]     = useState(true); // Default: import reviews
+  const [importLandmarks, setImportLandmarks] = useState(true); // Default: import landmarks
   const [fetchAllPages, setFetchAllPages]     = useState(true); // Default: fetch all 60 results
+
+  // Country/Region/City selector for quick search
+  const [selectedCountry, setSelectedCountry] = useState('Tanzania');
+  const [selectedCity, setSelectedCity] = useState('');
+  
+  const availableCities = CITIES_BY_COUNTRY[selectedCountry] || [];
 
   // Hotel types from DB
   const [hotelTypes, setHotelTypes] = useState<HotelType[]>([]);
@@ -180,7 +189,8 @@ export default function ImportHotelsPage() {
         couponValidDays,
         pricePerNight: defaultPrice || undefined,
         category: selectedCategory || undefined,
-        importReviews, // Pass the toggle value
+        importReviews,
+        importLandmarks,
       }),
     });
     const data = await res.json();
@@ -205,6 +215,15 @@ export default function ImportHotelsPage() {
     if (level === null) return null;
     return ['Free', '$', '$$', '$$$', '$$$$'][level] ?? null;
   };
+
+  // Quick search by selected location
+  const searchByLocation = useCallback(() => {
+    const locationQuery = selectedCity 
+      ? `hotels in ${selectedCity}, ${selectedCountry}`
+      : `hotels in ${selectedCountry}`;
+    setQuery(locationQuery);
+    doSearch(locationQuery);
+  }, [selectedCountry, selectedCity, doSearch]);
 
   const isImporting = status === 'importing';
   const isSearching = status === 'searching';
@@ -359,27 +378,65 @@ export default function ImportHotelsPage() {
 
             {/* Quick suggestions */}
             {importMode === 'search' && !results.length && !searchError && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Quick searches</p>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    'luxury hotels Dar es Salaam',
-                    'safari lodges Serengeti',
-                    'beach resorts Zanzibar',
-                    'boutique hotels Arusha',
-                    'budget hotels Nairobi',
-                    'resorts Mombasa Kenya',
-                    'lodges Ngorongoro',
-                    'hotels Cape Town',
-                  ].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => { setQuery(s); doSearch(s); }}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all"
+              <div className="space-y-4">
+                {/* Location Selector */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Quick search by location</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select
+                      value={selectedCountry}
+                      onChange={e => { setSelectedCountry(e.target.value); setSelectedCity(''); }}
+                      className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A]"
                     >
-                      {s}
+                      {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    
+                    {availableCities.length > 0 && (
+                      <select
+                        value={selectedCity}
+                        onChange={e => setSelectedCity(e.target.value)}
+                        className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A]"
+                      >
+                        <option value="">All cities</option>
+                        {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    )}
+                    
+                    <button
+                      onClick={searchByLocation}
+                      disabled={isSearching}
+                      className="px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50"
+                      style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}
+                    >
+                      {isSearching ? 'Searching...' : `Search ${selectedCity || selectedCountry}`}
                     </button>
-                  ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    📍 Location is auto-assigned from Google Maps when importing
+                  </p>
+                </div>
+                
+                {/* Popular searches */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Popular searches</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      'luxury hotels Dar es Salaam',
+                      'safari lodges Serengeti',
+                      'beach resorts Zanzibar',
+                      'boutique hotels Arusha',
+                      'budget hotels Nairobi',
+                      'resorts Mombasa',
+                    ].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => { setQuery(s); doSearch(s); }}
+                        className="px-3.5 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -447,7 +504,10 @@ export default function ImportHotelsPage() {
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <span>{r.city}, {r.country}</span>
                               {r.reviewsImported && r.reviewsImported > 0 && (
-                                <span className="text-green-600 font-medium">· {r.reviewsImported} reviews imported</span>
+                                <span className="text-green-600 font-medium">· {r.reviewsImported} reviews</span>
+                              )}
+                              {r.landmarksImported && r.landmarksImported > 0 && (
+                                <span className="text-blue-600 font-medium">· {r.landmarksImported} landmarks</span>
                               )}
                             </div>
                           </div>
@@ -730,6 +790,27 @@ export default function ImportHotelsPage() {
                     <div>
                       <span className="text-sm font-semibold text-gray-700">Import Google Reviews</span>
                       <p className="text-[11px] text-gray-400 mt-0.5">Up to 5 recent reviews per hotel (auto-approved)</p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Import Landmarks Toggle */}
+                <div className="pt-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <div className="relative flex-shrink-0 mt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={importLandmarks}
+                        onChange={e => setImportLandmarks(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-10 h-6 rounded-full transition-colors ${importLandmarks ? 'bg-green-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${importLandmarks ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700">Import Nearby Landmarks</span>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Supermarkets, parks, hospitals, etc. (5km radius)</p>
                     </div>
                   </label>
                 </div>

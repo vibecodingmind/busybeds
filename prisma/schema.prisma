@@ -150,6 +150,43 @@ model Hotel {
   priceAlerts      PriceAlert[]
   flashDeals       FlashDeal[]
   subscription     HotelSubscription?
+  landmarks        Landmark[]
+}
+
+// Nearby landmarks for hotels (markets, supermarkets, parks, etc.)
+model Landmark {
+  id              String   @id @default(cuid())
+  hotelId         String
+  
+  // Basic info
+  name            String
+  type            String   // supermarket, park, shopping_mall, hospital, etc.
+  typeName        String   // Human-readable: "Supermarket", "Park", etc.
+  address         String?
+  
+  // Google data
+  googlePlaceId   String?  @unique
+  
+  // Location
+  latitude        Float
+  longitude       Float
+  distanceKm      Float    // Distance from hotel in kilometers
+  
+  // Popularity
+  rating          Float?
+  totalRatings    Int      @default(0)
+  
+  // Photo
+  photoUrl        String?
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  
+  @@index([hotelId])
+  @@index([type])
+  @@index([distanceKm])
 }
 
 model HotelOwner {
