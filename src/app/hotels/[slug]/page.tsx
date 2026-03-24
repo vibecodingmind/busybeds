@@ -47,6 +47,26 @@ export default async function HotelPage({ params }: PageProps) {
       roomTypes: true,
       photos: true,
       affiliateLinks: true,
+      reviews: {
+        where: { isApproved: true },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          rating: true,
+          title: true,
+          body: true,
+          createdAt: true,
+          source: true,
+          authorName: true,
+          authorPhotoUrl: true,
+          reviewedAt: true,
+          isVerified: true,
+          user: {
+            select: { fullName: true, avatar: true },
+          },
+        },
+      },
     },
   });
 
@@ -171,6 +191,18 @@ export default async function HotelPage({ params }: PageProps) {
     })),
     photos: hotel.photos.map(p => ({ id: p.id, url: p.url })),
     affiliateLinks: hotel.affiliateLinks.map(l => ({ id: l.id, platform: l.platform, url: l.url })),
+    reviews: (hotel as any).reviews.map((r: any) => ({
+      id: r.id,
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      createdAt: r.createdAt.toISOString(),
+      source: r.source,
+      authorName: r.authorName || r.user?.fullName || 'Anonymous',
+      authorPhotoUrl: r.authorPhotoUrl || r.user?.avatar || null,
+      reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+      isVerified: r.isVerified,
+    })),
     redeemedThisMonth,
     lastCouponAt: (hotel as any).lastCouponAt ? (hotel as any).lastCouponAt.toISOString() : null,
   };

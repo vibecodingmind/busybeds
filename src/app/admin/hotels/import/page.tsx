@@ -16,6 +16,7 @@ type ImportResult = {
   city?: string;
   country?: string;
   coverImage?: string | null;
+  reviewsImported?: number;
   error?: string;
 };
 
@@ -46,6 +47,7 @@ export default function ImportHotelsPage() {
   const [couponValidDays, setCouponValidDays] = useState(30);
   const [defaultPrice, setDefaultPrice]       = useState(0); // 0 = auto from price_level
   const [selectedCategory, setSelectedCategory] = useState(''); // Hotel type category
+  const [importReviews, setImportReviews]     = useState(true); // Default: import reviews
 
   // Hotel types from DB
   const [hotelTypes, setHotelTypes] = useState<HotelType[]>([]);
@@ -130,7 +132,8 @@ export default function ImportHotelsPage() {
         discountPercent,
         couponValidDays,
         pricePerNight: defaultPrice || undefined,
-        category: selectedCategory || undefined, // Pass selected category
+        category: selectedCategory || undefined,
+        importReviews, // Pass the toggle value
       }),
     });
     const data = await res.json();
@@ -298,7 +301,12 @@ export default function ImportHotelsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900 truncate">{r.name}</p>
-                            <p className="text-xs text-gray-500">{r.city}, {r.country}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>{r.city}, {r.country}</span>
+                              {r.reviewsImported && r.reviewsImported > 0 && (
+                                <span className="text-green-600 font-medium">· {r.reviewsImported} reviews imported</span>
+                              )}
+                            </div>
                           </div>
                           <Link
                             href={`/hotels/${r.hotelSlug}`}
@@ -560,6 +568,27 @@ export default function ImportHotelsPage() {
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">Leave empty to auto-estimate from Google price level</p>
+                </div>
+
+                {/* Import Reviews Toggle */}
+                <div className="pt-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <div className="relative flex-shrink-0 mt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={importReviews}
+                        onChange={e => setImportReviews(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-10 h-6 rounded-full transition-colors ${importReviews ? 'bg-green-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${importReviews ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700">Import Google Reviews</span>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Up to 5 recent reviews per hotel (auto-approved)</p>
+                    </div>
+                  </label>
                 </div>
               </div>
             </div>

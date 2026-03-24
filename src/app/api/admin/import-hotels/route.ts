@@ -79,6 +79,24 @@ async function resolvePhotoUrl(photoReference: string): Promise<string> {
   return url;                                // fallback: original URL
 }
 
+/** Google review data structure */
+interface GoogleReview {
+  author_name: string;
+  author_url?: string;
+  language?: string;
+  profile_photo_url?: string;
+  rating: number;
+  relative_time_description?: string;
+  text: string;
+  time: number;
+}
+
+/** Generate a unique ID for Google reviews (since Google doesn't provide one) */
+function generateGoogleReviewId(placeId: string, authorName: string, timestamp: number): string {
+  const hash = Buffer.from(`${placeId}-${authorName}-${timestamp}`).toString('base64').slice(0, 16);
+  return `gr_${hash}`;
+}
+
 /* ────────────────────────────────────────────────────────────────
    Types
 ──────────────────────────────────────────────────────────────── */
@@ -187,9 +205,10 @@ export async function GET(req: NextRequest) {
 
 /* ────────────────────────────────────────────────────────────────
    POST /api/admin/import-hotels
-   Body: { placeIds: string[], discountPercent?, couponValidDays?, pricePerNight? }
+   Body: { placeIds: string[], discountPercent?, couponValidDays?, pricePerNight?, category?, importReviews? }
    → Fetches details sequentially (avoids connection-pool exhaustion),
      skips placeIds already in DB, creates hotel records.
+     If importReviews is true, also imports up to 5 Google reviews per hotel.
 ──────────────────────────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -206,6 +225,7 @@ export async function POST(req: NextRequest) {
   const couponValidDays: number = Number(body.couponValidDays) || 30;
   const pricePerNight: number   = Number(body.pricePerNight)   || 0;
   const categoryOverride: string | undefined = body.category; // Manual category override
+  const importReviews: boolean  = body.importReviews !== false; // Default: true
 
   if (!placeIds.length)
     return NextResponse.json({ error: 'placeIds array is required' }, { status: 400 });
@@ -221,7 +241,7 @@ export async function POST(req: NextRequest) {
 
   // ── Import SEQUENTIALLY to avoid connection-pool timeout ──────
   type ImportResult =
-    | { placeId: string; success: true; hotelId: string; hotelSlug: string; name: string; city: string; country: string; coverImage: string | null }
+    | { placeId: string; success: true; hotelId: string; hotelSlug: string; name: string; city: string; country: string; coverImage: string | null; reviewsImported: number }
     | { placeId: string; success: false; error: string; skipped?: boolean };
 
   const importResults: ImportResult[] = [];
@@ -240,14 +260,14 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      /* ── 1. Fetch Place Details ── */
+      /* ── 1. Fetch Place Details (with reviews) ── */
       const detailParams = new URLSearchParams({
         place_id: placeId,
         fields: [
           'name', 'formatted_address', 'address_components',
           'geometry', 'rating', 'user_ratings_total',
           'website', 'formatted_phone_number', 'international_phone_number',
-          'photos', 'price_level', 'types',
+          'photos', 'price_level', 'types', 'reviews',
         ].join(','),
         key,
       });
@@ -284,7 +304,39 @@ export async function POST(req: NextRequest) {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') +
         '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
 
-      /* ── 4. Create hotel record ── */
+      /* ── 4. Prepare reviews data if importing ── */
+      const reviewsData: Array<{
+        googleReviewId: string;
+        rating: number;
+        title: string;
+        body: string;
+        authorName: string;
+        authorPhotoUrl: string | null;
+        reviewedAt: Date;
+        source: string;
+        isVerified: boolean;
+        isApproved: boolean;
+      }> = [];
+      
+      if (importReviews && p.reviews && Array.isArray(p.reviews)) {
+        for (const rev of (p.reviews as GoogleReview[]).slice(0, 5)) {
+          const googleReviewId = generateGoogleReviewId(placeId, rev.author_name, rev.time);
+          reviewsData.push({
+            googleReviewId,
+            rating: Math.min(5, Math.max(1, rev.rating)),
+            title: rev.text ? rev.text.slice(0, 60) + (rev.text.length > 60 ? '...' : '') : `Review by ${rev.author_name}`,
+            body: rev.text || 'No comment provided.',
+            authorName: rev.author_name,
+            authorPhotoUrl: rev.profile_photo_url || null,
+            reviewedAt: new Date(rev.time * 1000), // Convert Unix timestamp to Date
+            source: 'google',
+            isVerified: true, // Google reviews are verified
+            isApproved: true, // Auto-approve Google reviews
+          });
+        }
+      }
+
+      /* ── 5. Create hotel record with reviews ── */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const hotel = await (prisma as any).hotel.create({
         data: {
@@ -308,6 +360,8 @@ export async function POST(req: NextRequest) {
           descriptionShort: `${category} in ${city}, ${country}`,
           descriptionLong:  `${p.name} is a ${stars}-star ${category.toLowerCase()} located in ${city}, ${country}. ${p.rating ? `Rated ${p.rating.toFixed(1)}/5 by ${(p.user_ratings_total ?? 0).toLocaleString()} guests on Google.` : ''} Imported via Google Places.`,
           isFeatured:       false,
+          avgRating:        p.rating || null,
+          reviewCount:      reviewsData.length,
           photos: extraPhotos.length > 0 ? {
             create: extraPhotos.map((url, idx) => ({ url, displayOrder: idx })),
           } : undefined,
@@ -319,6 +373,9 @@ export async function POST(req: NextRequest) {
               displayOrder:  0,
             }],
           },
+          reviews: reviewsData.length > 0 ? {
+            create: reviewsData,
+          } : undefined,
         },
       });
 
@@ -331,6 +388,7 @@ export async function POST(req: NextRequest) {
         city:       hotel.city,
         country:    hotel.country,
         coverImage: hotel.coverImage,
+        reviewsImported: reviewsData.length,
       });
 
     } catch (err: unknown) {
@@ -342,6 +400,15 @@ export async function POST(req: NextRequest) {
   const succeeded = importResults.filter((r) => r.success).length;
   const skipped   = importResults.filter((r) => !r.success && (r as { skipped?: boolean }).skipped).length;
   const failed    = importResults.filter((r) => !r.success && !(r as { skipped?: boolean }).skipped).length;
+  const totalReviews = importResults
+    .filter((r): r is { success: true; reviewsImported: number } => r.success)
+    .reduce((sum, r) => sum + r.reviewsImported, 0);
 
-  return NextResponse.json({ results: importResults, succeeded, skipped, failed }, { status: 201 });
+  return NextResponse.json({ 
+    results: importResults, 
+    succeeded, 
+    skipped, 
+    failed,
+    reviewsImported: totalReviews,
+  }, { status: 201 });
 }

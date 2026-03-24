@@ -257,7 +257,7 @@ model Coupon {
 model Review {
   id          String   @id @default(cuid())
   hotelId     String
-  userId      String
+  userId      String?  // Nullable for imported Google reviews
   rating      Int      // 1-5
   title       String
   body        String
@@ -267,10 +267,20 @@ model Review {
   repliedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Google review import fields
+  source        String  @default("busybeds")  // "busybeds" or "google"
+  googleReviewId String? @unique              // Google's review ID for deduplication
+  authorName    String?                       // Author name from Google
+  authorPhotoUrl String?                      // Author profile photo
+  reviewedAt    DateTime?                     // Original review date from Google
+  
   hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([hotelId, userId])
+  @@index([hotelId])
+  @@index([source])
 }
 
 model HotelSuggestion {

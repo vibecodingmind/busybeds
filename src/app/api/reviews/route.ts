@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
         where: { hotelId, isApproved: true },
-        include: { user: { select: { fullName: true, id: true } } },
+        include: { 
+          user: { select: { fullName: true, id: true, avatar: true } } 
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -34,7 +36,24 @@ export async function GET(req: NextRequest) {
     const ratingMap: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     for (const b of breakdown) ratingMap[b.rating] = b._count.rating;
 
-    return NextResponse.json({ reviews, total, pages: Math.ceil(total / limit), ratingBreakdown: ratingMap });
+    // Serialize reviews to include Google review fields
+    const serializedReviews = reviews.map(r => ({
+      id: r.id,
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      isVerified: r.isVerified,
+      ownerReply: r.ownerReply,
+      repliedAt: r.repliedAt,
+      createdAt: r.createdAt.toISOString(),
+      source: r.source || 'busybeds',
+      authorName: r.authorName,
+      authorPhotoUrl: r.authorPhotoUrl,
+      reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+      user: r.user,
+    }));
+
+    return NextResponse.json({ reviews: serializedReviews, total, pages: Math.ceil(total / limit), ratingBreakdown: ratingMap });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

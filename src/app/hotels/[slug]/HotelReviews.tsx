@@ -4,9 +4,16 @@ import { useState, useEffect } from 'react';
 interface Review {
   id: string;
   rating: number;
-  comment: string | null;
+  comment?: string | null;
+  body?: string;
+  title?: string;
   createdAt: string;
-  user: { fullName: string };
+  source?: string;
+  authorName?: string;
+  authorPhotoUrl?: string | null;
+  reviewedAt?: string | null;
+  isVerified?: boolean;
+  user?: { fullName: string; avatar?: string | null };
 }
 
 interface User {
@@ -18,6 +25,7 @@ interface Props {
   hotelId: string;
   avgRating: number | null;
   reviewCount: number;
+  initialReviews?: Review[];
 }
 
 function StarRow({ rating, max = 5 }: { rating: number; max?: number }) {
@@ -29,9 +37,9 @@ function StarRow({ rating, max = 5 }: { rating: number; max?: number }) {
   );
 }
 
-export default function HotelReviews({ hotelId, avgRating, reviewCount }: Props) {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function HotelReviews({ hotelId, avgRating, reviewCount, initialReviews = [] }: Props) {
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [loading, setLoading] = useState(initialReviews.length === 0);
   const [user, setUser] = useState<User | null>(null);
   const [canReview, setCanReview] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -157,16 +165,38 @@ export default function HotelReviews({ hotelId, avgRating, reviewCount }: Props)
       <div className="space-y-4">
         {reviews.length > 0 ? (
           reviews.map(review => {
-            const initials = review.user.fullName
+            // Determine author name
+            const authorName = review.authorName || review.user?.fullName || 'Anonymous';
+            
+            // Determine author avatar/photo
+            const authorPhoto = review.authorPhotoUrl || review.user?.avatar || null;
+            
+            // Determine review text
+            const reviewText = review.body || review.comment || '';
+            
+            // Determine review date
+            const reviewDate = review.reviewedAt 
+              ? new Date(review.reviewedAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })
+              : new Date(review.createdAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                });
+            
+            // Generate initials for fallback avatar
+            const initials = authorName
               .split(' ')
               .map(n => n[0])
               .join('')
-              .toUpperCase();
-            const reviewDate = new Date(review.createdAt).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            });
+              .toUpperCase()
+              .slice(0, 2);
+            
+            // Check if it's a Google review
+            const isGoogleReview = review.source === 'google';
 
             return (
               <div key={review.id} className="card p-4">
@@ -174,19 +204,45 @@ export default function HotelReviews({ hotelId, avgRating, reviewCount }: Props)
                   <div className="text-yellow-400">
                     <StarRow rating={review.rating} />
                   </div>
+                  {isGoogleReview && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                        <path d="M12 6v6l4 2"/>
+                      </svg>
+                      via Google
+                    </span>
+                  )}
+                  {review.isVerified && !isGoogleReview && (
+                    <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Verified Guest
+                    </span>
+                  )}
                 </div>
-                {review.comment && (
-                  <p className="text-gray-700 mb-3 text-sm">{review.comment}</p>
+                {reviewText && (
+                  <p className="text-gray-700 mb-3 text-sm">{reviewText}</p>
                 )}
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white"
-                    style={{ background: '#0E7C7B' }}
-                  >
-                    {initials}
-                  </div>
+                  {authorPhoto ? (
+                    <img
+                      src={authorPhoto}
+                      alt={authorName}
+                      className="w-8 h-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+                      style={{ background: isGoogleReview ? '#4285F4' : '#0E7C7B' }}
+                    >
+                      {initials}
+                    </div>
+                  )}
                   <span className="text-sm font-medium text-gray-800">
-                    {review.user.fullName}
+                    {authorName}
                   </span>
                   <span className="text-xs text-gray-400">• {reviewDate}</span>
                 </div>
