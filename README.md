@@ -145,3 +145,4 @@ npm run db:studio    # Open Prisma Studio (visual DB browser)
 ---
 
 Built with ❤️ — Busy Beds v0.1.0
+
