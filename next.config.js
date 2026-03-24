@@ -6,7 +6,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.cloudinary.com' },
     ],
   },
-  serverExternalPackages: ['bcryptjs'],
+  experimental: { serverComponentsExternalPackages: ["bcryptjs"], },
   
   // Add headers to prevent caching of API routes and dynamic pages
   async headers() {
