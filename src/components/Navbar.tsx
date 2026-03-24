@@ -16,11 +16,13 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    setMounted(true);
     fetch('/api/auth/me').then(r => r.json()).then(d => setUser(d.user || null)).catch(() => {});
   }, [pathname]);
 
@@ -71,10 +73,12 @@ export default function Navbar() {
   };
   const dash = getDashboardLink();
 
+  if (!mounted) return null;
+
   return (
     <nav
-      className={`navbar-glass sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? 'shadow-md' : ''
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? 'navbar-glass shadow-lg' : 'navbar-glass'
       }`}
     >
       <div className="max-w-[1760px] mx-auto px-5 sm:px-10 h-[70px] flex items-center justify-between gap-4">
@@ -99,12 +103,12 @@ export default function Navbar() {
         </Suspense>
 
         {/* ── Right side ── */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
 
           {/* Trip Planner */}
           <Link
             href="/trip-planner"
-            className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-black/5 transition-all duration-200 whitespace-nowrap relative"
+            className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-black/5 active:scale-95 transition-all duration-200 whitespace-nowrap relative"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
@@ -112,8 +116,8 @@ export default function Navbar() {
             Trip Planner
             {tripCount > 0 && (
               <span
-                className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-                style={{ background: '#FF385C' }}
+                className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shadow-sm"
+                style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
               >
                 {tripCount}
               </span>
@@ -123,7 +127,7 @@ export default function Navbar() {
           {/* Become Host */}
           <Link
             href="/onboarding"
-            className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-black/5 transition-all duration-200 whitespace-nowrap"
+            className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-black/5 active:scale-95 transition-all duration-200 whitespace-nowrap"
           >
             Become Host
           </Link>
@@ -144,7 +148,7 @@ export default function Navbar() {
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            className="hidden md:flex w-9 h-9 items-center justify-center rounded-full hover:bg-black/8 transition-colors text-gray-600 dark:text-gray-300"
+            className="hidden md:flex w-9 h-9 items-center justify-center rounded-full hover:bg-black/8 active:scale-90 transition-all duration-150 text-gray-600 dark:text-gray-300"
             aria-label="Toggle theme"
           >
             {dark ? (
@@ -158,9 +162,9 @@ export default function Navbar() {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className={`flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border transition-all duration-200 ${
+              className={`flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border transition-all duration-200 active:scale-95 ${
                 menuOpen
-                  ? 'border-gray-300 shadow-md bg-white'
+                  ? 'border-gray-300 shadow-lg bg-white'
                   : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white/80'
               }`}
               aria-label="Open menu"
@@ -188,14 +192,17 @@ export default function Navbar() {
 
             {/* ── Dropdown menu ── */}
             {menuOpen && (
-              <div className="glass-panel absolute right-0 top-[calc(100%+10px)] w-60 z-50 animate-fade-up overflow-hidden">
+              <div 
+                className="glass-panel absolute right-0 top-[calc(100%+12px)] w-64 z-50 animate-scale-in overflow-hidden"
+                style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.10)' }}
+              >
                 {user ? (
                   <>
                     {/* User header */}
-                    <div className="px-4 py-3.5 border-b border-black/[0.06]">
+                    <div className="px-4 py-4 border-b border-black/[0.06]" style={{ background: 'linear-gradient(135deg, rgba(232,57,90,0.04) 0%, transparent 100%)' }}>
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
                         >
                           {initials}
@@ -208,7 +215,7 @@ export default function Navbar() {
                     </div>
 
                     {/* Menu items */}
-                    <div className="py-1.5">
+                    <div className="py-2">
                       {dash && (
                         <MenuItem href={dash.href} onClick={() => setMenuOpen(false)} icon={
                           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -230,12 +237,12 @@ export default function Navbar() {
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 100 8 4 4 0 000-8z"/></svg>
                       }>Profile</MenuItem>
 
-                      <div className="mx-3 my-1 border-t border-black/[0.06]" />
+                      <div className="mx-3 my-1.5 border-t border-black/[0.06]" />
 
                       <button
                         onClick={logout}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors rounded-xl mx-auto"
-                        style={{ width: 'calc(100% - 12px)', marginLeft: 6, marginRight: 6 }}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors rounded-xl mx-auto"
+                        style={{ width: 'calc(100% - 16px)', marginLeft: 8, marginRight: 8 }}
                       >
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                         Sign Out
@@ -243,24 +250,24 @@ export default function Navbar() {
                     </div>
                   </>
                 ) : (
-                  <div className="py-2">
+                  <div className="py-3">
                     <div className="px-4 pb-3 pt-1">
                       <p className="text-sm font-bold text-gray-900">Welcome to BusyBeds</p>
                       <p className="text-xs text-gray-500 mt-0.5">Sign in to unlock exclusive deals</p>
                     </div>
-                    <div className="px-3 space-y-1.5 pb-2">
+                    <div className="px-3 space-y-2 pb-2">
                       <Link
                         href="/login"
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-center w-full px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                        style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
+                        className="flex items-center justify-center w-full px-4 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                        style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 14px rgba(232,57,90,0.30)' }}
                       >
                         Sign In
                       </Link>
                       <Link
                         href="/register"
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-center w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
+                        className="flex items-center justify-center w-full px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] transition-all"
                       >
                         Create Account
                       </Link>
@@ -291,7 +298,7 @@ function MenuItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 mx-1.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-black/[0.04] rounded-xl transition-colors"
+      className="flex items-center gap-3 mx-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-black/[0.04] active:bg-black/[0.06] rounded-xl transition-colors"
     >
       <span className="flex-shrink-0 text-gray-500">{icon}</span>
       {children}

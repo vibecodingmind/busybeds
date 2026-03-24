@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import FavoriteButton from './FavoriteButton';
 import AddToTripButton from './AddToTripButton';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -51,6 +52,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
   const [imgIndex, setImgIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const prev = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -76,41 +78,46 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
   const savings = (minPrice && discountedPrice) ? Math.round(minPrice - discountedPrice) : null;
   const rating = hotel.avgRating ?? hotel.starRating ?? null;
   const parsedVibeTags: string[] = (() => { try { return JSON.parse(hotel.vibeTags || '[]'); } catch { return []; } })();
-  const vibeTagObjects  = parsedVibeTags.slice(0, 2).map(id => VIBE_TAGS.find(v => v.id === id)).filter(Boolean);
+  const vibeTagObjects = parsedVibeTags.slice(0, 2).map(id => VIBE_TAGS.find(v => v.id === id)).filter(Boolean);
 
   return (
     <Link
       href={`/hotels/${hotel.slug}`}
-      className="group block"
+      className="group block hotel-card-wrapper"
       onClick={() => addToRecent({
         id: hotel.id, name: hotel.name, slug: hotel.slug, coverImage: hotel.coverImage,
         city: hotel.city, country: hotel.country, discountPercent: hotel.discountPercent, starRating: hotel.starRating,
       })}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* ── Image container ── */}
-      <div className="relative aspect-square rounded-[20px] overflow-hidden bg-gray-100 mb-3 shadow-sm">
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3 shadow-sm transition-shadow duration-300 group-hover:shadow-xl"
+           style={{ boxShadow: isHovered ? '0 12px 40px rgba(15,23,42,0.15)' : '0 2px 8px rgba(15,23,42,0.08)' }}>
+        {/* Main image with smooth transitions */}
         <img
           src={imgError ? FALLBACK : allImages[imgIndex]}
           alt={hotel.name}
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
           onError={() => setImgError(true)}
+          loading="lazy"
         />
 
         {/* Subtle gradient overlay at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
 
         {/* ── Discount badge (only for active partners) ── */}
         {isPartnerActive && hotel.discountPercent > 0 && (
-          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}>
+          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-lg backdrop-blur-sm"
+            style={{ background: 'linear-gradient(135deg, #E8395A 0%, #C41F40 100%)', boxShadow: '0 4px 14px rgba(232,57,90,0.35)' }}>
             {hotel.discountPercent}% off
           </div>
         )}
         
         {/* ── Listing only badge (for non-partners) ── */}
         {!isPartnerActive && (
-          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700 shadow-lg"
-            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)' }}>
+          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 shadow-lg"
+            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)' }}>
             {hotel.partnershipStatus === 'LISTING_ONLY' ? 'Listed' : 'Partner Ended'}
           </div>
         )}
@@ -118,12 +125,15 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* ── Premium/Subscription badge (top-right corner) ── */}
         {hotel.subscription?.status === 'active' && (
           <div 
-            className="absolute top-3 right-12 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg"
+            className="absolute top-3 right-12 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm"
             style={{ 
-              background: hotel.subscription.tier.name === 'premium' ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' :
-                         hotel.subscription.tier.name === 'growth' ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' :
-                         'linear-gradient(135deg, #059669, #047857)',
-              color: 'white'
+              background: hotel.subscription.tier.name === 'premium' ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' :
+                         hotel.subscription.tier.name === 'growth' ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' :
+                         'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: 'white',
+              boxShadow: hotel.subscription.tier.name === 'premium' ? '0 4px 14px rgba(124,58,237,0.35)' :
+                         hotel.subscription.tier.name === 'growth' ? '0 4px 14px rgba(37,99,235,0.35)' :
+                         '0 4px 14px rgba(5,150,105,0.35)'
             }}>
             {hotel.subscription.tier.name === 'premium' && (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
@@ -141,7 +151,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* ── Admin Featured badge (if manually featured by admin) ── */}
         {hotel.adminFeatured && !hotel.subscription && (
           <div className="absolute top-3 right-12 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: 'white' }}>
+            style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', boxShadow: '0 4px 14px rgba(245,158,11,0.35)' }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
             Featured
           </div>
@@ -150,19 +160,19 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* Savings pill — only for active partners with discount */}
         {isPartnerActive && savings && savings > 0 && (
           <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-lg"
-            style={{ background: 'rgba(16,185,129,0.92)', backdropFilter: 'blur(8px)' }}>
+            style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             Save {format(savings)}/night
           </div>
         )}
 
         {/* ── Favourite button ── */}
-        <div className="absolute top-3 right-3" onClick={e => e.preventDefault()}>
+        <div className="absolute top-3 right-3 transition-transform duration-200 group-hover:scale-105" onClick={e => e.preventDefault()}>
           <FavoriteButton hotelId={hotel.id} size="sm" />
         </div>
 
         {/* ── Trip Planner button ── */}
-        <div className="absolute bottom-3 left-3" onClick={e => e.preventDefault()}>
+        <div className="absolute bottom-3 left-3 transition-transform duration-200 group-hover:scale-105" onClick={e => e.preventDefault()}>
           <AddToTripButton hotel={{
             hotelId: hotel.id, name: hotel.name, slug: hotel.slug,
             city: hotel.city, country: hotel.country,
@@ -171,7 +181,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         </div>
 
         {/* ── Compare button ── */}
-        <div className="absolute bottom-3 right-3" onClick={e => e.preventDefault()}>
+        <div className="absolute bottom-3 right-3 transition-transform duration-200 group-hover:scale-105" onClick={e => e.preventDefault()}>
           <button
             onClick={e => {
               e.preventDefault(); e.stopPropagation();
@@ -183,11 +193,11 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
               });
             }}
             disabled={!comparing && !canAdd}
-            className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 backdrop-blur-sm ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
               comparing
-                ? 'bg-blue-500 text-white scale-105'
+                ? 'bg-blue-500 text-white scale-105 shadow-lg'
                 : canAdd
-                ? 'bg-white/85 text-gray-600 hover:bg-white hover:text-blue-600 hover:scale-105'
+                ? 'bg-white/90 text-gray-600 hover:bg-white hover:text-blue-600 hover:scale-105 hover:shadow-lg'
                 : 'bg-white/60 text-gray-300 cursor-not-allowed'
             }`}
             title={comparing ? 'Remove from compare' : canAdd ? 'Add to compare' : 'Max 3 hotels'}
@@ -204,26 +214,26 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             <button
               onClick={prev}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm"
-              style={{ background: 'rgba(255,255,255,0.90)' }}
+              style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <button
               onClick={next}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm"
-              style={{ background: 'rgba(255,255,255,0.90)' }}
+              style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
             {/* Dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {allImages.slice(0, 5).map((_, i) => (
                 <button
                   key={i}
                   onClick={e => { e.preventDefault(); e.stopPropagation(); setImgIndex(i); }}
                   className={`rounded-full transition-all duration-200 ${
-                    i === imgIndex ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/60'
+                    i === imgIndex ? 'w-2 h-2 bg-white shadow-sm' : 'w-1.5 h-1.5 bg-white/60 hover:bg-white/80'
                   }`}
                 />
               ))}
@@ -233,16 +243,16 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
       </div>
 
       {/* ── Info ── */}
-      <div className="space-y-1 px-0.5">
+      <div className="space-y-1.5 px-0.5">
         {/* Row 1: Name + Verified + Rating */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-1">
+            <h3 className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-1 group-hover:text-gray-700 transition-colors duration-200">
               {hotel.name}
-            </p>
+            </h3>
             {/* Verified badge for premium subscribers */}
             {hotel.subscription?.tier?.showVerifiedBadge && (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6" className="flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6" className="flex-shrink-0 drop-shadow-sm">
                 <title>Verified Partner</title>
                 <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z"/>
                 <circle cx="12" cy="12" r="10" fill="none" stroke="#3B82F6" strokeWidth="1" opacity="0.3"/>
@@ -267,11 +277,11 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
         {/* Row 3: Vibe tags */}
         {vibeTagObjects.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap mt-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {vibeTagObjects.map(vt => vt && (
               <span
                 key={vt.id}
-                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gray-100/80 text-gray-600 text-[11px] font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 text-gray-600 text-[11px] font-medium border border-gray-100"
               >
                 <span>{vt.emoji}</span>
                 <span>{vt.label}</span>
