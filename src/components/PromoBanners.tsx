@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { fetchWithCache } from '@/lib/fetchWithCache';
 
 interface Banner {
   id: string; title: string; subtitle?: string;
@@ -12,7 +13,7 @@ export default function PromoBanners() {
   const [dismissed, setDismissed] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/banners')
+    fetchWithCache('/api/banners')
       .then(r => r.json())
       .then(d => setBanners(d.banners || []))
       .catch(() => {});

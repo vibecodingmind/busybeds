@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCurrency } from '@/context/CurrencyContext';
+import { fetchWithCache } from '@/lib/fetchWithCache';
 
 interface Hotel {
   id: string; name: string; slug: string; city: string; country: string;
@@ -35,7 +36,7 @@ export default function PersonalizedRecommendations() {
     const params = new URLSearchParams({ limit: '6', sort: 'discount' });
     if (viewed[0]?.city) params.set('search', viewed[0].city);
 
-    fetch(`/api/hotels?${params}`)
+    fetchWithCache(`/api/hotels?${params}`)
       .then(r => r.json())
       .then(data => {
         // Filter out already seen hotels

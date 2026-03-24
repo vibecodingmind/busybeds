@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { fetchWithCache } from '@/lib/fetchWithCache';
 
 interface FlashDeal {
   id: string;
@@ -34,7 +35,7 @@ export default function FlashDealsWidget() {
   const [deals, setDeals] = useState<FlashDeal[]>([]);
 
   useEffect(() => {
-    fetch('/api/flash-deals').then(r => r.json()).then(d => setDeals(d.deals || []));
+    fetchWithCache('/api/flash-deals').then(r => r.json()).then(d => setDeals(d.deals || []));
   }, []);
 
   if (deals.length === 0) return null;

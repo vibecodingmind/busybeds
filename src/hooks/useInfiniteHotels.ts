@@ -20,7 +20,16 @@ export function useInfiniteHotels({ initialHotels, pageSize = 18, params = {} }:
     try {
       const nextPage = pageRef.current + 1;
       const qs = new URLSearchParams({ ...params, page: String(nextPage), limit: String(pageSize) });
-      const res = await fetch(`/api/hotels?${qs}`);
+      
+      // Add cache-busting timestamp and use no-store to prevent caching
+      const res = await fetch(`/api/hotels?${qs}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+      
       if (!res.ok) {
         setHasMore(false);
         return;

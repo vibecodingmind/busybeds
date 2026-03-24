@@ -7,9 +7,36 @@ export default function PWARegister() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Register service worker
+    // Register service worker and clear old caches
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
+      // First, clear all existing caches to force fresh start
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            // Delete all caches except the current version
+            if (name !== 'busybeds-v2') {
+              console.log('Clearing old cache:', name);
+              caches.delete(name);
+            }
+          });
+        });
+      }
+
+      // Unregister old service workers and register new one
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister();
+        });
+        
+        // Register fresh service worker
+        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+          .then(reg => {
+            console.log('Service Worker registered:', reg.scope);
+            // Force update
+            reg.update();
+          })
+          .catch(console.error);
+      });
     }
 
     // Capture install prompt
