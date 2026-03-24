@@ -8,7 +8,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json();
 
-  const allowed = ['name', 'city', 'country', 'starRating', 'discountPercent', 'couponValidDays', 'status', 'isFeatured', 'coverImage', 'category', 'descriptionShort', 'descriptionLong', 'websiteUrl', 'email', 'whatsapp', 'address', 'partnershipStatus'];
+  const allowed = ['name', 'city', 'country', 'starRating', 'discountPercent', 'couponValidDays', 'status', 'isFeatured', 'coverImage', 'category', 'descriptionShort', 'descriptionLong', 'websiteUrl', 'email', 'whatsapp', 'address', 'partnershipStatus', 'adminFeatured', 'adminFeaturedUntil'];
   const data: Record<string, unknown> = {};
   for (const key of allowed) { if (key in body) data[key] = body[key]; }
   if ('latitude'  in body) data.latitude  = body.latitude  != null ? Number(body.latitude)  : null;
@@ -19,6 +19,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   // Auto-set featuredUntil when toggling isFeatured
   if (body.isFeatured === true) data.featuredUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  // Handle adminFeaturedUntil date
+  if ('adminFeaturedUntil' in body && body.adminFeaturedUntil) {
+    data.adminFeaturedUntil = new Date(body.adminFeaturedUntil);
+  }
 
   const hotel = await prisma.hotel.update({ where: { id: params.id }, data, include: { _count: { select: { coupons: true, roomTypes: true } } } });
 

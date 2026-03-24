@@ -7,8 +7,16 @@ interface Hotel {
   id: string; name: string; city: string; country: string;
   status: string; discountPercent: number; createdAt: string;
   isFeatured?: boolean;
+  adminFeatured?: boolean;
+  adminFeaturedUntil?: string;
   partnershipStatus?: 'ACTIVE' | 'INACTIVE' | 'LISTING_ONLY';
   owner?: { fullName: string; email: string };
+  subscription?: {
+    id: string;
+    status: string;
+    tier: { displayName: string; name: string };
+    isComped: boolean;
+  } | null;
 }
 
 interface Props { initialHotels: Hotel[]; }
@@ -136,6 +144,40 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
       if (res.ok) {
         setHotels(prev => prev.map(h => h.id === hotel.id ? { ...h, partnershipStatus: newStatus as any } : h));
         setMsg(`✓ "${hotel.name}" partnership: ${newStatus}`);
+        setTimeout(() => setMsg(''), 4000);
+      } else {
+        const d = await res.json();
+        setMsg(`✗ ${d.error || 'Toggle failed'}`);
+      }
+    } catch {
+      setMsg('✗ Network error');
+    }
+    setToggling(null);
+  };
+
+  const toggleAdminFeatured = async (hotel: Hotel) => {
+    setToggling(hotel.id);
+    const newFeatured = !hotel.adminFeatured;
+    const body: any = { adminFeatured: newFeatured };
+    if (newFeatured) {
+      // Set featured for 30 days by default when admin features
+      body.adminFeaturedUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    } else {
+      body.adminFeaturedUntil = null;
+    }
+    try {
+      const res = await fetch(`/api/admin/hotels/${hotel.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setHotels(prev => prev.map(h => h.id === hotel.id ? { 
+          ...h, 
+          adminFeatured: newFeatured,
+          adminFeaturedUntil: body.adminFeaturedUntil
+        } : h));
+        setMsg(`✓ "${hotel.name}" ${newFeatured ? 'admin featured' : 'removed from admin featured'}`);
         setTimeout(() => setMsg(''), 4000);
       } else {
         const d = await res.json();
@@ -315,7 +357,7 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                   onChange={toggleAll}
                   className="rounded border-gray-300 text-[#FF385C] focus:ring-[#FF385C]" />
               </th>
-              {['Hotel', 'Location', 'Status', 'Partner', 'Discount', 'Owner', 'Added', 'Actions'].map(h => (
+              {['Hotel', 'Location', 'Status', 'Subscription', 'Partner', 'Discount', 'Owner', 'Added', 'Actions'].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -331,9 +373,34 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                   <Link href={`/hotels/${hotel.id}`} className="font-medium text-gray-900 dark:text-white hover:text-[#FF385C] transition-colors">
                     {hotel.name}
                   </Link>
+                  {(hotel.adminFeatured || hotel.subscription?.status === 'active') && (
+                    <div className="flex gap-1 mt-1">
+                      {hotel.adminFeatured && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">⭐ Featured</span>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-gray-500">{hotel.city}, {hotel.country}</td>
                 <td className="px-4 py-3">{statusBadge(hotel.status)}</td>
+                <td className="px-4 py-3">
+                  {hotel.subscription?.status === 'active' ? (
+                    <div className="flex items-center gap-1">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        hotel.subscription.tier.name === 'premium' ? 'bg-purple-100 text-purple-700' :
+                        hotel.subscription.tier.name === 'growth' ? 'bg-blue-100 text-blue-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {hotel.subscription.tier.displayName}
+                      </span>
+                      {hotel.subscription.isComped && (
+                        <span className="text-xs text-purple-500" title="Complimentary">🎁</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">Free</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => togglePartnership(hotel)}
@@ -369,10 +436,16 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                       Reject
                     </button>
                     <button
-                      onClick={() => toggleFeatured(hotel)}
+                      onClick={() => toggleAdminFeatured(hotel)}
                       disabled={toggling === hotel.id}
-                      className={`px-2 py-1 text-xs rounded-lg transition-colors disabled:opacity-40 ${hotel.isFeatured ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'}`}>
-                      {toggling === hotel.id ? '…' : hotel.isFeatured ? 'Unfeature' : 'Feature'}
+                      className={`px-2 py-1 text-xs rounded-lg transition-colors disabled:opacity-40 ${
+                        hotel.adminFeatured 
+                          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-amber-100 hover:text-amber-700'
+                      }`}
+                      title={hotel.adminFeatured ? 'Remove admin featured' : 'Admin feature (30 days)'}
+                    >
+                      {toggling === hotel.id ? '…' : hotel.adminFeatured ? '⭐ Unfeature' : '⭐ Feature'}
                     </button>
                     <Link href={`/admin/hotels/${hotel.id}/edit`}
                       className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -390,7 +463,7 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No hotels found</td></tr>
+              <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">No hotels found</td></tr>
             )}
           </tbody>
         </table>

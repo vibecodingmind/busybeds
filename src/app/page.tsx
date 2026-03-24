@@ -114,6 +114,50 @@ async function getTrending() {
   } catch { return []; }
 }
 
+async function getFeaturedHotels() {
+  try {
+    const now = new Date();
+    // Get hotels with active subscriptions OR admin featured
+    const hotels = await prisma.hotel.findMany({
+      where: {
+        status: 'active',
+        OR: [
+          // Hotels with active subscription
+          {
+            subscription: {
+              status: 'active',
+              currentPeriodEnd: { gt: now },
+              tier: { featuredOnHomepage: true },
+            },
+          },
+          // Admin featured hotels
+          {
+            adminFeatured: true,
+            OR: [
+              { adminFeaturedUntil: null },
+              { adminFeaturedUntil: { gt: now } },
+            ],
+          },
+        ],
+      },
+      include: {
+        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        photos: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        subscription: {
+          include: { tier: { select: { name: true, displayName: true, showVerifiedBadge: true } } },
+        },
+      },
+      orderBy: [
+        // Premium > Growth > Starter > Admin Featured
+        { subscription: { tier: { featuredPriority: 'desc' } } },
+        { avgRating: 'desc' },
+      ],
+      take: 12,
+    });
+    return hotels;
+  } catch { return []; }
+}
+
 /* Haversine distance in km */
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -287,6 +331,7 @@ export default async function HomePage({
   const cities     = await getCities();
   const hotelTypes = await getHotelTypes();
   const trending   = isFiltered ? [] : await getTrending();
+  const featured   = isFiltered ? [] : await getFeaturedHotels();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -519,6 +564,74 @@ export default async function HomePage({
                       <span className="text-gray-400 font-normal">/night</span>
                     </p>
                   )}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Featured Hotels (Premium Partners) ── */}
+        {!isFiltered && featured.length > 0 && (
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl">⭐</span> Featured Hotels
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">Premium partners · Verified quality</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(featured as any[]).map((hotel, idx) => (
+                <Link
+                  key={hotel.id}
+                  href={`/hotels/${hotel.slug}`}
+                  className="group"
+                >
+                  {/* Image */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden mb-2"
+                    style={{ height: 120, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}
+                  >
+                    <img
+                      src={hotel.photos[0]?.url || hotel.coverImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'}
+                      alt={hotel.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
+                    />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+                    {/* Premium badge */}
+                    {hotel.subscription?.tier && (
+                      <div
+                        className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                        style={{ 
+                          background: hotel.subscription.tier.name === 'premium' ? '#7C3AED' :
+                                     hotel.subscription.tier.name === 'growth' ? '#2563EB' : '#059669',
+                          color: 'white',
+                        }}
+                      >
+                        {hotel.subscription.tier.displayName}
+                      </div>
+                    )}
+
+                    {/* Rating badge */}
+                    {hotel.avgRating && (
+                      <div
+                        className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+                      >
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        {hotel.avgRating.toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <p className="text-xs font-semibold text-gray-900 truncate group-hover:text-gray-600 transition-colors">{hotel.name}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{hotel.city}</p>
                 </Link>
               ))}
             </div>

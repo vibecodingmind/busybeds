@@ -29,12 +29,14 @@ const navItems = [
       { href: '/admin/flash-deals',       label: 'Flash Deals',       icon: FlashIcon },
       { href: '/admin/affiliate-clicks',  label: 'Affiliate Clicks',  icon: LinkIcon },
       { href: '/admin/referral-payouts',  label: 'Referral Payouts',  icon: PayoutIcon },
+      { href: '/admin/hotel-subscriptions', label: 'Hotel Subscriptions', icon: SubscriptionIcon },
     ],
   },
   {
     label: 'Settings',
     items: [
       { href: '/admin/packages',  label: 'Packages',   icon: PackageIcon },
+      { href: '/admin/hotel-subscription-tiers', label: 'Hotel Tiers', icon: TierIcon },
       { href: '/admin/amenities', label: 'Amenities',  icon: AmenityIcon },
       { href: '/admin/hotel-types', label: 'Hotel Types', icon: TagIcon },
       { href: '/admin/settings',  label: 'API Settings', icon: SettingsIcon },
@@ -154,4 +156,10 @@ function LinkIcon({ active }: { active: boolean }) {
 }
 function PayoutIcon({ active }: { active: boolean }) {
   return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="14" x2="8" y2="14"/></svg>;
+}
+function SubscriptionIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/><path d="M12 8v8M8 12h8"/></svg>;
+}
+function TierIcon({ active }: { active: boolean }) {
+  return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={active ? 'white' : 'currentColor'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
 }

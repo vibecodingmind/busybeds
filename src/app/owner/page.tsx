@@ -7,7 +7,18 @@ import Navbar from '@/components/Navbar';
 async function getData(userId: string) {
   const hotelOwner = await prisma.hotelOwner.findUnique({
     where: { userId },
-    include: { hotel: { include: { roomTypes: true, photos: true, affiliateLinks: true } } },
+    include: { 
+      hotel: { 
+        include: { 
+          roomTypes: true, 
+          photos: true, 
+          affiliateLinks: true,
+          subscription: {
+            include: { tier: true },
+          },
+        } 
+      } 
+    },
   });
   if (!hotelOwner) return null;
 
@@ -65,6 +76,12 @@ const KYC_INFO: Record<string, { label: string; color: string }> = {
   rejected: { label: 'Rejected', color: 'text-red-600' },
 };
 
+const SUB_COLORS: Record<string, string> = {
+  starter: 'bg-green-100 text-green-700',
+  growth: 'bg-blue-100 text-blue-700',
+  premium: 'bg-purple-100 text-purple-700',
+};
+
 export default async function OwnerDashboardPage() {
   const session = await getSession();
   if (!session) redirect('/login?next=/owner');
@@ -109,11 +126,16 @@ export default async function OwnerDashboardPage() {
               <p className="text-white/70 text-sm mb-1">Hotel Owner Dashboard</p>
               <h1 className="text-2xl font-bold text-white mb-1">{hotel.name}</h1>
               <p className="text-white/70 text-sm">{hotel.city}, {hotel.country}</p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="text-xs text-white/60">KYC Status:</span>
                 <span className={`text-xs font-bold ${kyc.color.replace('text-', 'text-')} bg-white/10 px-2 py-0.5 rounded-full`}>
                   {kyc.label}
                 </span>
+                {(hotel as any).subscription?.status === 'active' && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${SUB_COLORS[(hotel as any).subscription.tier.name] || 'bg-gray-100 text-gray-700'}`}>
+                    {(hotel as any).subscription.tier.displayName}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -274,6 +296,25 @@ export default async function OwnerDashboardPage() {
             </div>
           );
         })()}
+
+        {/* Premium Subscription */}
+        <div className="bg-gradient-to-br from-[#1A3C5E] to-[#0E7C7B] rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="font-bold text-white mb-1">🚀 Upgrade to Premium</h2>
+              <p className="text-sm text-white/70 mb-3">
+                Get featured on homepage, priority search ranking, flash deals, and more with a premium subscription.
+              </p>
+              <Link
+                href="/owner/upgrade"
+                className="inline-block px-4 py-2 rounded-xl text-sm font-bold bg-white text-[#1A3C5E] hover:bg-gray-100 transition-colors"
+              >
+                View Plans & Pricing
+              </Link>
+            </div>
+            <div className="text-3xl">💎</div>
+          </div>
+        </div>
 
         {/* Recent Coupon Redemptions */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

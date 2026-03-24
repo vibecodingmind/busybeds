@@ -16,6 +16,13 @@ export default async function HotelsPage() {
           },
         },
       },
+      subscription: {
+        include: {
+          tier: {
+            select: { displayName: true, name: true },
+          },
+        },
+      },
       _count: { select: { coupons: true, roomTypes: true } },
     },
     take: 200,
@@ -24,6 +31,12 @@ export default async function HotelsPage() {
   const hotelsWithOwner = hotels.map(h => ({
     ...h,
     owner: h.owner ? { fullName: h.owner.user.fullName, email: h.owner.user.email } : undefined,
+    subscription: h.subscription?.status === 'active' ? {
+      id: h.subscription.id,
+      status: h.subscription.status,
+      tier: h.subscription.tier,
+      isComped: h.subscription.isComped,
+    } : null,
   }));
 
   return (

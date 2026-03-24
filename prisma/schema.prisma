@@ -109,6 +109,10 @@ model Hotel {
 
   // Partnership status - controls coupon eligibility
   partnershipStatus PartnershipStatus @default(ACTIVE)
+  
+  // Admin can manually feature hotels (independent of subscription)
+  adminFeatured      Boolean   @default(false)
+  adminFeaturedUntil DateTime?
 
   // Contact info
   email            String?
@@ -146,6 +150,7 @@ model Hotel {
   favorites        Favorite[]
   priceAlerts      PriceAlert[]
   flashDeals       FlashDeal[]
+  subscription     HotelSubscription?
 }
 
 model HotelOwner {
@@ -709,4 +714,77 @@ model BulkUploadJob {
 
   @@index([uploadedBy])
   @@index([status])
+}
+
+// ── Hotel Subscription System ────────────────────────────────────────
+
+// Hotel Subscription Tier - defines pricing and features
+model HotelSubscriptionTier {
+  id                    String   @id @default(cuid())
+  name                  String   @unique // "free", "starter", "growth", "premium"
+  displayName           String   // "Starter", "Growth", "Premium"
+  priceMonthly          Float    @default(0)
+  priceAnnual           Float?   // Optional annual price with discount
+  isActive              Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  
+  // Features
+  featuredOnHomepage    Boolean  @default(false)  // Appear in featured section
+  featuredPriority      Int      @default(0)      // Higher = better position
+  searchBoost           Int      @default(0)      // Search ranking boost
+  flashDealsPerMonth    Int      @default(0)      // Number of flash deals allowed per month
+  showVerifiedBadge     Boolean  @default(false)  // Show "Verified" badge
+  promotionalEmails     Int      @default(0)      // Promotional emails per month (0 = none)
+  customBookingLink     Boolean  @default(false)  // Custom booking URL
+  prioritySupport       Boolean  @default(false)  // Priority customer support
+  apiAccess             Boolean  @default(false)  // API access for integrations
+  analyticsLevel        String   @default("basic") // basic, enhanced, full
+  
+  // Stripe integration
+  stripePriceIdMonthly  String?
+  stripePriceIdAnnual   String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  subscriptions         HotelSubscription[]
+  
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// Hotel Subscription - tracks active subscriptions for hotels
+model HotelSubscription {
+  id              String   @id @default(cuid())
+  hotelId         String   @unique
+  tierId          String
+  status          String   @default("active") // active, past_due, canceled, expired
+  billingCycle    String   @default("monthly") // monthly, annual
+  startsAt        DateTime @default(now())
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+  cancelAt        DateTime?
+  canceledAt      DateTime?
+  stripeSubId     String?
+  stripeCustomerId String?
+  
+  // Complimentary subscription (granted by admin)
+  isComped        Boolean  @default(false)
+  compedBy        String?  // Admin user ID
+  compedReason    String?
+  
+  // Feature usage tracking
+  flashDealsUsed  Int      @default(0)
+  promoEmailsUsed Int      @default(0)
+  usageResetAt    DateTime @default(now()) // Reset monthly usage
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  tier            HotelSubscriptionTier @relation(fields: [tierId], references: [id])
+  
+  @@index([hotelId])
+  @@index([status])
+  @@index([currentPeriodEnd])
 }
