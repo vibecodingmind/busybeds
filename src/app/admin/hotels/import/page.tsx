@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import type { PlaceSearchResult } from '@/app/api/admin/import-hotels/route';
 
@@ -21,6 +21,12 @@ type ImportResult = {
 
 type ImportStatus = 'idle' | 'searching' | 'importing' | 'done';
 
+type HotelType = {
+  id: string;
+  name: string;
+  icon: string;
+};
+
 /* ────────────────────────────────────────────────────────────────
    Page
 ──────────────────────────────────────────────────────────────── */
@@ -39,12 +45,28 @@ export default function ImportHotelsPage() {
   const [discountPercent, setDiscountPercent] = useState(15);
   const [couponValidDays, setCouponValidDays] = useState(30);
   const [defaultPrice, setDefaultPrice]       = useState(0); // 0 = auto from price_level
+  const [selectedCategory, setSelectedCategory] = useState(''); // Hotel type category
+
+  // Hotel types from DB
+  const [hotelTypes, setHotelTypes] = useState<HotelType[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
 
   // Import results
   const [importResults, setImportResults] = useState<ImportResult[]>([]);
   const [showResults, setShowResults]     = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch hotel types on mount
+  useEffect(() => {
+    fetch('/api/hotel-types')
+      .then(r => r.json())
+      .then(data => {
+        setHotelTypes(data.types || []);
+        setLoadingTypes(false);
+      })
+      .catch(() => setLoadingTypes(false));
+  }, []);
 
   /* ── Search ── */
   const doSearch = useCallback(async (q: string, pagetoken?: string) => {
@@ -108,6 +130,7 @@ export default function ImportHotelsPage() {
         discountPercent,
         couponValidDays,
         pricePerNight: defaultPrice || undefined,
+        category: selectedCategory || undefined, // Pass selected category
       }),
     });
     const data = await res.json();
@@ -468,6 +491,30 @@ export default function ImportHotelsPage() {
                 <p className="text-xs text-gray-400 mt-0.5">Applied to all imported hotels</p>
               </div>
               <div className="p-5 space-y-4">
+
+                {/* Hotel Type Category Selector */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    Hotel Type Category
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={e => setSelectedCategory(e.target.value)}
+                    disabled={loadingTypes || isImporting}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] bg-white disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Auto-detect from Google</option>
+                    {hotelTypes.map(type => (
+                      <option key={type.id} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Leave empty to auto-detect from Google Places types
+                  </p>
+                </div>
+
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
                     Discount %

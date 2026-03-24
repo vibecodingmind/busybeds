@@ -205,6 +205,7 @@ export async function POST(req: NextRequest) {
   const discountPercent: number = Number(body.discountPercent) || 15;
   const couponValidDays: number = Number(body.couponValidDays) || 30;
   const pricePerNight: number   = Number(body.pricePerNight)   || 0;
+  const categoryOverride: string | undefined = body.category; // Manual category override
 
   if (!placeIds.length)
     return NextResponse.json({ error: 'placeIds array is required' }, { status: 400 });
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
 
       /* ── 2. Resolve fields ── */
       const { city, country } = extractLocation(p.address_components ?? []);
-      const category  = mapCategory(p.types ?? []);
+      const category  = categoryOverride || mapCategory(p.types ?? []); // Use override if provided
       const stars     = mapStars(p.rating);
       const price     = pricePerNight || mapPrice(p.price_level, p.rating);
 
