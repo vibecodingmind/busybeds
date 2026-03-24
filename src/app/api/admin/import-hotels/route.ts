@@ -123,9 +123,10 @@ export interface PlaceSearchResult {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   GET /api/admin/import-hotels?q=...&pagetoken=...
+   GET /api/admin/import-hotels?q=...&pagetoken=...&fetchAll=true
    → Text-search Google Places and return candidate results.
      Results include alreadyImported flag based on googlePlaceId.
+     If fetchAll=true, automatically fetches all 3 pages (up to 60 results).
 ──────────────────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -142,27 +143,93 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q         = searchParams.get('q')?.trim();
   const pagetoken = searchParams.get('pagetoken') || '';
+  const fetchAll  = searchParams.get('fetchAll') === 'true';
 
   if (!q) return NextResponse.json({ error: 'query (q) is required' }, { status: 400 });
+  
+  // Ensure q is a string after the check (TypeScript type narrowing)
+  const queryStr: string = q;
 
-  // Build text-search URL
-  const params = new URLSearchParams({ query: q, type: 'lodging', key });
-  if (pagetoken) params.set('pagetoken', pagetoken);
+  // Helper function to fetch a single page
+  async function fetchPage(token: string): Promise<{
+    results: typeof rawResults;
+    nextPageToken: string | null;
+    status: string;
+    errorMessage?: string;
+  }> {
+    const params = new URLSearchParams({ query: queryStr, type: 'lodging', key });
+    if (token) params.set('pagetoken', token);
 
-  const raw = await fetch(`${PLACES_BASE}/textsearch/json?${params}`);
-  if (!raw.ok)
-    return NextResponse.json({ error: 'Google Places request failed' }, { status: 502 });
+    const raw = await fetch(`${PLACES_BASE}/textsearch/json?${params}`);
+    if (!raw.ok) {
+      return { results: [], nextPageToken: null, status: 'ERROR', errorMessage: 'Google Places request failed' };
+    }
 
-  const json = await raw.json();
-  if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
-    return NextResponse.json(
-      { error: `Google Places error: ${json.status} — ${json.error_message || ''}` },
-      { status: 502 },
-    );
+    const json = await raw.json();
+    if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
+      return { 
+        results: [], 
+        nextPageToken: null, 
+        status: json.status, 
+        errorMessage: json.error_message 
+      };
+    }
+
+    return {
+      results: json.results ?? [],
+      nextPageToken: json.next_page_token || null,
+      status: json.status,
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawResults = (json.results as any[]) ?? [];
+  let rawResults: any[] = [];
+  let currentToken: string = pagetoken;
+  let finalNextPageToken: string | null = null;
+  let lastError: { status: string; errorMessage?: string } | null = null;
+
+  // If fetchAll is true, fetch all 3 pages (Google limits to 60 results max)
+  const maxPages = fetchAll ? 3 : 1;
+  let pagesFetched = 0;
+
+  do {
+    // Google requires a delay between paginated requests (they need time to prepare next page)
+    if (currentToken && pagesFetched > 0) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+    }
+
+    const pageResult = await fetchPage(currentToken);
+    
+    if (pageResult.status !== 'OK' && pageResult.status !== 'ZERO_RESULTS') {
+      lastError = { status: pageResult.status, errorMessage: pageResult.errorMessage };
+      break;
+    }
+
+    rawResults = rawResults.concat(pageResult.results);
+    finalNextPageToken = pageResult.nextPageToken;
+    currentToken = pageResult.nextPageToken || '';
+    pagesFetched++;
+  } while (fetchAll && currentToken && pagesFetched < maxPages);
+
+  // If not fetchAll and we have a pagetoken, use the normal flow
+  if (!fetchAll && pagetoken) {
+    const pageResult = await fetchPage(pagetoken);
+    if (pageResult.status !== 'OK' && pageResult.status !== 'ZERO_RESULTS') {
+      return NextResponse.json(
+        { error: `Google Places error: ${pageResult.status} — ${pageResult.errorMessage || ''}` },
+        { status: 502 },
+      );
+    }
+    rawResults = pageResult.results;
+    finalNextPageToken = pageResult.nextPageToken;
+  }
+
+  if (lastError && rawResults.length === 0) {
+    return NextResponse.json(
+      { error: `Google Places error: ${lastError.status} — ${lastError.errorMessage || ''}` },
+      { status: 502 },
+    );
+  }
 
   // Check which placeIds are already in DB (single query)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -198,8 +265,9 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     results,
-    nextPageToken: json.next_page_token || null,
+    nextPageToken: finalNextPageToken,
     total:         results.length,
+    pagesFetched,
   });
 }
 
@@ -319,8 +387,27 @@ export async function POST(req: NextRequest) {
       }> = [];
       
       if (importReviews && p.reviews && Array.isArray(p.reviews)) {
-        for (const rev of (p.reviews as GoogleReview[]).slice(0, 5)) {
-          const googleReviewId = generateGoogleReviewId(placeId, rev.author_name, rev.time);
+        // Generate all googleReviewIds first
+        const reviewIds = (p.reviews as GoogleReview[]).slice(0, 5).map(rev => ({
+          rev,
+          googleReviewId: generateGoogleReviewId(placeId, rev.author_name, rev.time),
+        }));
+        
+        // Check which review IDs already exist in DB
+        const existingReviews = await prisma.review.findMany({
+          where: {
+            googleReviewId: { in: reviewIds.map(r => r.googleReviewId) },
+          },
+          select: { googleReviewId: true },
+        });
+        const existingReviewIds = new Set(existingReviews.map(r => r.googleReviewId));
+        
+        // Only include reviews that don't already exist
+        for (const { rev, googleReviewId } of reviewIds) {
+          if (existingReviewIds.has(googleReviewId)) {
+            console.log(`[Import] Skipping duplicate review: ${googleReviewId}`);
+            continue;
+          }
           reviewsData.push({
             googleReviewId,
             rating: Math.min(5, Math.max(1, rev.rating)),
