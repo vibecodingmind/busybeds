@@ -105,6 +105,7 @@ function generateGoogleReviewId(placeId: string, authorName: string, timestamp: 
  * - https://maps.google.com/?cid=...
  * - https://www.google.com/maps?q=place_id:<place_id>
  * - https://goo.gl/maps/... (shortened URL - requires following redirect)
+ * - https://maps.app.goo.gl/... (shortened URL - requires following redirect)
  * - Direct Place ID (ChIJ...)
  */
 async function extractPlaceIdFromUrl(url: string): Promise<string | null> {
@@ -118,25 +119,41 @@ async function extractPlaceIdFromUrl(url: string): Promise<string | null> {
   // Try to parse as URL
   let targetUrl = trimmed;
   
-  // Handle shortened URLs (goo.gl/maps)
+  // Handle shortened URLs (goo.gl/maps, maps.app.goo.gl)
   if (trimmed.includes('goo.gl/maps') || trimmed.includes('maps.app.goo.gl')) {
     try {
-      const res = await fetch(trimmed, { redirect: 'follow', method: 'HEAD' });
+      // Use GET request as some URL shorteners don't respond to HEAD
+      const res = await fetch(trimmed, { 
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; BusyBedsBot/1.0)',
+          'Accept': 'text/html',
+        },
+      });
       targetUrl = res.url;
-    } catch {
+      console.log(`[URL Resolve] Shortened URL ${trimmed} resolved to: ${targetUrl}`);
+    } catch (err) {
+      console.error(`[URL Resolve] Failed to resolve shortened URL:`, err);
       // If redirect fails, try to use the URL as-is
     }
   }
   
   // Extract Place ID from URL patterns
   
-  // Pattern 1: !1s<place_id> in data parameter
+  // Pattern 1: !1s<place_id> in data parameter (most common)
   const dataPlaceIdMatch = targetUrl.match(/!1s(ChIJ[A-Za-z0-9_-]+)/);
   if (dataPlaceIdMatch) return dataPlaceIdMatch[1];
   
-  // Pattern 2: !4b1!4m2!3m1!1s<place_id>
-  const dataParamMatch = targetUrl.match(/!1s(0x[A-Fa-f0-9]+:0x[A-Fa-f0-9]+)/i);
-  if (dataParamMatch) return dataParamMatch[1];
+  // Pattern 1b: !1s0x...:0x... format (hex coordinates as place ID)
+  const hexPlaceIdMatch = targetUrl.match(/!1s(0x[A-Fa-f0-9]+:0x[A-Fa-f0-9]+)/i);
+  if (hexPlaceIdMatch) return hexPlaceIdMatch[1];
+  
+  // Pattern 2: Look for place_id in various positions
+  // !4m2!3m1!1s<place_id> or similar patterns
+  const placeIdInData = targetUrl.match(/!1s([A-Za-z0-9_-]{20,})/);
+  if (placeIdInData && placeIdInData[1].startsWith('ChIJ')) {
+    return placeIdInData[1];
+  }
   
   // Pattern 3: ?cid= parameter (CID is different from Place ID, need to convert)
   const cidMatch = targetUrl.match(/[?&]cid=(\d+)/);
@@ -169,7 +186,41 @@ async function extractPlaceIdFromUrl(url: string): Promise<string | null> {
     return `placename:${decodeURIComponent(placeNameMatch[1])}`;
   }
   
+  // Pattern 8: Look for any ChIJ pattern anywhere in the URL
+  const anyPlaceIdMatch = targetUrl.match(/(ChIJ[A-Za-z0-9_-]{20,})/);
+  if (anyPlaceIdMatch) return anyPlaceIdMatch[1];
+  
   return null;
+}
+
+/**
+ * Decode hex location format (0x...:0x...) to approximate lat/lng
+ * This is Google's internal format for locations without a proper Place ID
+ */
+function decodeHexLocation(hexLocation: string): { lat: number; lng: number } | null {
+  // Format: 0xHEX_LNG:0xHEX_LAT
+  const match = hexLocation.match(/0x([a-fA-F0-9]+):0x([a-fA-F0-9]+)/);
+  if (!match) return null;
+  
+  try {
+    // Google encodes coordinates as hex integers representing microdegrees
+    // The first part is longitude, second is latitude
+    const lngHex = match[1];
+    const latHex = match[2];
+    
+    // Convert hex to integer, then to microdegrees (divide by 1e6)
+    const lng = parseInt(lngHex, 16) / 1e6;
+    const lat = parseInt(latHex, 16) / 1e6;
+    
+    // Validate coordinates are in reasonable range
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+    
+    return { lat, lng };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -179,7 +230,9 @@ async function resolvePlaceId(
   input: string, 
   apiKey: string
 ): Promise<{ placeId: string; name?: string } | null> {
-  // Already a valid Place ID
+  console.log(`[resolvePlaceId] Resolving: ${input}`);
+  
+  // Already a valid Place ID (ChIJ format)
   if (input.startsWith('ChIJ')) {
     return { placeId: input };
   }
@@ -187,9 +240,21 @@ async function resolvePlaceId(
   // Handle CID (Google Maps Customer ID)
   if (input.startsWith('cid:')) {
     const cid = input.replace('cid:', '');
-    // Use Places Find Place from CID - this requires phone number or other identifier
-    // CID is internal Google ID, we'll search nearby the CID's location
-    // For now, return null and let the user search manually
+    // CID can be converted to a location-based search
+    // Use the Geocoding API to convert CID to coordinates
+    try {
+      const params = new URLSearchParams({
+        place_id: cid,
+        key: apiKey,
+      });
+      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+      const data = await res.json();
+      if (data.results?.[0]?.place_id) {
+        return { placeId: data.results[0].place_id };
+      }
+    } catch {
+      // Fall through to return null
+    }
     return null;
   }
   
@@ -204,6 +269,7 @@ async function resolvePlaceId(
     });
     const res = await fetch(`${PLACES_BASE}/nearbysearch/json?${params}`);
     const data = await res.json();
+    console.log(`[resolvePlaceId] Nearby search result:`, data.status);
     if (data.results?.[0]?.place_id) {
       return { 
         placeId: data.results[0].place_id,
@@ -223,6 +289,7 @@ async function resolvePlaceId(
     });
     const res = await fetch(`${PLACES_BASE}/textsearch/json?${params}`);
     const data = await res.json();
+    console.log(`[resolvePlaceId] Text search result for "${query}":`, data.status);
     if (data.results?.[0]?.place_id) {
       return { 
         placeId: data.results[0].place_id,
@@ -234,7 +301,27 @@ async function resolvePlaceId(
   
   // Handle 0x:0x format (hex coordinates)
   if (input.startsWith('0x') && input.includes(':0x')) {
-    // This is a hex-encoded location, try to use as place_id or convert
+    // Try to decode hex location to lat/lng
+    const decoded = decodeHexLocation(input);
+    if (decoded) {
+      console.log(`[resolvePlaceId] Decoded hex location to: ${decoded.lat}, ${decoded.lng}`);
+      // Use nearby search to find the actual place
+      const params = new URLSearchParams({
+        location: `${decoded.lat},${decoded.lng}`,
+        radius: '200',
+        type: 'lodging',
+        key: apiKey,
+      });
+      const res = await fetch(`${PLACES_BASE}/nearbysearch/json?${params}`);
+      const data = await res.json();
+      if (data.results?.[0]?.place_id) {
+        return { 
+          placeId: data.results[0].place_id,
+          name: data.results[0].name,
+        };
+      }
+    }
+    // If decoding fails, try using it directly (sometimes works)
     return { placeId: input };
   }
   
@@ -294,7 +381,9 @@ export async function GET(req: NextRequest) {
   // ── Handle Google Maps URL or direct Place ID ──────────────────
   if (urlParam && !q) {
     try {
+      console.log(`[Import] Processing URL: ${urlParam}`);
       const extractedId = await extractPlaceIdFromUrl(urlParam);
+      console.log(`[Import] Extracted ID: ${extractedId}`);
       
       if (!extractedId) {
         return NextResponse.json({
@@ -305,6 +394,7 @@ export async function GET(req: NextRequest) {
       
       // Resolve the Place ID (handles coords, search, etc.)
       const resolved = await resolvePlaceId(extractedId, key);
+      console.log(`[Import] Resolved:`, resolved);
       
       if (!resolved) {
         return NextResponse.json({
@@ -347,6 +437,7 @@ export async function GET(req: NextRequest) {
       }
       
       // Fetch Place Details to get full info
+      console.log(`[Import] Fetching place details for: ${placeId}`);
       const detailParams = new URLSearchParams({
         place_id: placeId,
         fields: [
@@ -356,13 +447,19 @@ export async function GET(req: NextRequest) {
         ].join(','),
         key,
       });
-      const detailRes = await fetch(`${PLACES_BASE}/details/json?${detailParams}`);
+      const detailUrl = `${PLACES_BASE}/details/json?${detailParams}`;
+      console.log(`[Import] Detail API URL (without key): ${PLACES_BASE}/details/json?place_id=${placeId}&fields=...`);
+      
+      const detailRes = await fetch(detailUrl);
       const detail = await detailRes.json();
+      console.log(`[Import] Detail API response:`, detail.status, detail.error_message || '');
       
       if (detail.status !== 'OK' || !detail.result) {
         return NextResponse.json({
           error: `Failed to fetch hotel details: ${detail.status}`,
+          errorDetails: detail.error_message,
           placeId,
+          extractedData: extractedId,
         }, { status: 502 });
       }
       
