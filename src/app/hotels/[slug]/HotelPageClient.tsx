@@ -7,6 +7,7 @@ import PhotoLightbox from '@/components/PhotoLightbox';
 import ReviewsSection from '@/components/ReviewsSection';
 import PriceAlertButton from '@/components/PriceAlertButton';
 import SocialShareButtons from '@/components/SocialShareButtons';
+import HotelLandmarks from '@/components/hotels/HotelLandmarks';
 import GetCouponButton from './GetCouponButton';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
@@ -31,6 +32,7 @@ export interface HotelData {
   partnershipStatus: 'ACTIVE' | 'INACTIVE' | 'LISTING_ONLY';
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
+  landmarks: Array<{ id: string; name: string; type: string; typeName: string; address: string | null; distanceKm: number; rating: number | null; totalRatings: number }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
 }
 
@@ -406,6 +408,11 @@ export default function HotelPageClient({
               View on map
             </a>
           </div>
+
+          {/* Landmarks */}
+          {hotel.landmarks && hotel.landmarks.length > 0 && (
+            <HotelLandmarks landmarks={hotel.landmarks} />
+          )}
 
           {/* Reviews */}
           <ReviewsSection hotelId={hotel.id} hotelName={hotel.name} avgRating={hotel.avgRating} reviewCount={hotel.reviewCount} />

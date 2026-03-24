@@ -47,6 +47,10 @@ export default async function HotelPage({ params }: PageProps) {
       roomTypes: true,
       photos: true,
       affiliateLinks: true,
+      landmarks: {
+        orderBy: { distanceKm: 'asc' },
+        take: 30,
+      },
       reviews: {
         where: { isApproved: true },
         orderBy: { createdAt: 'desc' },
@@ -191,6 +195,16 @@ export default async function HotelPage({ params }: PageProps) {
       maxOccupancy: (r as any).maxOccupancy ?? 1,
     })),
     photos: hotel.photos.map(p => ({ id: p.id, url: p.url })),
+    landmarks: ((hotel as any).landmarks || []).map((l: any) => ({
+      id: l.id,
+      name: l.name,
+      type: l.type,
+      typeName: l.typeName,
+      address: l.address,
+      distanceKm: Number(l.distanceKm),
+      rating: l.rating ? Number(l.rating) : null,
+      totalRatings: l.totalRatings,
+    })),
     affiliateLinks: hotel.affiliateLinks.map(l => ({ id: l.id, platform: l.platform, url: l.url })),
     reviews: (hotel as any).reviews.map((r: any) => ({
       id: r.id,
