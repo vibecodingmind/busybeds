@@ -58,10 +58,16 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
     [filtered, selectedIds]
   );
   
-  // Get selected hotels that cannot be deleted
+  // Get selected hotels that cannot be deleted (active or pending)
   const selectedNotDeletable = useMemo(() => 
     filtered.filter(h => selectedIds.has(h.id) && !canDelete(h)),
     [filtered, selectedIds]
+  );
+
+  // Count of inactive hotels (for quick select)
+  const inactiveCount = useMemo(() => 
+    filtered.filter(h => h.status === 'inactive' || h.status === 'rejected').length,
+    [filtered]
   );
 
   const openEdit = (h: Hotel) => {
@@ -128,11 +134,6 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       return;
     }
     
-    if (selectedNotDeletable.length > 0) {
-      showToast(`${selectedNotDeletable.length} hotels cannot be deleted (must be inactive or rejected first)`);
-      return;
-    }
-    
     if (!confirm(`Delete ${selectedDeletable.length} hotel(s)? All their coupons will also be removed.`)) return;
     
     setDeleteLoading(true);
@@ -152,6 +153,39 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       showToast(`Deleted ${data.deleted} hotel(s)`);
     } catch (e: any) { showToast('Error: ' + e.message); }
     finally { setDeleteLoading(false); }
+  };
+
+  // Bulk deactivate selected hotels
+  const bulkDeactivate = async () => {
+    const toDeactivate = selectedNotDeletable;
+    if (toDeactivate.length === 0) {
+      showToast('All selected hotels are already inactive');
+      return;
+    }
+    
+    if (!confirm(`Deactivate ${toDeactivate.length} hotel(s)?`)) return;
+    
+    setLoading(true);
+    try {
+      // Update each hotel's status to inactive
+      await Promise.all(
+        toDeactivate.map(h => 
+          fetch(`/api/admin/hotels/${h.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'inactive' }),
+          })
+        )
+      );
+      
+      setHotels(prev => prev.map(h => 
+        selectedIds.has(h.id) && !canDelete(h) 
+          ? { ...h, status: 'inactive' } 
+          : h
+      ));
+      showToast(`Deactivated ${toDeactivate.length} hotel(s)`);
+    } catch (e: any) { showToast('Error: ' + e.message); }
+    finally { setLoading(false); }
   };
 
   const toggleStatus = async (h: Hotel) => {
@@ -195,7 +229,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">Hotels</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{hotels.length} properties</p>
+          <p className="text-sm text-gray-500 mt-0.5">{hotels.length} properties · {inactiveCount} deletable</p>
         </div>
         <Link href="/admin/hotels/new"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-all"
@@ -206,11 +240,12 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       </div>
 
       {/* Stats mini row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {[
           { label: 'Active',   value: hotels.filter(h => h.status === 'active').length,   color: 'text-green-700 bg-green-50' },
+          { label: 'Inactive', value: hotels.filter(h => h.status === 'inactive').length, color: 'text-gray-600 bg-gray-100' },
           { label: 'Featured', value: hotels.filter(h => h.isFeatured).length,            color: 'text-purple-700 bg-purple-50' },
-          { label: 'Inactive', value: hotels.filter(h => h.status !== 'active').length,   color: 'text-gray-600 bg-gray-100' },
+          { label: 'Deletable',value: inactiveCount,                                      color: 'text-red-600 bg-red-50' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
             <span className={`text-2xl font-extrabold ${s.color.split(' ')[0]}`}>{s.value}</span>
@@ -234,6 +269,13 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
           <option value="pending">Pending</option>
           <option value="rejected">Rejected</option>
         </select>
+        <button
+          onClick={selectAllDeletable}
+          className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center gap-1.5"
+        >
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Select Deletable ({inactiveCount})
+        </button>
         <span className="flex items-center text-xs text-gray-400">{filtered.length} results</span>
       </div>
 
@@ -244,10 +286,24 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
             {selectedIds.size} selected
             {selectedNotDeletable.length > 0 && (
               <span className="text-xs text-gray-500 ml-1">
-                ({selectedNotDeletable.length} not deletable)
+                ({selectedNotDeletable.length} need deactivation)
               </span>
             )}
           </span>
+          
+          {/* Deactivate button for active hotels */}
+          {selectedNotDeletable.length > 0 && (
+            <button
+              onClick={bulkDeactivate}
+              disabled={loading}
+              className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2"
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              Deactivate ({selectedNotDeletable.length})
+            </button>
+          )}
+          
+          {/* Delete button for inactive hotels */}
           <button
             onClick={bulkDelete}
             disabled={deleteLoading || selectedDeletable.length === 0}
@@ -261,7 +317,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
             ) : (
               <>
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
-                Delete Selected ({selectedDeletable.length})
+                Delete ({selectedDeletable.length})
               </>
             )}
           </button>
@@ -324,6 +380,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                           <p className="text-xs text-gray-400">{h.city}, {h.country}</p>
                         </div>
                         {h.isFeatured && <span className="text-xs bg-purple-50 text-purple-700 font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Featured</span>}
+                        {isDeletable && <span className="text-xs bg-red-50 text-red-600 font-semibold px-2 py-0.5 rounded-full flex-shrink-0">🗑️</span>}
                       </div>
                     </td>
                     <td className="px-5 py-3.5">{'⭐'.repeat(h.starRating)}</td>
@@ -333,9 +390,6 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                     <td className="px-5 py-3.5 text-gray-600">{h._count.coupons}</td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[h.status] || 'bg-gray-100 text-gray-500'}`}>{h.status}</span>
-                      {!isDeletable && h.status === 'active' && (
-                        <p className="text-[10px] text-gray-400 mt-0.5">Set to inactive first</p>
-                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1.5">
@@ -354,7 +408,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                         <button 
                           onClick={() => deleteHotel(h.id)} 
                           className={`p-1.5 rounded-lg transition-colors ${isDeletable ? 'hover:bg-red-50 text-red-400' : 'text-gray-300 cursor-not-allowed'}`} 
-                          title={isDeletable ? 'Delete' : 'Must be inactive or rejected first'}
+                          title={isDeletable ? 'Delete' : 'Must be inactive first'}
                           disabled={!isDeletable}
                         >
                           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/><path strokeLinecap="round" d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
@@ -378,7 +432,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
         </div>
       </div>
 
-      {/* Edit Modal (country+city dropdowns) */}
+      {/* Edit Modal */}
       {editHotel && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -408,7 +462,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                 </select>
               </div>
 
-              {/* City — dropdown if country has presets, else text input */}
+              {/* City */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
                   City / Region
@@ -477,29 +531,24 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
               {/* Coordinates */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                  📍 GPS Coordinates <span className="font-normal normal-case text-gray-400">(for Near Me feature)</span>
+                  📍 GPS Coordinates <span className="font-normal normal-case text-gray-400">(optional)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="number" step="any" min="-90" max="90"
                     value={form.latitude}
                     onChange={e => setForm({ ...form, latitude: e.target.value })}
-                    placeholder="Latitude e.g. -3.3869"
+                    placeholder="Latitude"
                     className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
                   />
                   <input
                     type="number" step="any" min="-180" max="180"
                     value={form.longitude}
                     onChange={e => setForm({ ...form, longitude: e.target.value })}
-                    placeholder="Longitude e.g. 36.6823"
+                    placeholder="Longitude"
                     className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
                   />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Find coordinates on{' '}
-                  <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="underline hover:text-gray-700">Google Maps</a>
-                  {' '}→ right-click on the hotel location → copy lat, lng
-                </p>
               </div>
             </div>
             <div className="flex gap-3 px-6 pb-6">
