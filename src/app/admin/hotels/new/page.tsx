@@ -290,6 +290,15 @@ export default function AddHotelPage() {
 
         {/* ── Pricing & Coupon ── */}
         <Section title="Pricing & Coupon">
+          {/* Helpful tip */}
+          <div className="mb-5 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
+            <span className="text-lg">💡</span>
+            <div>
+              <p className="text-sm font-medium text-blue-800">Quick Start Tip</p>
+              <p className="text-xs text-blue-600 mt-0.5">Add one room now to get started. You can add more room types (Deluxe, Suite, etc.) in the Edit page after saving.</p>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <Label>Starting Price (per night)</Label>
@@ -300,13 +309,13 @@ export default function AddHotelPage() {
                   placeholder="0"
                   className={`${input} pl-8`} />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Creates a default &quot;Standard Room&quot; with this price</p>
+              <p className="text-xs text-gray-400 mt-1">Creates a default room with this price</p>
             </div>
 
             <div>
               <Label>Room Name</Label>
               <input value={form.roomName} onChange={e => f('roomName', e.target.value)}
-                placeholder="Standard Room" className={input} />
+                placeholder="e.g. Standard Room, Deluxe, Suite" className={input} />
             </div>
 
             <div>
@@ -317,6 +326,7 @@ export default function AddHotelPage() {
                   className={`${input} pr-10`} />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">%</span>
               </div>
+              <p className="text-xs text-gray-400 mt-1">This discount applies to ALL rooms</p>
             </div>
 
             <div>
