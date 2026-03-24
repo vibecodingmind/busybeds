@@ -97,6 +97,149 @@ function generateGoogleReviewId(placeId: string, authorName: string, timestamp: 
   return `gr_${hash}`;
 }
 
+/**
+ * Extract Place ID from various Google Maps URL formats:
+ * - https://www.google.com/maps/place/...!1s<place_id>...
+ * - https://www.google.com/maps/place/.../data=!4m...!1s<place_id>...
+ * - https://maps.google.com/?cid=...
+ * - https://www.google.com/maps?q=place_id:<place_id>
+ * - https://goo.gl/maps/... (shortened URL - requires following redirect)
+ * - Direct Place ID (ChIJ...)
+ */
+async function extractPlaceIdFromUrl(url: string): Promise<string | null> {
+  const trimmed = url.trim();
+  
+  // Check if it's already a Place ID (starts with ChIJ or 0x and is ~27 chars)
+  if (/^(ChIJ[A-Za-z0-9_-]{20,}|0x[A-Fa-f0-9]+:0x[A-Fa-f0-9]+)$/i.test(trimmed)) {
+    return trimmed;
+  }
+  
+  // Try to parse as URL
+  let targetUrl = trimmed;
+  
+  // Handle shortened URLs (goo.gl/maps)
+  if (trimmed.includes('goo.gl/maps') || trimmed.includes('maps.app.goo.gl')) {
+    try {
+      const res = await fetch(trimmed, { redirect: 'follow', method: 'HEAD' });
+      targetUrl = res.url;
+    } catch {
+      // If redirect fails, try to use the URL as-is
+    }
+  }
+  
+  // Extract Place ID from URL patterns
+  
+  // Pattern 1: !1s<place_id> in data parameter
+  const dataPlaceIdMatch = targetUrl.match(/!1s(ChIJ[A-Za-z0-9_-]+)/);
+  if (dataPlaceIdMatch) return dataPlaceIdMatch[1];
+  
+  // Pattern 2: !4b1!4m2!3m1!1s<place_id>
+  const dataParamMatch = targetUrl.match(/!1s(0x[A-Fa-f0-9]+:0x[A-Fa-f0-9]+)/i);
+  if (dataParamMatch) return dataParamMatch[1];
+  
+  // Pattern 3: ?cid= parameter (CID is different from Place ID, need to convert)
+  const cidMatch = targetUrl.match(/[?&]cid=(\d+)/);
+  if (cidMatch) {
+    // CID can be used to look up Place ID via Places API
+    // Return the CID - we'll need to convert it via API
+    return `cid:${cidMatch[1]}`;
+  }
+  
+  // Pattern 4: place_id=<place_id> parameter
+  const placeIdParamMatch = targetUrl.match(/[?&]place_id=([A-Za-z0-9_-]+)/);
+  if (placeIdParamMatch) return placeIdParamMatch[1];
+  
+  // Pattern 5: /place/.../@lat,lng or /place/name
+  // Try to extract coordinates and use reverse geocoding
+  const coordMatch = targetUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (coordMatch) {
+    return `coords:${coordMatch[1]},${coordMatch[2]}`;
+  }
+  
+  // Pattern 6: /maps/search/<query>
+  const searchMatch = targetUrl.match(/\/maps\/search\/([^/@]+)/);
+  if (searchMatch) {
+    return `search:${decodeURIComponent(searchMatch[1])}`;
+  }
+  
+  // Pattern 7: /place/<name> without other identifiers - extract the place name
+  const placeNameMatch = targetUrl.match(/\/maps\/place\/([^/@]+)/);
+  if (placeNameMatch) {
+    return `placename:${decodeURIComponent(placeNameMatch[1])}`;
+  }
+  
+  return null;
+}
+
+/**
+ * Resolve a Place ID from CID, coordinates, or search query
+ */
+async function resolvePlaceId(
+  input: string, 
+  apiKey: string
+): Promise<{ placeId: string; name?: string } | null> {
+  // Already a valid Place ID
+  if (input.startsWith('ChIJ')) {
+    return { placeId: input };
+  }
+  
+  // Handle CID (Google Maps Customer ID)
+  if (input.startsWith('cid:')) {
+    const cid = input.replace('cid:', '');
+    // Use Places Find Place from CID - this requires phone number or other identifier
+    // CID is internal Google ID, we'll search nearby the CID's location
+    // For now, return null and let the user search manually
+    return null;
+  }
+  
+  // Handle coordinates
+  if (input.startsWith('coords:')) {
+    const [lat, lng] = input.replace('coords:', '').split(',').map(Number);
+    const params = new URLSearchParams({
+      location: `${lat},${lng}`,
+      radius: '500',
+      type: 'lodging',
+      key: apiKey,
+    });
+    const res = await fetch(`${PLACES_BASE}/nearbysearch/json?${params}`);
+    const data = await res.json();
+    if (data.results?.[0]?.place_id) {
+      return { 
+        placeId: data.results[0].place_id,
+        name: data.results[0].name,
+      };
+    }
+    return null;
+  }
+  
+  // Handle search query
+  if (input.startsWith('search:') || input.startsWith('placename:')) {
+    const query = input.replace(/^(search|placename):/, '');
+    const params = new URLSearchParams({
+      query: `${query} hotel lodge resort`,
+      type: 'lodging',
+      key: apiKey,
+    });
+    const res = await fetch(`${PLACES_BASE}/textsearch/json?${params}`);
+    const data = await res.json();
+    if (data.results?.[0]?.place_id) {
+      return { 
+        placeId: data.results[0].place_id,
+        name: data.results[0].name,
+      };
+    }
+    return null;
+  }
+  
+  // Handle 0x:0x format (hex coordinates)
+  if (input.startsWith('0x') && input.includes(':0x')) {
+    // This is a hex-encoded location, try to use as place_id or convert
+    return { placeId: input };
+  }
+  
+  return null;
+}
+
 /* ────────────────────────────────────────────────────────────────
    Types
 ──────────────────────────────────────────────────────────────── */
@@ -123,10 +266,11 @@ export interface PlaceSearchResult {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   GET /api/admin/import-hotels?q=...&pagetoken=...&fetchAll=true
+   GET /api/admin/import-hotels?q=...&pagetoken=...&fetchAll=true&url=...
    → Text-search Google Places and return candidate results.
      Results include alreadyImported flag based on googlePlaceId.
      If fetchAll=true, automatically fetches all 3 pages (up to 60 results).
+     If url=..., extract Place ID from Google Maps URL and return single result.
 ──────────────────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -144,8 +288,116 @@ export async function GET(req: NextRequest) {
   const q         = searchParams.get('q')?.trim();
   const pagetoken = searchParams.get('pagetoken') || '';
   const fetchAll  = searchParams.get('fetchAll') === 'true';
+  const urlParam  = searchParams.get('url')?.trim(); // Google Maps URL or Place ID
 
-  if (!q) return NextResponse.json({ error: 'query (q) is required' }, { status: 400 });
+  // ── Handle Google Maps URL or direct Place ID ──────────────────
+  if (urlParam && !q) {
+    try {
+      const extractedId = await extractPlaceIdFromUrl(urlParam);
+      
+      if (!extractedId) {
+        return NextResponse.json({
+          error: 'Could not extract Place ID from URL. Please try searching instead.',
+          hint: 'Supported formats: Google Maps URLs, goo.gl/maps links, or Place IDs (ChIJ...)',
+        }, { status: 400 });
+      }
+      
+      // Resolve the Place ID (handles coords, search, etc.)
+      const resolved = await resolvePlaceId(extractedId, key);
+      
+      if (!resolved) {
+        return NextResponse.json({
+          error: 'Could not find the hotel from this URL. Try searching by name instead.',
+          extractedData: extractedId,
+        }, { status: 404 });
+      }
+      
+      const { placeId, name: foundName } = resolved;
+      
+      // Check if already imported
+      const existing = await prisma.hotel.findFirst({
+        where: { googlePlaceId: placeId },
+        select: { googlePlaceId: true, name: true, slug: true },
+      });
+      
+      if (existing) {
+        return NextResponse.json({
+          results: [{
+            placeId,
+            name: existing.name,
+            address: 'Already imported',
+            lat: 0,
+            lng: 0,
+            rating: null,
+            reviewCount: null,
+            priceLevel: null,
+            photoUrl: null,
+            types: [],
+            category: 'Hotel',
+            estimatedPrice: 0,
+            alreadyImported: true,
+            existingSlug: existing.slug,
+          }],
+          nextPageToken: null,
+          total: 1,
+          source: 'url',
+          message: `This hotel is already imported as "${existing.name}"`,
+        });
+      }
+      
+      // Fetch Place Details to get full info
+      const detailParams = new URLSearchParams({
+        place_id: placeId,
+        fields: [
+          'name', 'formatted_address', 'address_components',
+          'geometry', 'rating', 'user_ratings_total',
+          'photos', 'price_level', 'types',
+        ].join(','),
+        key,
+      });
+      const detailRes = await fetch(`${PLACES_BASE}/details/json?${detailParams}`);
+      const detail = await detailRes.json();
+      
+      if (detail.status !== 'OK' || !detail.result) {
+        return NextResponse.json({
+          error: `Failed to fetch hotel details: ${detail.status}`,
+          placeId,
+        }, { status: 502 });
+      }
+      
+      const p = detail.result;
+      const photoRef = p.photos?.[0]?.photo_reference;
+      const photoUrl = photoRef ? await resolvePhotoUrl(photoRef) : null;
+      
+      return NextResponse.json({
+        results: [{
+          placeId,
+          name: p.name,
+          address: p.formatted_address,
+          lat: p.geometry?.location?.lat ?? 0,
+          lng: p.geometry?.location?.lng ?? 0,
+          rating: p.rating ?? null,
+          reviewCount: p.user_ratings_total ?? null,
+          priceLevel: p.price_level ?? null,
+          photoUrl,
+          types: p.types ?? [],
+          category: mapCategory(p.types ?? []),
+          estimatedPrice: mapPrice(p.price_level, p.rating),
+          alreadyImported: false,
+        }],
+        nextPageToken: null,
+        total: 1,
+        source: 'url',
+        urlResolved: foundName || p.name,
+      });
+      
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      return NextResponse.json({ error: `Failed to process URL: ${msg}` }, { status: 500 });
+    }
+  }
+
+  if (!q) return NextResponse.json({ error: 'query (q) or url is required' }, { status: 400 });
   
   // Ensure q is a string after the check (TypeScript type narrowing)
   const queryStr: string = q;

@@ -39,6 +39,11 @@ export default function ImportHotelsPage() {
   const [status, setStatus]             = useState<ImportStatus>('idle');
   const [searchError, setSearchError]   = useState('');
 
+  // URL import state
+  const [importMode, setImportMode]     = useState<'search' | 'url'>('search');
+  const [urlInput, setUrlInput]         = useState('');
+  const [urlResolvedName, setUrlResolvedName] = useState<string | null>(null);
+
   // Selection
   const [selected, setSelected]         = useState<Set<string>>(new Set());
 
@@ -71,7 +76,43 @@ export default function ImportHotelsPage() {
       .catch(() => setLoadingTypes(false));
   }, []);
 
-  /* ── Search ── */
+  /* ── Search by URL (Google Maps link) ── */
+  const doUrlImport = useCallback(async (url: string) => {
+    if (!url.trim()) return;
+    setStatus('searching');
+    setSearchError('');
+    setResults([]);
+    setUrlResolvedName(null);
+
+    try {
+      const params = new URLSearchParams({ url });
+      const res = await fetch(`/api/admin/import-hotels?${params}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSearchError(data.error || 'Failed to process URL');
+        if (data.hint) setSearchError(`${data.error} (${data.hint})`);
+        setStatus('idle');
+        return;
+      }
+
+      setResults(data.results);
+      setNextPageToken(null);
+      if (data.urlResolved) setUrlResolvedName(data.urlResolved);
+      if (data.message) setSearchError(''); // Clear any previous errors
+      
+      // Auto-select the result if it's not already imported
+      if (data.results?.[0] && !data.results[0].alreadyImported) {
+        setSelected(new Set([data.results[0].placeId]));
+      }
+    } catch {
+      setSearchError('Network error — please try again');
+    } finally {
+      setStatus('idle');
+    }
+  }, []);
+
+  /* ── Search by query ── */
   const doSearch = useCallback(async (q: string, pagetoken?: string) => {
     if (!q.trim()) return;
     setStatus('searching');
@@ -104,7 +145,11 @@ export default function ImportHotelsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSelected(new Set());
-    doSearch(query);
+    if (importMode === 'url') {
+      doUrlImport(urlInput);
+    } else {
+      doSearch(query);
+    }
   };
 
   /* ── Select / deselect ── */
@@ -200,45 +245,120 @@ export default function ImportHotelsPage() {
           {/* ── Left: search + results ── */}
           <div className="space-y-6">
 
-            {/* Search form */}
-            <form onSubmit={handleSearch}
-              className="flex gap-3">
-              <div className="flex-1 relative">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder='e.g. "luxury hotels in Dar es Salaam" or "safari lodges Serengeti"'
-                  className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 shadow-sm"
-                  disabled={isImporting}
-                />
-              </div>
+            {/* Mode Tabs */}
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
               <button
-                type="submit"
-                disabled={isSearching || !query.trim()}
-                className="px-6 py-3 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 16px rgba(232,57,90,0.30)' }}
+                onClick={() => { setImportMode('search'); setResults([]); setSearchError(''); }}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  importMode === 'search'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                {isSearching ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Searching…
-                  </>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    Search
-                  </>
-                )}
+                <span className="flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Search
+                </span>
               </button>
+              <button
+                onClick={() => { setImportMode('url'); setResults([]); setSearchError(''); }}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  importMode === 'url'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Add by URL
+                </span>
+              </button>
+            </div>
+
+            {/* Search Form */}
+            <form onSubmit={handleSearch} className="flex gap-3">
+              {importMode === 'search' ? (
+                <>
+                  <div className="flex-1 relative">
+                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      placeholder='e.g. "luxury hotels in Dar es Salaam" or "safari lodges Serengeti"'
+                      className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 shadow-sm"
+                      disabled={isImporting}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSearching || !query.trim()}
+                    className="px-6 py-3 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 16px rgba(232,57,90,0.30)' }}
+                  >
+                    {isSearching ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        Searching…
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Search
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1 relative">
+                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                    </svg>
+                    <input
+                      type="text"
+                      value={urlInput}
+                      onChange={e => setUrlInput(e.target.value)}
+                      placeholder='Paste Google Maps URL or Place ID (e.g. ChIJ...)'
+                      className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 shadow-sm"
+                      disabled={isImporting}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSearching || !urlInput.trim()}
+                    className="px-6 py-3 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 16px rgba(232,57,90,0.30)' }}
+                  >
+                    {isSearching ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        Loading…
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Import
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </form>
 
+            {/* URL Resolved Info */}
+            {importMode === 'url' && urlResolvedName && (
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-100 text-sm text-green-700">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Found: <strong>{urlResolvedName}</strong>
+              </div>
+            )}
+
             {/* Quick suggestions */}
-            {!results.length && !searchError && (
+            {importMode === 'search' && !results.length && !searchError && (
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Quick searches</p>
                 <div className="flex flex-wrap gap-2">
@@ -260,6 +380,27 @@ export default function ImportHotelsPage() {
                       {s}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* URL Examples */}
+            {importMode === 'url' && !results.length && !searchError && (
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Supported formats</p>
+                <div className="space-y-2 text-xs text-gray-500">
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    <span><strong>Google Maps URLs:</strong> https://www.google.com/maps/place/Hotel+Name/...</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    <span><strong>Shortened links:</strong> https://goo.gl/maps/... or https://maps.app.goo.gl/...</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    <span><strong>Direct Place ID:</strong> ChIJc1LSG5fX3xARiwDZt5CLo8E</span>
+                  </div>
                 </div>
               </div>
             )}
