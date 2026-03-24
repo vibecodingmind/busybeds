@@ -59,6 +59,8 @@ export async function GET(req: NextRequest) {
         vibeTags: true,
         amenities: true,
         partnershipStatus: true,
+        adminFeatured: true,
+        adminFeaturedUntil: true,
         roomTypes: {
           orderBy: { displayOrder: 'asc' },
           select: { pricePerNight: true }
@@ -68,6 +70,21 @@ export async function GET(req: NextRequest) {
           select: { id: true, url: true },
           take: 5
         },
+        subscription: {
+          where: { status: 'active' },
+          select: {
+            status: true,
+            tier: {
+              select: {
+                name: true,
+                displayName: true,
+                searchBoost: true,
+                showVerifiedBadge: true,
+                featuredOnHomepage: true,
+              }
+            }
+          }
+        },
         _count: { select: { coupons: true } },
       },
       orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
@@ -76,6 +93,32 @@ export async function GET(req: NextRequest) {
       skip,
       take: limit,
     });
+
+    // Transform subscription data and apply search boost
+    hotels = hotels.map(hotel => {
+      const subscription = hotel.subscription?.[0] || null;
+      return {
+        ...hotel,
+        subscription,
+        // Calculate boost score for sorting
+        _boostScore: subscription ? subscription.tier.searchBoost : 0,
+      };
+    });
+
+    // Sort by subscription boost (if no specific sort requested)
+    if (!sortBy || sortBy === 'best') {
+      hotels.sort((a, b) => {
+        // Admin featured first
+        if (a.adminFeatured && !b.adminFeatured) return -1;
+        if (!a.adminFeatured && b.adminFeatured) return 1;
+        // Then by subscription tier
+        if ((a as any)._boostScore !== (b as any)._boostScore) {
+          return ((b as any)._boostScore - (a as any)._boostScore);
+        }
+        // Then by rating
+        return (b.avgRating || 0) - (a.avgRating || 0);
+      });
+    }
 
     // Filter by amenities (JSON array stored as string)
     if (amenities) {

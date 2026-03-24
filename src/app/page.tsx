@@ -255,6 +255,19 @@ async function getHotels(
     include: {
       roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
       photos:    { orderBy: { displayOrder: 'asc' }, take: 5 },
+      subscription: {
+        where: { status: 'active' },
+        include: {
+          tier: {
+            select: {
+              name: true,
+              displayName: true,
+              searchBoost: true,
+              showVerifiedBadge: true,
+            }
+          }
+        }
+      }
     },
     orderBy,
     skip:  latNum !== undefined ? 0 : (page - 1) * PAGE_SIZE, // fetch all for geo sort
@@ -262,9 +275,29 @@ async function getHotels(
   });
   const total = await prisma.hotel.count({ where });
 
+  // Transform and boost by subscription
+  let processedHotels = rawHotels.map(h => ({
+    ...h,
+    subscription: h.subscription?.[0] || null,
+    _boostScore: h.subscription?.[0]?.tier?.searchBoost || 0,
+  }));
+
+  // Apply subscription boost sorting when no specific sort
+  if (!sort || sort === 'best') {
+    processedHotels.sort((a, b) => {
+      // Admin featured first
+      if (a.adminFeatured && !b.adminFeatured) return -1;
+      if (!a.adminFeatured && b.adminFeatured) return 1;
+      // Then by subscription boost
+      if (a._boostScore !== b._boostScore) return b._boostScore - a._boostScore;
+      // Then by rating
+      return (b.avgRating || 0) - (a.avgRating || 0);
+    });
+  }
+
   /* Near Me Now: filter + sort by distance */
   if (latNum !== undefined && lngNum !== undefined) {
-    const withDist = rawHotels
+    const withDist = processedHotels
       .filter(h => h.latitude != null && h.longitude != null)
       .map(h => ({ ...h, _distKm: haversine(latNum, lngNum, h.latitude!, h.longitude!) }))
       .filter(h => h._distKm <= radiusNum)
@@ -274,9 +307,9 @@ async function getHotels(
   }
 
   /* client-side price sort (prices live on roomTypes relation) */
-  let hotels = rawHotels;
+  let hotels = processedHotels;
   if (sort === 'price_asc' || sort === 'price_desc') {
-    hotels = [...rawHotels].sort((a, b) => {
+    hotels = [...processedHotels].sort((a, b) => {
       const pa = a.roomTypes[0]?.pricePerNight ?? 0;
       const pb = b.roomTypes[0]?.pricePerNight ?? 0;
       return sort === 'price_asc' ? pa - pb : pb - pa;

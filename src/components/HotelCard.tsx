@@ -24,6 +24,16 @@ interface Hotel {
   partnershipStatus: 'ACTIVE' | 'INACTIVE' | 'LISTING_ONLY';
   roomTypes: Array<{ pricePerNight: number }>;
   photos: Array<{ id: string; url: string }>;
+  adminFeatured?: boolean;
+  adminFeaturedUntil?: string | null;
+  subscription?: {
+    status: string;
+    tier: {
+      name: string;
+      displayName: string;
+      showVerifiedBadge: boolean;
+    };
+  } | null;
 }
 
 const FALLBACK = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800';
@@ -105,11 +115,34 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           </div>
         )}
 
-        {/* ── Featured badge (top-right corner) ── */}
-        {hotel.isFeatured && (
+        {/* ── Premium/Subscription badge (top-right corner) ── */}
+        {hotel.subscription?.status === 'active' && (
+          <div 
+            className="absolute top-3 right-12 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg"
+            style={{ 
+              background: hotel.subscription.tier.name === 'premium' ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' :
+                         hotel.subscription.tier.name === 'growth' ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' :
+                         'linear-gradient(135deg, #059669, #047857)',
+              color: 'white'
+            }}>
+            {hotel.subscription.tier.name === 'premium' && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            )}
+            {hotel.subscription.tier.name === 'growth' && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13 7H11V11H7V13H11V17H13V13H17V11H13V7ZM12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z"/></svg>
+            )}
+            {hotel.subscription.tier.name === 'starter' && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z"/></svg>
+            )}
+            {hotel.subscription.tier.displayName}
+          </div>
+        )}
+
+        {/* ── Admin Featured badge (if manually featured by admin) ── */}
+        {hotel.adminFeatured && !hotel.subscription && (
           <div className="absolute top-3 right-12 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg"
-            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', color: '#0F172A' }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: 'white' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
             Featured
           </div>
         )}
@@ -201,11 +234,20 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
       {/* ── Info ── */}
       <div className="space-y-1 px-0.5">
-        {/* Row 1: Name + Rating */}
+        {/* Row 1: Name + Verified + Rating */}
         <div className="flex items-start justify-between gap-2">
-          <p className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-1 flex-1">
-            {hotel.name}
-          </p>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <p className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-1">
+              {hotel.name}
+            </p>
+            {/* Verified badge for premium subscribers */}
+            {hotel.subscription?.tier?.showVerifiedBadge && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6" className="flex-shrink-0" title="Verified Partner">
+                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#3B82F6" strokeWidth="1" opacity="0.3"/>
+              </svg>
+            )}
+          </div>
           {rating != null && (
             <div className="flex items-center gap-1 flex-shrink-0 text-[13px] font-semibold text-gray-900">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
