@@ -44,9 +44,30 @@ export async function GET(req: NextRequest) {
   try {
     let hotels = await prisma.hotel.findMany({
       where,
-      include: {
-        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
-        photos:    { orderBy: { displayOrder: 'asc' }, take: 5 },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        city: true,
+        country: true,
+        coverImage: true,
+        discountPercent: true,
+        starRating: true,
+        avgRating: true,
+        reviewCount: true,
+        isFeatured: true,
+        vibeTags: true,
+        amenities: true,
+        partnershipStatus: true,
+        roomTypes: {
+          orderBy: { displayOrder: 'asc' },
+          select: { pricePerNight: true }
+        },
+        photos: {
+          orderBy: { displayOrder: 'asc' },
+          select: { id: true, url: true },
+          take: 5
+        },
         _count: { select: { coupons: true } },
       },
       orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]

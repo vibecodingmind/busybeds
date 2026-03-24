@@ -28,6 +28,7 @@ export interface HotelData {
   latitude: number | null; longitude: number | null;
   redeemedThisMonth?: number;
   lastCouponAt?: string | null;
+  partnershipStatus: 'ACTIVE' | 'INACTIVE' | 'LISTING_ONLY';
   roomTypes: Array<{ id: string; name: string; description: string; pricePerNight: number; maxOccupancy: number }>;
   photos: Array<{ id: string; url: string }>;
   affiliateLinks: Array<{ id: string; platform: string; url: string }>;
@@ -151,9 +152,20 @@ export default function HotelPageClient({
     ...(hotel.coverImage ? [{ id: 'cover', url: hotel.coverImage }] : []),
     ...hotel.photos,
   ];
-  const basePrice       = hotel.roomTypes[0]?.pricePerNight;
-  const discountedPrice = basePrice ? Math.round(basePrice * (1 - hotel.discountPercent / 100)) : null;
-  const savings         = basePrice && discountedPrice ? Math.round(basePrice - discountedPrice) : null;
+  
+  // Calculate minimum price from all room types ("From $X")
+  const prices = hotel.roomTypes.map(r => r.pricePerNight).filter(p => p > 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+  const hasMultiplePrices = prices.length > 1;
+  
+  // Check if this hotel has active partnership (coupons enabled)
+  const isPartnerActive = hotel.partnershipStatus === 'ACTIVE';
+  
+  // Only calculate discount for active partners
+  const discountedPrice = (minPrice && isPartnerActive && hotel.discountPercent > 0) 
+    ? Math.round(minPrice * (1 - hotel.discountPercent / 100)) 
+    : minPrice;
+  const savings = (minPrice && discountedPrice && isPartnerActive) ? Math.round(minPrice - discountedPrice) : null;
 
   const canClickPartner = subState === 'active';
 
@@ -446,15 +458,37 @@ export default function HotelPageClient({
 
           {/* ── Coupon Widget ── */}
           <div className="bg-white border border-gray-100 rounded-2xl shadow-md p-6">
+            {/* Partnership status banner for non-active partners */}
+            {!isPartnerActive && (
+              <div className="mb-4 p-3 rounded-xl bg-gray-50 border border-gray-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-gray-500">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {hotel.partnershipStatus === 'LISTING_ONLY' ? 'Listed for Reference' : 'Partnership Ended'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {hotel.partnershipStatus === 'LISTING_ONLY' 
+                    ? 'This property is listed for information only. Coupons are not available.'
+                    : 'This property was previously a partner. Coupons are no longer available.'}
+                </p>
+              </div>
+            )}
+            
             {/* Pricing */}
-            {basePrice && (
+            {minPrice && (
               <div className="mb-5">
                 <div className="flex items-end gap-2 mb-1">
+                  {hasMultiplePrices && <span className="text-gray-500 text-base mb-1">From</span>}
                   <span className="text-4xl font-extrabold text-gray-900">${discountedPrice}</span>
-                  <span className="text-gray-400 line-through text-base mb-1">${basePrice.toFixed(0)}</span>
+                  {isPartnerActive && savings && (
+                    <span className="text-gray-400 line-through text-base mb-1">${minPrice.toFixed(0)}</span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-400">per night · before taxes</p>
-                {savings && (
+                {isPartnerActive && savings && (
                   <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-green-50 border border-green-100 rounded-full text-xs font-semibold text-green-700">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                     You save ${savings}/night · {hotel.discountPercent}% off
@@ -463,18 +497,34 @@ export default function HotelPageClient({
               </div>
             )}
 
-            {/* Coupon generation — handles all subscription states internally */}
-            {subState === 'loading' ? (
-              <div className="flex justify-center py-4">
-                <div className="w-6 h-6 border-2 border-rose-300 border-t-rose-500 rounded-full animate-spin" />
-              </div>
+            {/* Coupon generation — only for active partners */}
+            {isPartnerActive ? (
+              subState === 'loading' ? (
+                <div className="flex justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-rose-300 border-t-rose-500 rounded-full animate-spin" />
+                </div>
+              ) : (
+                <GetCouponButton hotelId={hotel.id} hotelName={hotel.name} />
+              )
             ) : (
-              <GetCouponButton hotelId={hotel.id} hotelName={hotel.name} />
+              <div className="py-4 text-center">
+                <p className="text-sm text-gray-600 mb-2">Interested in this property?</p>
+                <a href={hotel.websiteUrl || `mailto:${hotel.email || 'contact@busybeds.com'}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #1A3C5E, #0E7C7B)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Contact Property
+                </a>
+              </div>
             )}
 
-            <p className="text-xs text-gray-400 text-center mt-3">
-              Valid for {hotel.couponValidDays} days · Show at reception
-            </p>
+            {isPartnerActive && (
+              <p className="text-xs text-gray-400 text-center mt-3">
+                Valid for {hotel.couponValidDays} days · Show at reception
+              </p>
+            )}
           </div>
 
           {/* ── Book Directly (Partners) ── */}

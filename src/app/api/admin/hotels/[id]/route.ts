@@ -8,7 +8,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json();
 
-  const allowed = ['name', 'city', 'country', 'starRating', 'discountPercent', 'couponValidDays', 'status', 'isFeatured', 'coverImage', 'category', 'descriptionShort', 'descriptionLong', 'websiteUrl', 'email', 'whatsapp', 'address'];
+  const allowed = ['name', 'city', 'country', 'starRating', 'discountPercent', 'couponValidDays', 'status', 'isFeatured', 'coverImage', 'category', 'descriptionShort', 'descriptionLong', 'websiteUrl', 'email', 'whatsapp', 'address', 'partnershipStatus'];
   const data: Record<string, unknown> = {};
   for (const key of allowed) { if (key in body) data[key] = body[key]; }
   if ('latitude'  in body) data.latitude  = body.latitude  != null ? Number(body.latitude)  : null;

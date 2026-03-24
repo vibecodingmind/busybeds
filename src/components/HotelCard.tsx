@@ -21,6 +21,7 @@ interface Hotel {
   reviewCount: number;
   isFeatured: boolean;
   vibeTags?: string;
+  partnershipStatus: 'ACTIVE' | 'INACTIVE' | 'LISTING_ONLY';
   roomTypes: Array<{ pricePerNight: number }>;
   photos: Array<{ id: string; url: string }>;
 }
@@ -50,10 +51,20 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
     setImgIndex(i => (i + 1) % allImages.length);
   };
 
-  const basePrice       = hotel.roomTypes[0]?.pricePerNight ?? null;
-  const discountedPrice = basePrice ? Math.round(basePrice * (1 - hotel.discountPercent / 100)) : null;
-  const savings         = basePrice && discountedPrice ? Math.round(basePrice - discountedPrice) : null;
-  const rating          = hotel.avgRating ?? hotel.starRating ?? null;
+  // Calculate minimum price from all room types ("From $X")
+  const prices = hotel.roomTypes.map(r => r.pricePerNight).filter(p => p > 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+  const hasMultiplePrices = prices.length > 1;
+  
+  // Check if this hotel has active partnership (coupons enabled)
+  const isPartnerActive = hotel.partnershipStatus === 'ACTIVE';
+  
+  // Only calculate discount for active partners
+  const discountedPrice = (minPrice && isPartnerActive && hotel.discountPercent > 0) 
+    ? Math.round(minPrice * (1 - hotel.discountPercent / 100)) 
+    : null;
+  const savings = (minPrice && discountedPrice) ? Math.round(minPrice - discountedPrice) : null;
+  const rating = hotel.avgRating ?? hotel.starRating ?? null;
   const parsedVibeTags: string[] = (() => { try { return JSON.parse(hotel.vibeTags || '[]'); } catch { return []; } })();
   const vibeTagObjects  = parsedVibeTags.slice(0, 2).map(id => VIBE_TAGS.find(v => v.id === id)).filter(Boolean);
 
@@ -78,11 +89,19 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* Subtle gradient overlay at bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-        {/* ── Discount badge (always visible) ── */}
-        {hotel.discountPercent > 0 && (
+        {/* ── Discount badge (only for active partners) ── */}
+        {isPartnerActive && hotel.discountPercent > 0 && (
           <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-lg"
             style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}>
             {hotel.discountPercent}% off
+          </div>
+        )}
+        
+        {/* ── Listing only badge (for non-partners) ── */}
+        {!isPartnerActive && (
+          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700 shadow-lg"
+            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)' }}>
+            {hotel.partnershipStatus === 'LISTING_ONLY' ? 'Listed' : 'Partner Ended'}
           </div>
         )}
 
@@ -95,8 +114,8 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           </div>
         )}
 
-        {/* Savings pill — always visible on right */}
-        {savings && savings > 0 && (
+        {/* Savings pill — only for active partners with discount */}
+        {isPartnerActive && savings && savings > 0 && (
           <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-lg"
             style={{ background: 'rgba(16,185,129,0.92)', backdropFilter: 'blur(8px)' }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -219,17 +238,19 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         )}
 
         {/* Row 4: Price */}
-        {basePrice && (
+        {minPrice && (
           <div className="flex items-baseline gap-1.5 mt-1">
-            {discountedPrice && discountedPrice < basePrice ? (
+            {isPartnerActive && discountedPrice && discountedPrice < minPrice ? (
               <>
-                <span className="line-through text-gray-400 text-sm">{format(basePrice)}</span>
+                {hasMultiplePrices && <span className="text-gray-500 text-sm font-medium">From</span>}
+                <span className="line-through text-gray-400 text-sm">{format(minPrice)}</span>
                 <span className="font-bold text-gray-900 text-[15px]">{format(discountedPrice)}</span>
                 <span className="text-gray-500 text-sm font-normal">/ night</span>
               </>
             ) : (
               <>
-                <span className="font-bold text-gray-900 text-[15px]">{format(basePrice)}</span>
+                {hasMultiplePrices && <span className="text-gray-500 text-sm font-medium">From</span>}
+                <span className="font-bold text-gray-900 text-[15px]">{format(minPrice)}</span>
                 <span className="text-gray-500 text-sm font-normal">/ night</span>
               </>
             )}

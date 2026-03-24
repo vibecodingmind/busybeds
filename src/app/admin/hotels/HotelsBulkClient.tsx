@@ -7,6 +7,7 @@ interface Hotel {
   id: string; name: string; city: string; country: string;
   status: string; discountPercent: number; createdAt: string;
   isFeatured?: boolean;
+  partnershipStatus?: 'ACTIVE' | 'INACTIVE' | 'LISTING_ONLY';
   owner?: { fullName: string; email: string };
 }
 
@@ -117,6 +118,35 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
     setToggling(null);
   };
 
+  const togglePartnership = async (hotel: Hotel) => {
+    setToggling(hotel.id);
+    // Cycle through: ACTIVE -> INACTIVE -> LISTING_ONLY -> ACTIVE
+    const cycle: Record<string, string> = {
+      'ACTIVE': 'INACTIVE',
+      'INACTIVE': 'LISTING_ONLY',
+      'LISTING_ONLY': 'ACTIVE',
+    };
+    const newStatus = cycle[hotel.partnershipStatus || 'ACTIVE'] || 'INACTIVE';
+    try {
+      const res = await fetch(`/api/admin/hotels/${hotel.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partnershipStatus: newStatus }),
+      });
+      if (res.ok) {
+        setHotels(prev => prev.map(h => h.id === hotel.id ? { ...h, partnershipStatus: newStatus as any } : h));
+        setMsg(`✓ "${hotel.name}" partnership: ${newStatus}`);
+        setTimeout(() => setMsg(''), 4000);
+      } else {
+        const d = await res.json();
+        setMsg(`✗ ${d.error || 'Toggle failed'}`);
+      }
+    } catch {
+      setMsg('✗ Network error');
+    }
+    setToggling(null);
+  };
+
   const filtered = hotels.filter(h => {
     const matchStatus = filter === 'all' || h.status === filter;
     const matchSearch = !search || h.name.toLowerCase().includes(search.toLowerCase()) || h.city.toLowerCase().includes(search.toLowerCase());
@@ -171,6 +201,21 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
       rejected: 'bg-red-100 text-red-600',
     };
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-600'}`}>{status}</span>;
+  };
+
+  const partnershipBadge = (status?: string) => {
+    if (!status || status === 'ACTIVE') return null;
+    const styles: Record<string, string> = {
+      ACTIVE: 'bg-green-100 text-green-700',
+      INACTIVE: 'bg-orange-100 text-orange-700',
+      LISTING_ONLY: 'bg-gray-100 text-gray-600',
+    };
+    const labels: Record<string, string> = {
+      ACTIVE: 'Partner',
+      INACTIVE: 'Ended',
+      LISTING_ONLY: 'Listed',
+    };
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-600'}`}>{labels[status] || status}</span>;
   };
 
   // Select all deletable hotels (inactive or rejected)
@@ -270,7 +315,7 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                   onChange={toggleAll}
                   className="rounded border-gray-300 text-[#FF385C] focus:ring-[#FF385C]" />
               </th>
-              {['Hotel', 'Location', 'Status', 'Discount', 'Owner', 'Added', 'Actions'].map(h => (
+              {['Hotel', 'Location', 'Status', 'Partner', 'Discount', 'Owner', 'Added', 'Actions'].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -289,6 +334,26 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                 </td>
                 <td className="px-4 py-3 text-gray-500">{hotel.city}, {hotel.country}</td>
                 <td className="px-4 py-3">{statusBadge(hotel.status)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => togglePartnership(hotel)}
+                    disabled={toggling === hotel.id}
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors disabled:opacity-40 ${
+                      hotel.partnershipStatus === 'ACTIVE' || !hotel.partnershipStatus 
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                        : hotel.partnershipStatus === 'INACTIVE'
+                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    title="Click to cycle: Active → Inactive → Listed"
+                  >
+                    {toggling === hotel.id ? '…' : (
+                      !hotel.partnershipStatus || hotel.partnershipStatus === 'ACTIVE' ? 'Partner' 
+                      : hotel.partnershipStatus === 'INACTIVE' ? 'Ended'
+                      : 'Listed'
+                    )}
+                  </button>
+                </td>
                 <td className="px-4 py-3 font-semibold text-pink-500">{hotel.discountPercent}%</td>
                 <td className="px-4 py-3 text-gray-500 text-xs">
                   <div>{hotel.owner?.fullName || '—'}</div>
@@ -325,7 +390,7 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">No hotels found</td></tr>
+              <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No hotels found</td></tr>
             )}
           </tbody>
         </table>

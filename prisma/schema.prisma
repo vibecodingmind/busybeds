@@ -78,6 +78,12 @@ model HotelType {
   createdAt DateTime @default(now())
 }
 
+enum PartnershipStatus {
+  ACTIVE        // Full partner - coupons enabled
+  INACTIVE      // Ended agreement - no coupons, just listed
+  LISTING_ONLY  // No agreement - just listed
+}
+
 model Hotel {
   id               String    @id @default(cuid())
   name             String
@@ -100,6 +106,9 @@ model Hotel {
   updatedAt        DateTime  @updatedAt @default(now())
   discountPercent  Int       @default(15)
   couponValidDays  Int       @default(30)
+
+  // Partnership status - controls coupon eligibility
+  partnershipStatus PartnershipStatus @default(ACTIVE)
 
   // Contact info
   email            String?
