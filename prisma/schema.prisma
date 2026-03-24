@@ -150,7 +150,7 @@ model HotelOwner {
   kycRejectionReason String?
 
   user               User      @relation(fields: [userId], references: [id])
-  hotel              Hotel     @relation(fields: [hotelId], references: [id])
+  hotel              Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 model HotelManager {
@@ -162,7 +162,7 @@ model HotelManager {
   isActive   Boolean  @default(true)
 
   user       User     @relation(fields: [userId], references: [id])
-  hotel      Hotel    @relation(fields: [hotelId], references: [id])
+  hotel      Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 model RoomType {
@@ -175,7 +175,7 @@ model RoomType {
   maxOccupancy   Int     @default(2)
   displayOrder   Int     @default(0)
 
-  hotel          Hotel   @relation(fields: [hotelId], references: [id])
+  hotel          Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 model HotelPhoto {
@@ -186,7 +186,7 @@ model HotelPhoto {
   displayOrder Int      @default(0)
   uploadedAt   DateTime @default(now())
 
-  hotel        Hotel    @relation(fields: [hotelId], references: [id])
+  hotel        Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 model SubscriptionPackage {
@@ -245,7 +245,7 @@ model Coupon {
   cancelledBy     String?
 
   user            User      @relation("CouponOwner", fields: [userId], references: [id])
-  hotel           Hotel     @relation(fields: [hotelId], references: [id])
+  hotel           Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   redeemer        User?     @relation("CouponRedeemer", fields: [redeemedBy], references: [id])
 
   @@index([hotelId])
@@ -297,7 +297,7 @@ model AffiliateLink {
   isActive  Boolean  @default(true)
   updatedAt DateTime @updatedAt
 
-  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
   @@unique([hotelId, platform])
 }
@@ -309,7 +309,7 @@ model Favorite {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
-  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
   @@unique([userId, hotelId])
 }

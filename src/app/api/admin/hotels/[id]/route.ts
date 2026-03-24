@@ -53,27 +53,35 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  
-  // Check if hotel exists and can be deleted
-  const hotel = await prisma.hotel.findUnique({
-    where: { id: params.id },
-    select: { id: true, name: true, status: true },
-  });
-  
-  if (!hotel) {
-    return NextResponse.json({ error: 'Hotel not found' }, { status: 404 });
+  try {
+    const session = await getSessionFromRequest(req);
+    if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    
+    // Check if hotel exists and can be deleted
+    const hotel = await prisma.hotel.findUnique({
+      where: { id: params.id },
+      select: { id: true, name: true, status: true },
+    });
+    
+    if (!hotel) {
+      return NextResponse.json({ error: 'Hotel not found' }, { status: 404 });
+    }
+    
+    // Only allow deletion if hotel is inactive or rejected
+    if (hotel.status !== 'inactive' && hotel.status !== 'rejected') {
+      return NextResponse.json({
+        error: `Cannot delete hotel with status "${hotel.status}". Set status to "inactive" first.`,
+        hint: 'Use the toggle button or edit form to change status to inactive.',
+      }, { status: 400 });
+    }
+    
+    await prisma.hotel.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true, message: `"${hotel.name}" deleted` });
+  } catch (error: any) {
+    console.error('[Delete Hotel Error]', error);
+    return NextResponse.json({ 
+      error: 'Failed to delete hotel', 
+      details: error.message 
+    }, { status: 500 });
   }
-  
-  // Only allow deletion if hotel is inactive or rejected
-  if (hotel.status !== 'inactive' && hotel.status !== 'rejected') {
-    return NextResponse.json({
-      error: `Cannot delete hotel with status "${hotel.status}". Set status to "inactive" first.`,
-      hint: 'Use the toggle button or edit form to change status to inactive.',
-    }, { status: 400 });
-  }
-  
-  await prisma.hotel.delete({ where: { id: params.id } });
-  return NextResponse.json({ success: true, message: `"${hotel.name}" deleted` });
 }

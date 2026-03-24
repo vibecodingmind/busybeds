@@ -62,10 +62,10 @@ export async function POST(req: NextRequest) {
       deleted: result.count,
       message: `Successfully deleted ${result.count} hotel(s)`,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Bulk Delete Hotels Error]', error);
     return NextResponse.json(
-      { error: 'Failed to delete hotels' },
+      { error: 'Failed to delete hotels', details: error.message },
       { status: 500 }
     );
   }

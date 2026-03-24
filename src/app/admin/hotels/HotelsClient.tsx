@@ -119,7 +119,8 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/hotels/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error((await res.json()).error || 'Delete failed');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Delete failed');
       setHotels(prev => prev.filter(h => h.id !== id));
       setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
       showToast('Hotel deleted');
@@ -145,7 +146,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
       });
       const data = await res.json();
       
-      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      if (!res.ok) throw new Error(data.error || data.details || 'Delete failed');
       
       // Remove deleted hotels from state
       setHotels(prev => prev.filter(h => !selectedIds.has(h.id)));
