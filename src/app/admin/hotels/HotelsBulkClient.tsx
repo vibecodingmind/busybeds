@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -22,24 +22,77 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
   const [msg, setMsg] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+  // Check if hotel can be deleted (must be inactive or rejected)
+  const canDelete = (h: Hotel) => h.status === 'inactive' || h.status === 'rejected';
+
+  // Get selected hotels that are deletable
+  const selectedDeletable = useMemo(() => 
+    hotels.filter(h => selected.has(h.id) && canDelete(h)),
+    [hotels, selected]
+  );
+
+  // Count of deletable hotels
+  const deletableCount = useMemo(() => 
+    hotels.filter(h => canDelete(h)).length,
+    [hotels]
+  );
 
   const deleteHotel = async (hotel: Hotel) => {
+    if (!canDelete(hotel)) {
+      setMsg(`✗ Can only delete inactive or rejected hotels`);
+      setTimeout(() => setMsg(''), 4000);
+      return;
+    }
     if (!confirm(`Delete "${hotel.name}"? This cannot be undone.`)) return;
     setDeleting(hotel.id);
     try {
       const res = await fetch(`/api/admin/hotels/${hotel.id}`, { method: 'DELETE' });
+      const data = await res.json();
       if (res.ok) {
         setHotels(prev => prev.filter(h => h.id !== hotel.id));
+        setSelected(prev => { const next = new Set(prev); next.delete(hotel.id); return next; });
         setMsg(`✓ "${hotel.name}" deleted`);
         setTimeout(() => setMsg(''), 4000);
       } else {
-        const d = await res.json();
-        setMsg(`✗ ${d.error || 'Delete failed'}`);
+        setMsg(`✗ ${data.error || data.details || 'Delete failed'}`);
       }
     } catch {
       setMsg('✗ Network error');
     }
     setDeleting(null);
+  };
+
+  // Bulk delete selected hotels
+  const bulkDelete = async () => {
+    if (selectedDeletable.length === 0) {
+      setMsg(`✗ No deletable hotels selected (must be inactive or rejected)`);
+      setTimeout(() => setMsg(''), 4000);
+      return;
+    }
+    if (!confirm(`Delete ${selectedDeletable.length} hotel(s)? This cannot be undone.`)) return;
+    
+    setBulkDeleteLoading(true);
+    try {
+      const res = await fetch('/api/admin/hotels/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selected) }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHotels(prev => prev.filter(h => !selected.has(h.id)));
+        setSelected(new Set());
+        setMsg(`✓ ${data.deleted} hotel(s) deleted`);
+        setTimeout(() => setMsg(''), 4000);
+      } else {
+        setMsg(`✗ ${data.error || data.details || 'Delete failed'}`);
+      }
+    } catch {
+      setMsg('✗ Network error');
+    }
+    setBulkDeleteLoading(false);
   };
 
   const toggleFeatured = async (hotel: Hotel) => {
@@ -120,6 +173,11 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-600'}`}>{status}</span>;
   };
 
+  // Select all deletable hotels (inactive or rejected)
+  const selectAllDeletable = () => {
+    setSelected(new Set(hotels.filter(h => canDelete(h)).map(h => h.id)));
+  };
+
   return (
     <div className="space-y-4">
       {/* Filters + Search */}
@@ -135,14 +193,28 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
             </button>
           ))}
         </div>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search hotels…"
-          className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF385C] dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={selectAllDeletable}
+            className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors flex items-center gap-1.5"
+          >
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Select Deletable ({deletableCount})
+          </button>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search hotels…"
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF385C] dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
+        </div>
       </div>
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3">
-          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{selected.size} selected</span>
+          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+            {selected.size} selected
+            {selectedDeletable.length > 0 && (
+              <span className="ml-2 text-xs text-red-600 font-normal">({selectedDeletable.length} deletable)</span>
+            )}
+          </span>
           <div className="flex gap-2 ml-auto">
             {[
               { action: 'active', label: '✓ Approve', cls: 'bg-green-500 hover:bg-green-600' },
@@ -154,6 +226,25 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                 {label}
               </button>
             ))}
+            {/* Bulk Delete Button */}
+            <button 
+              onClick={bulkDelete} 
+              disabled={bulkDeleteLoading || selectedDeletable.length === 0}
+              className="px-3 py-1.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-red-700 hover:bg-red-800 flex items-center gap-1.5"
+              title={selectedDeletable.length === 0 ? 'Select inactive/rejected hotels to delete' : `Delete ${selectedDeletable.length} hotel(s)`}
+            >
+              {bulkDeleteLoading ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
+                  Delete ({selectedDeletable.length})
+                </>
+              )}
+            </button>
             <button onClick={() => setSelected(new Set())}
               className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
               Clear
@@ -224,8 +315,9 @@ export default function HotelsBulkClient({ initialHotels }: Props) {
                     </Link>
                     <button
                       onClick={() => deleteHotel(hotel)}
-                      disabled={deleting === hotel.id}
-                      className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors disabled:opacity-40">
+                      disabled={deleting === hotel.id || !canDelete(hotel)}
+                      title={!canDelete(hotel) ? 'Must be inactive or rejected first' : 'Delete hotel'}
+                      className={`px-2 py-1 text-xs rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${canDelete(hotel) ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-gray-50 text-gray-400'}`}>
                       {deleting === hotel.id ? '…' : 'Delete'}
                     </button>
                   </div>
