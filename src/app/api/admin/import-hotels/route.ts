@@ -774,7 +774,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      /* ── 5. Create hotel record with reviews ── */
+      /* ── 5. Create hotel record (reviews created separately) ── */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const hotel = await (prisma as any).hotel.create({
         data: {
@@ -811,11 +811,26 @@ export async function POST(req: NextRequest) {
               displayOrder:  0,
             }],
           },
-          reviews: reviewsData.length > 0 ? {
-            create: reviewsData,
-          } : undefined,
         },
       });
+
+      // Create reviews separately with skipDuplicates to handle edge cases
+      let reviewsImported = 0;
+      if (reviewsData.length > 0) {
+        try {
+          await prisma.review.createMany({
+            data: reviewsData.map(r => ({
+              ...r,
+              hotelId: hotel.id,
+            })),
+            skipDuplicates: true,
+          });
+          reviewsImported = reviewsData.length;
+        } catch (reviewError) {
+          console.error(`[Import] Review creation error for ${hotel.name}:`, reviewError);
+          // Don't fail the whole import if reviews fail
+        }
+      }
 
       /* ── 6. Fetch and store nearby landmarks ── */
       let landmarksImported = 0;
@@ -867,7 +882,7 @@ export async function POST(req: NextRequest) {
         city:       hotel.city,
         country:    hotel.country,
         coverImage: hotel.coverImage,
-        reviewsImported: reviewsData.length,
+        reviewsImported,
         landmarksImported,
       });
 
