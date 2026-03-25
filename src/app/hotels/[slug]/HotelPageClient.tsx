@@ -161,7 +161,7 @@ export default function HotelPageClient({
   const hasMultiplePrices = prices.length > 1;
   
   // Check if this hotel has active partnership (coupons enabled)
-  const isPartnerActive = hotel.partnershipStatus === 'ACTIVE';
+  const isPartnerActive = hotel.partnershipStatus === 'ACTIVE' && hotel.discountPercent > 0;
   
   // Only calculate discount for active partners
   const discountedPrice = (minPrice && isPartnerActive && hotel.discountPercent > 0) 

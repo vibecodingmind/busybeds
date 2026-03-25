@@ -50,6 +50,7 @@ export default function ImportHotelsPage() {
   const [selected, setSelected]         = useState<Set<string>>(new Set());
 
   // Import settings
+  const [noDiscount, setNoDiscount]           = useState(false); // If true, hotel has no coupon discount
   const [discountPercent, setDiscountPercent] = useState(15);
   const [couponValidDays, setCouponValidDays] = useState(30);
   const [defaultPrice, setDefaultPrice]       = useState(0); // 0 = auto from price_level
@@ -57,6 +58,7 @@ export default function ImportHotelsPage() {
   const [importReviews, setImportReviews]     = useState(true); // Default: import reviews
   const [importLandmarks, setImportLandmarks] = useState(true); // Default: import landmarks
   const [fetchAllPages, setFetchAllPages]     = useState(true); // Default: fetch all 60 results
+  const [markAsPartner, setMarkAsPartner]     = useState(false); // Default: false (LISTING_ONLY)
 
   // Country/Region/City selector for quick search
   const [selectedCountry, setSelectedCountry] = useState('Tanzania');
@@ -185,12 +187,14 @@ export default function ImportHotelsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         placeIds: Array.from(selected),
+        noDiscount,
         discountPercent,
         couponValidDays,
         pricePerNight: defaultPrice || undefined,
         category: selectedCategory || undefined,
         importReviews,
         importLandmarks,
+        markAsPartner,
       }),
     });
     const data = await res.json();
@@ -732,13 +736,27 @@ export default function ImportHotelsPage() {
                   </label>
                   <div className="relative">
                     <input
-                      type="number" min={1} max={80}
-                      value={discountPercent}
+                      type="number" min={0} max={80}
+                      value={noDiscount ? 0 : discountPercent}
                       onChange={e => setDiscountPercent(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+                      disabled={noDiscount}
+                      className={`w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] ${noDiscount ? 'bg-gray-100 text-gray-400' : ''}`}
                     />
                     <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">%</span>
                   </div>
+                  {/* No Discount Toggle */}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={noDiscount}
+                      onChange={e => setNoDiscount(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-[#E8395A] focus:ring-[#E8395A]"
+                    />
+                    <span className="text-xs text-gray-600">No coupon discount (0%)</span>
+                  </label>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Hotels without discount won&apos;t show &quot;Get Coupon&quot; button
+                  </p>
                 </div>
 
                 <div>
@@ -811,6 +829,31 @@ export default function ImportHotelsPage() {
                     <div>
                       <span className="text-sm font-semibold text-gray-700">Import Nearby Landmarks</span>
                       <p className="text-[11px] text-gray-400 mt-0.5">Supermarkets, parks, hospitals, etc. (5km radius)</p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Mark as Partner Toggle - IMPORTANT */}
+                <div className="pt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <div className="relative flex-shrink-0 mt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={markAsPartner}
+                        onChange={e => setMarkAsPartner(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-10 h-6 rounded-full transition-colors ${markAsPartner ? 'bg-green-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${markAsPartner ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-amber-800">✓ Mark as Partner</span>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        {markAsPartner 
+                          ? '✓ Hotels can show "Get Coupon" button (with discount > 0%)' 
+                          : 'Hotels will be listed only - no coupon until you sign agreement'}
+                      </p>
                     </div>
                   </label>
                 </div>

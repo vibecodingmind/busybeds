@@ -639,12 +639,15 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const placeIds: string[]      = body.placeIds        ?? [];
-  const discountPercent: number = Number(body.discountPercent) || 15;
+  const noDiscount: boolean     = body.noDiscount === true; // If true, discountPercent = 0
+  const discountPercent: number = noDiscount ? 0 : (Number(body.discountPercent) || 15);
   const couponValidDays: number = Number(body.couponValidDays) || 30;
   const pricePerNight: number   = Number(body.pricePerNight)   || 0;
   const categoryOverride: string | undefined = body.category; // Manual category override
   const importReviews: boolean  = body.importReviews !== false; // Default: true
   const importLandmarks: boolean = body.importLandmarks !== false; // Default: true
+  const markAsPartner: boolean  = body.markAsPartner === true; // Default: false (LISTING_ONLY)
+  const partnershipStatus = markAsPartner ? 'ACTIVE' : 'LISTING_ONLY';
 
   if (!placeIds.length)
     return NextResponse.json({ error: 'placeIds array is required' }, { status: 400 });
@@ -795,6 +798,7 @@ export async function POST(req: NextRequest) {
           googlePlaceId:    placeId,
           amenities:        '[]',
           status:           'active',
+          partnershipStatus, // LISTING_ONLY by default, ACTIVE if markAsPartner is true
           descriptionShort: `${category} in ${city}, ${country}`,
           descriptionLong:  `${p.name} is a ${stars}-star ${category.toLowerCase()} located in ${city}, ${country}. ${p.rating ? `Rated ${p.rating.toFixed(1)}/5 by ${(p.user_ratings_total ?? 0).toLocaleString()} guests on Google.` : ''} Imported via Google Places.`,
           isFeatured:       false,
