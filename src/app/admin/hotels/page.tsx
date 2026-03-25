@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import HotelsClient from './HotelsClient';
 import HotelsBulkClient from './HotelsBulkClient';
 import prisma from '@/lib/prisma';
 
 export const metadata = { title: 'Hotels — BusyBeds Admin' };
 
 export default async function HotelsPage() {
+  // Fetch hotels with all necessary data
   const hotels = await prisma.hotel.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
@@ -25,11 +25,21 @@ export default async function HotelsPage() {
       },
       _count: { select: { coupons: true, roomTypes: true } },
     },
-    take: 200,
+    take: 500, // Increased limit for better filtering
   });
+
+  // Fetch hotel types from the database
+  const hotelTypes = await prisma.hotelType.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+    select: { name: true },
+  });
+
+  const hotelTypeNames = hotelTypes.map(t => t.name);
 
   const hotelsWithOwner = hotels.map(h => ({
     ...h,
+    category: h.category || 'Hotel',
     owner: h.owner ? { fullName: h.owner.user.fullName, email: h.owner.user.email } : undefined,
     subscription: h.subscription?.status === 'active' ? {
       id: h.subscription.id,
@@ -44,7 +54,7 @@ export default async function HotelsPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Hotels Management</h1>
-          <p className="text-sm text-gray-500">View, edit, and bulk approve/reject hotels</p>
+          <p className="text-sm text-gray-500">View, edit, and bulk approve/reject hotels. Use filters to find hotels by country, city, or type.</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -66,7 +76,7 @@ export default async function HotelsPage() {
           </Link>
         </div>
       </div>
-      <HotelsBulkClient initialHotels={hotelsWithOwner as any} />
+      <HotelsBulkClient initialHotels={hotelsWithOwner as any} hotelTypes={hotelTypeNames} />
     </div>
   );
 }
