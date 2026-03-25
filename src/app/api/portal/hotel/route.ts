@@ -69,7 +69,7 @@ const updateSchema = z.object({
   starRating: z.number().int().min(1).max(5).optional(),
   amenities: z.array(z.string()).optional(),
   websiteUrl: z.string().optional(),
-  discountPercent: z.number().int().min(1).max(80).optional(),
+  discountPercent: z.number().int().min(0).max(80).optional(),
   couponValidDays: z.number().int().min(1).max(365).optional(),
   coverImage: z.string().optional(),
   category: z.string().optional(),

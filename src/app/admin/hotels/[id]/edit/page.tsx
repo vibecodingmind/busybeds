@@ -395,11 +395,12 @@ export default function EditHotelPage() {
             <div>
               <Label required>Discount %</Label>
               <div className="relative">
-                <input required type="number" min={1} max={80} value={form.discountPercent}
+                <input required type="number" min={0} max={80} value={form.discountPercent}
                   onChange={e => f('discountPercent', Number(e.target.value))}
                   className={`${inp} pr-10`} />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
               </div>
+              <p className="text-xs text-gray-400 mt-1">Set 0% for hotels without coupon discount</p>
             </div>
             <div>
               <Label required>Coupon Valid For</Label>

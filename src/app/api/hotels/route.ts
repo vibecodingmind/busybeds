@@ -158,7 +158,7 @@ const createSchema = z.object({
   starRating: z.number().int().min(1).max(5).default(3),
   amenities: z.array(z.string()).default([]),
   websiteUrl: z.string().url().optional().or(z.literal('')),
-  discountPercent: z.number().int().min(1).max(80).default(15),
+  discountPercent: z.number().int().min(0).max(80).default(15),
   couponValidDays: z.number().int().min(1).max(365).default(30),
   coverImage: z.string().optional().or(z.literal('')),
   isFeatured: z.boolean().default(false),

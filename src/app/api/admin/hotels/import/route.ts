@@ -13,7 +13,7 @@ const HotelRowSchema = z.object({
   descriptionShort: z.string().min(1, 'Short description is required'),
   descriptionLong: z.string().optional(),
   starRating: z.coerce.number().int().min(1).max(5).default(3),
-  discountPercent: z.coerce.number().int().min(5).max(80).default(15),
+  discountPercent: z.coerce.number().int().min(0).max(80).default(15),
   coverImage: z.string().url().optional(),
   websiteUrl: z.string().url().optional(),
   isFeatured: z.coerce.boolean().default(false),
