@@ -280,6 +280,31 @@ export default function HotelsBulkClient({ initialHotels, hotelTypes = ['Hotel',
     setLoading(false);
   };
 
+  // Bulk update partnership status
+  const bulkPartnershipUpdate = async (partnershipStatus: 'ACTIVE' | 'LISTING_ONLY') => {
+    if (selected.size === 0) return;
+    setLoading(true);
+    setMsg('');
+    try {
+      const res = await fetch('/api/admin/hotels/bulk', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selected), partnershipStatus }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHotels(prev => prev.map(h => selected.has(h.id) ? { ...h, partnershipStatus } : h));
+        setMsg(`✓ ${data.updated} hotels marked as ${partnershipStatus === 'ACTIVE' ? 'Partner' : 'Listing Only'}`);
+        setSelected(new Set());
+      } else {
+        setMsg(`✗ ${data.error}`);
+      }
+    } catch (e: any) {
+      setMsg(`✗ ${e.message}`);
+    }
+    setLoading(false);
+  };
+
   const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
       active: 'bg-green-100 text-green-700',
@@ -416,7 +441,8 @@ export default function HotelsBulkClient({ initialHotels, hotelTypes = ['Hotel',
               <span className="ml-2 text-xs text-red-600 font-normal">({selectedDeletable.length} deletable)</span>
             )}
           </span>
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-2 ml-auto flex-wrap">
+            {/* Status buttons */}
             {[
               { action: 'active', label: '✓ Approve', cls: 'bg-green-500 hover:bg-green-600' },
               { action: 'rejected', label: '✗ Reject', cls: 'bg-red-500 hover:bg-red-600' },
@@ -427,6 +453,26 @@ export default function HotelsBulkClient({ initialHotels, hotelTypes = ['Hotel',
                 {label}
               </button>
             ))}
+            {/* Partnership Status Buttons */}
+            <div className="h-6 w-px bg-gray-300 mx-1" />
+            <button 
+              onClick={() => bulkPartnershipUpdate('ACTIVE')} 
+              disabled={loading}
+              className="px-3 py-1.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5"
+              title="Mark selected hotels as Partners (enable coupons)"
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Mark Partner
+            </button>
+            <button 
+              onClick={() => bulkPartnershipUpdate('LISTING_ONLY')} 
+              disabled={loading}
+              className="px-3 py-1.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 bg-amber-600 hover:bg-amber-700 flex items-center gap-1.5"
+              title="Mark selected hotels as Listing Only (no coupons)"
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Listing Only
+            </button>
             {/* Bulk Delete Button */}
             <button 
               onClick={bulkDelete} 
