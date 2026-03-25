@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
-import HotelGridClient from '@/components/HotelGridClient';
+import HotelViewContainer from '@/components/HotelViewContainer';
 import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
 import RecentlyViewed from '@/components/RecentlyViewed';
@@ -501,19 +501,6 @@ export default async function HomePage({
               {/* Near Me */}
               <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
 
-              {/* Map View */}
-              <Link
-                href="/map"
-                className="flex items-center gap-1.5 px-3.5 py-2 border border-black/10 rounded-full text-xs font-semibold text-gray-600 hover:border-black/20 hover:bg-black/[0.04] transition-all duration-200 whitespace-nowrap"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
-                  <line x1="8" y1="2" x2="8" y2="18"/>
-                  <line x1="16" y1="6" x2="16" y2="22"/>
-                </svg>
-                Map
-              </Link>
-
               {/* Sort + Filters */}
               <FilterPanel params={filterPanelParams} />
 
@@ -736,10 +723,11 @@ export default async function HomePage({
             </Link>
           </div>
         ) : (
-          <HotelGridClient
+          <HotelViewContainer
             initialHotels={hotels as any[]}
             searchParams={searchParams as Record<string, string | undefined>}
             pageSize={PAGE_SIZE}
+            totalHotels={total}
           />
         )}
       </div>
