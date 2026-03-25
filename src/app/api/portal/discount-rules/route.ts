@@ -43,7 +43,7 @@ const ruleSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1).max(80),
   type: z.enum(['period', 'day_of_week', 'always']),
-  discount: z.number().int().min(1).max(80),
+  discount: z.number().int().min(0).max(80),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   days: z.array(z.number().int().min(0).max(6)).optional(),

@@ -503,7 +503,7 @@ export default function HotelsClient({ initialHotels }: { initialHotels: Hotel[]
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Discount %</label>
-                  <input type="number" min={1} max={100} value={form.discountPercent}
+                  <input type="number" min={0} max={100} value={form.discountPercent}
                     onChange={e => setForm({ ...form, discountPercent: Number(e.target.value) })}
                     className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]" />
                 </div>

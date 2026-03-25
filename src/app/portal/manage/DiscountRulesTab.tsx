@@ -64,7 +64,7 @@ export default function DiscountRulesTab({ hotelBaseDiscount }: Props) {
     if (!draft.name.trim()) return alert('Enter a rule name');
     if (draft.type === 'period' && (!draft.startDate || !draft.endDate)) return alert('Enter start and end date');
     if (draft.type === 'day_of_week' && (!draft.days || draft.days.length === 0)) return alert('Select at least one day');
-    if (draft.discount < 1 || draft.discount > 80) return alert('Discount must be 1–80%');
+    if (draft.discount < 0 || draft.discount > 80) return alert('Discount must be 0–80%');
     const updated = [...rules, { ...draft, id: Math.random().toString(36).slice(2) }];
     setRules(updated);
     save(updated);
@@ -144,7 +144,7 @@ export default function DiscountRulesTab({ hotelBaseDiscount }: Props) {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Discount (%)</label>
-              <input className="input text-sm" type="number" min={1} max={80}
+              <input className="input text-sm" type="number" min={0} max={80}
                 value={draft.discount} onChange={e => setDraft({ ...draft, discount: parseInt(e.target.value) || 0 })} />
             </div>
             {draft.type === 'period' && (
