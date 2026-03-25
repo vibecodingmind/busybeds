@@ -8,6 +8,7 @@ import RecentlyViewed from '@/components/RecentlyViewed';
 import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
 import FlashDealsWidget from '@/components/FlashDealsWidget';
 import NearMeButton from '@/components/NearMeButton';
+import ViewToggle from '@/components/ViewToggle';
 import { Suspense } from 'react';
 import prisma from '@/lib/prisma';
 import { VIBE_TAGS } from '@/lib/vibeTags';
@@ -337,11 +338,13 @@ export default async function HomePage({
     page?: string; featured?: string; amenities?: string; category?: string;
     minPrice?: string; maxPrice?: string; sort?: string;
     vibeTag?: string; lat?: string; lng?: string; radius?: string;
+    view?: string;
   };
 }) {
   const currentPage    = searchParams.page ? parseInt(searchParams.page) : 1;
   const activeCategory = searchParams.category || 'all';
   const nearMe = !!(searchParams.lat && searchParams.lng);
+  const viewMode = searchParams.view === 'map' ? 'map' : 'list';
 
   /* detect if ANY filter/search is active */
   const isFiltered = !!(
@@ -500,6 +503,11 @@ export default async function HomePage({
 
               {/* Near Me */}
               <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
+
+              {/* View Toggle */}
+              <Suspense fallback={null}>
+                <ViewToggle currentView={viewMode} />
+              </Suspense>
 
               {/* Sort + Filters */}
               <FilterPanel params={filterPanelParams} />
@@ -728,6 +736,7 @@ export default async function HomePage({
             searchParams={searchParams as Record<string, string | undefined>}
             pageSize={PAGE_SIZE}
             totalHotels={total}
+            viewMode={viewMode}
           />
         )}
       </div>
