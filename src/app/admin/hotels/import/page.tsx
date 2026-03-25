@@ -696,8 +696,8 @@ export default function ImportHotelsPage() {
             )}
           </div>
 
-          {/* ── Right: import settings + import button ── */}
-          <div className="space-y-4">
+          {/* ── Right: import settings + import button (sticky) ── */}
+          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
 
             {/* Import settings card */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
