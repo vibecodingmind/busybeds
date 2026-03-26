@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { COUNTRIES, getCities } from '@/lib/locations';
@@ -95,7 +95,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', phone: '',
@@ -478,5 +478,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #E0F2FE 100%)' }}><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

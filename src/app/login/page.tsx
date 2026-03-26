@@ -72,7 +72,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #E0F2FE 100%) }}>
+    <div className="min-h-screen flex" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #E0F2FE 100%)" }}>
       
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-center px-12 xl:px-20">
@@ -81,20 +81,20 @@ function LoginForm() {
           <Link href="/" className="flex items-center gap-3 mb-10 group">
             <div 
               className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
+              style={{ background: "linear-gradient(135deg, #3B82F6, #2563EB)" }}
             >
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
                 <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M9 22V12h6v10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-2xl font-bold" style={{ color: '#1E40AF' }}>BusyBeds</span>
+            <span className="text-2xl font-bold" style={{ color: "#1E40AF" }}>BusyBeds</span>
           </Link>
 
           {/* Main Heading */}
           <h1 className="text-4xl xl:text-5xl font-bold text-gray-900 leading-tight mb-6">
             The Only Platform You Need for{' '}
-            <span style={{ color: '#3B82F6' }}>Hotel Discounts</span>
+            <span style={{ color: "#3B82F6" }}>Hotel Discounts</span>
           </h1>
 
           {/* Subheading */}
@@ -105,7 +105,7 @@ function LoginForm() {
           {/* Features */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#DBEAFE' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#DBEAFE" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
@@ -113,7 +113,7 @@ function LoginForm() {
               <span className="text-gray-700 font-medium">Verified QR Coupons</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#DBEAFE' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#DBEAFE" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
@@ -121,7 +121,7 @@ function LoginForm() {
               <span className="text-gray-700 font-medium">Save & Compare Hotels</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#DBEAFE' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#DBEAFE" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
@@ -140,14 +140,14 @@ function LoginForm() {
           <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
+              style={{ background: "linear-gradient(135deg, #3B82F6, #2563EB)" }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M9 22V12h6v10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-xl font-bold" style={{ color: '#1E40AF' }}>BusyBeds</span>
+            <span className="text-xl font-bold" style={{ color: "#1E40AF" }}>BusyBeds</span>
           </Link>
 
           {/* Form Card */}
@@ -257,10 +257,10 @@ function LoginForm() {
               <button
                 type="submit" disabled={loading}
                 className="w-full py-3.5 rounded-xl text-white text-sm font-semibold tracking-wide transition-all hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
-                style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
+                style={{ background: "linear-gradient(135deg, #3B82F6, #2563EB)" }}
               >
                 {loading
-                  ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Signing in…</>
+                  ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Signing in...</>
                   : 'Sign In'}
               </button>
             </form>
