@@ -287,12 +287,6 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 backdrop-blur-xl bg-white/60 border border-white rounded-2xl text-xs text-slate-500 text-center shadow-sm">
-            <p><strong className="text-slate-700">Demo:</strong> admin@busybeds.com / admin123</p>
-            <p className="mt-1">traveler@demo.com / demo123</p>
-          </div>
-
           {/* Back to Home */}
           <Link href="/" className="mt-4 text-center text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1 w-full justify-center">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
