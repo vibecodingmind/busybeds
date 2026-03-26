@@ -102,7 +102,7 @@ export default async function HotelPage({ params }: PageProps) {
         status: 'active',
         slug: { not: params.slug },
         OR: currentVibeTags.map(tag => ({
-          vibeTags: { contains: `"${tag}"`, mode: 'insensitive' as const },
+          vibeTags: { contains: `"${tag}"` },
         })),
       },
       include: {

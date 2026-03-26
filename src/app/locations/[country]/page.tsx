@@ -22,7 +22,7 @@ function nameToSlug(name: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const countryName = slugToName(params.country);
   const count = await prisma.hotel.count({
-    where: { status: 'active', country: { contains: countryName, mode: 'insensitive' } },
+    where: { status: 'active', country: { contains: countryName } },
   }).catch(() => 0);
 
   const title       = `Hotels in ${countryName} – Exclusive Discounts | BusyBeds`;
@@ -43,7 +43,7 @@ export default async function CountryPage({ params }: Props) {
   const hotels = await prisma.hotel.findMany({
     where: {
       status: 'active',
-      country: { contains: countryName, mode: 'insensitive' },
+      country: { contains: countryName },
     },
     include: {
       roomTypes: { orderBy: { pricePerNight: 'asc' }, take: 1 },

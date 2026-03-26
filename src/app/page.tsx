@@ -205,25 +205,25 @@ async function getHotels(
 
   if (search) {
     where.OR = [
-      { name:    { contains: search, mode: 'insensitive' } },
-      { city:    { contains: search, mode: 'insensitive' } },
-      { country: { contains: search, mode: 'insensitive' } },
-      { descriptionShort: { contains: search, mode: 'insensitive' } },
+      { name:    { contains: search } },
+      { city:    { contains: search } },
+      { country: { contains: search } },
+      { descriptionShort: { contains: search } },
     ];
   }
-  if (city) where.city = { contains: city, mode: 'insensitive' };
+  if (city) where.city = { contains: city };
 
   /* each amenity must appear in the JSON string */
   if (amenityArr.length === 1) {
-    where.amenities = { contains: amenityArr[0], mode: 'insensitive' };
+    where.amenities = { contains: amenityArr[0] };
   } else if (amenityArr.length > 1) {
-    where.AND = amenityArr.map((a: string) => ({ amenities: { contains: a, mode: 'insensitive' } }));
+    where.AND = amenityArr.map((a: string) => ({ amenities: { contains: a } }));
   }
 
   /* vibe tag filter */
   if (vibeTag) {
     const existing = where.AND as Array<Record<string, unknown>> | undefined;
-    const vibeFilter = { vibeTags: { contains: vibeTag, mode: 'insensitive' } };
+    const vibeFilter = { vibeTags: { contains: vibeTag } };
     where.AND = existing ? [...existing, vibeFilter] : [vibeFilter];
   }
 

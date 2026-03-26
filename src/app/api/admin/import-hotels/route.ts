@@ -850,25 +850,30 @@ export async function POST(req: NextRequest) {
           );
 
           if (landmarks.length > 0) {
-            // Create landmarks for this hotel
-            await prisma.landmark.createMany({
-              data: landmarks.map(l => ({
-                hotelId: hotel.id,
-                googlePlaceId: l.googlePlaceId,
-                name: l.name,
-                type: l.type,
-                typeName: l.typeName,
-                address: l.address,
-                latitude: l.latitude,
-                longitude: l.longitude,
-                distanceKm: l.distanceKm,
-                rating: l.rating,
-                totalRatings: l.totalRatings,
-                photoUrl: l.photoUrl,
-              })),
-              skipDuplicates: true,
-            });
-            landmarksImported = landmarks.length;
+            // Create landmarks for this hotel one by one to handle duplicates with SQLite
+            for (const landmark of landmarks) {
+              try {
+                await prisma.landmark.create({
+                  data: {
+                    hotelId: hotel.id,
+                    googlePlaceId: landmark.googlePlaceId,
+                    name: landmark.name,
+                    type: landmark.type,
+                    typeName: landmark.typeName,
+                    address: landmark.address,
+                    latitude: landmark.latitude,
+                    longitude: landmark.longitude,
+                    distanceKm: landmark.distanceKm,
+                    rating: landmark.rating,
+                    totalRatings: landmark.totalRatings,
+                    photoUrl: landmark.photoUrl,
+                  },
+                });
+                landmarksImported++;
+              } catch {
+                // Skip duplicates silently
+              }
+            }
             console.log(`[Import] Added ${landmarks.length} landmarks for ${hotel.name}`);
           }
         } catch (landmarkError) {

@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const count = await prisma.hotel.count({
     where: {
       status: 'active',
-      city: { contains: cityName, mode: 'insensitive' },
-      country: { contains: countryName, mode: 'insensitive' },
+      city: { contains: cityName },
+      country: { contains: countryName },
     },
   }).catch(() => 0);
 
@@ -55,8 +55,8 @@ export default async function CityPage({ params }: Props) {
   const hotels = await prisma.hotel.findMany({
     where: {
       status: 'active',
-      city: { contains: cityName, mode: 'insensitive' },
-      country: { contains: countryName, mode: 'insensitive' },
+      city: { contains: cityName },
+      country: { contains: countryName },
     },
     include: {
       roomTypes: { orderBy: { pricePerNight: 'asc' }, take: 1 },
@@ -75,8 +75,8 @@ export default async function CityPage({ params }: Props) {
   const nearbyCities = await prisma.hotel.findMany({
     where: {
       status: 'active',
-      country: { contains: countryName, mode: 'insensitive' },
-      NOT: { city: { contains: cityName, mode: 'insensitive' } },
+      country: { contains: countryName },
+      NOT: { city: { contains: cityName } },
     },
     select: { city: true },
     distinct: ['city'],
