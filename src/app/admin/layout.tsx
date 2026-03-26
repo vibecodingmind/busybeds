@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session) redirect('/login');
   if (session.role !== 'admin') redirect('/dashboard');
 
-  // Load notifications sequentially to avoid connection pool exhaustion (Supabase connection_limit=1)
+  // Load notifications sequentially to avoid connection pool exhaustion
   const pendingKyc = await prisma.hotelOwner.findMany({
     where: { kycStatus: 'pending' },
     include: { user: { select: { fullName: true } }, hotel: { select: { name: true } } },
@@ -42,21 +42,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     })),
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 12);
 
-  // Get admin user info
   const adminUser = await prisma.user.findUnique({
     where: { id: session.userId },
     select: { fullName: true, email: true, avatar: true },
   });
 
   return (
-    <div className="flex h-screen bg-[#F4F6FB] overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader
           notifications={notifications}
           adminUser={adminUser ? { fullName: adminUser.fullName, email: adminUser.email, avatar: adminUser.avatar } : null}
         />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-slate-50 via-white to-slate-100">
           {children}
         </main>
       </div>
