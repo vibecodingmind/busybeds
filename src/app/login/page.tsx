@@ -4,25 +4,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
-const SLIDES = [
-  {
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400&auto=format&fit=crop&q=80',
-    title: 'Find your perfect stay',
-    subtitle: 'Discover exclusive hotel discounts and save on every booking.',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1400&auto=format&fit=crop&q=80',
-    title: 'Verified QR coupons',
-    subtitle: 'Generate unique coupons in seconds — valid at hotel check-in.',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&auto=format&fit=crop&q=80',
-    title: 'Travel smarter & save',
-    subtitle: 'Members save an average of 22% on every hotel booking.',
-  },
-];
-
-// ── Eye icon SVGs ─────────────────────────────────────────────
 function EyeOpen() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -31,6 +12,7 @@ function EyeOpen() {
     </svg>
   );
 }
+
 function EyeOff() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -56,7 +38,6 @@ function LoginForm() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [slide, setSlide] = useState(0);
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next') || '/';
@@ -91,235 +72,235 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-
-      {/* ── Left panel — hero image ───────────────────────────────────── */}
-      <div className="hidden lg:block relative w-[52%] flex-shrink-0 overflow-hidden">
-        {/* Slide images */}
-        {SLIDES.map((s, i) => (
-          <div
-            key={i}
-            className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
-            style={{
-              backgroundImage: `url(${s.image})`,
-              opacity: i === slide ? 1 : 0,
-            }}
-          />
-        ))}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20" />
-
-        {/* Logo — click to go home */}
-        <Link href="/" className="absolute top-7 left-8 flex items-center gap-3 z-10 hover:opacity-90 transition-opacity">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{
-              background: 'rgba(255,255,255,0.18)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.35)',
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M9 22V12h6v10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span className="text-white font-bold text-lg tracking-tight">Busy Beds</span>
-        </Link>
-
-        {/* Bottom text + dot indicators */}
-        <div className="absolute bottom-10 left-8 right-8 z-10">
-          {SLIDES.map((s, i) => (
-            <div
-              key={i}
-              className="transition-opacity duration-500"
-              style={{ opacity: i === slide ? 1 : 0, position: i === 0 ? 'relative' : 'absolute', top: 0, left: 0, right: 0, pointerEvents: i === slide ? 'auto' : 'none' }}
+    <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #E0F2FE 100%) }}>
+      
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-center px-12 xl:px-20">
+        <div className="max-w-lg">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 mb-10 group">
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
             >
-              <h2 className="text-white text-[2rem] font-bold leading-tight mb-2">{s.title}</h2>
-              <p className="text-white/70 text-sm leading-relaxed mb-6">{s.subtitle}</p>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 22V12h6v10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-          ))}
-          {/* Pad for text height */}
-          <div style={{ height: 80 }} />
-          <div className="flex items-center gap-2 mt-2">
-            {SLIDES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setSlide(i)}
-                style={{
-                  width: i === slide ? 28 : 8,
-                  height: 8,
-                  borderRadius: 4,
-                  background: i === slide ? 'white' : 'rgba(255,255,255,0.4)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  transition: 'all 0.3s',
-                  flexShrink: 0,
-                }}
-              />
-            ))}
+            <span className="text-2xl font-bold" style={{ color: '#1E40AF' }}>BusyBeds</span>
+          </Link>
+
+          {/* Main Heading */}
+          <h1 className="text-4xl xl:text-5xl font-bold text-gray-900 leading-tight mb-6">
+            The Only Platform You Need for{' '}
+            <span style={{ color: '#3B82F6' }}>Hotel Discounts</span>
+          </h1>
+
+          {/* Subheading */}
+          <p className="text-lg text-gray-600 leading-relaxed mb-10">
+            Create once, publish everywhere. Get exclusive coupons for top hotels across Africa and save up to 70% on every booking.
+          </p>
+
+          {/* Features */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#DBEAFE' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <span className="text-gray-700 font-medium">Verified QR Coupons</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#DBEAFE' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <span className="text-gray-700 font-medium">Save & Compare Hotels</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#DBEAFE' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <span className="text-gray-700 font-medium">22% Average Savings</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Right panel — form ────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col bg-white overflow-y-auto">
-
-        {/* Top nav */}
-        <div className="flex items-center justify-between px-8 pt-7 pb-2 flex-shrink-0">
-          {/* Mobile logo — click to go home */}
-          <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#1A3C5E' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9 22V12h6v10" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          
+          {/* Mobile Logo */}
+          <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 22V12h6v10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="font-bold text-base" style={{ color: '#1A3C5E' }}>Busy Beds</span>
+            <span className="text-xl font-bold" style={{ color: '#1E40AF' }}>BusyBeds</span>
           </Link>
-          <div className="hidden lg:block" />
-          <Link
-            href="/register"
-            className="text-sm font-semibold px-5 py-2 rounded-full border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-all"
-          >
-            Create account
-          </Link>
-        </div>
 
-        {/* Form content — vertically centered */}
-        <div className="flex-1 flex items-center justify-center px-8 py-8">
-          <div className="w-full max-w-sm">
-
+          {/* Form Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-10">
             <div className="mb-8">
-              <h1 className="text-[1.85rem] font-extrabold text-gray-900 mb-1 leading-tight">
-                Welcome Back to BusyBeds!
-              </h1>
-              <p className="text-gray-500 text-sm">Sign in your account</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
+              <p className="text-gray-500">Sign in to access your dashboard</p>
             </div>
 
             {/* Status banners */}
             {verified && (
-              <div className="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                <span>✅</span><span>Email verified! You can now sign in.</span>
+              <div className="mb-5 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Email verified! You can now sign in.
               </div>
             )}
             {tokenError && (
-              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                ⚠️ Invalid or expired link. Please{' '}
+              <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                Invalid or expired link. Please{' '}
                 <Link href="/register" className="underline font-medium">register again</Link>.
               </div>
             )}
             {rateLimited && (
-              <div className="mb-4 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl text-sm">
+              <div className="mb-5 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl text-sm">
                 Too many attempts. Please wait before trying again.
               </div>
             )}
 
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Email</label>
-                <input
-                  type="email" required
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-800 focus:ring-2 focus:ring-gray-100 transition-all"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                  </span>
+                  <input
+                    type="email" required
+                    placeholder="you@example.com"
+                    value={form.email}
+                    onChange={e => setForm({ ...form, email: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                  />
+                </div>
               </div>
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
                 <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                  </span>
                   <input
                     type={showPass ? 'text' : 'password'} required
                     placeholder="••••••••"
                     value={form.password}
                     onChange={e => setForm({ ...form, password: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-800 focus:ring-2 focus:ring-gray-100 transition-all pr-12"
+                    className="w-full pl-11 pr-12 py-3.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     {showPass ? <EyeOff /> : <EyeOpen />}
                   </button>
                 </div>
+
                 {/* Remember + Forgot row */}
-                <div className="flex items-center justify-between mt-2.5">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div className="flex items-center justify-between mt-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={form.remember}
                       onChange={e => setForm({ ...form, remember: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                      style={{ accentColor: '#1A3C5E' }}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-600">Remember Me</span>
+                    <span className="text-sm text-gray-600">Remember me</span>
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                   >
-                    Forgot Password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>
 
               {error && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-100 px-4 py-3 rounded-xl">
+                <div className="text-red-600 text-sm bg-red-50 border border-red-100 px-4 py-3 rounded-xl flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
                   {error}
                 </div>
               )}
 
               <button
                 type="submit" disabled={loading}
-                className="w-full py-3.5 rounded-xl text-white text-sm font-bold tracking-wide transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2 mt-1"
-                style={{ background: '#111827' }}
+                className="w-full py-3.5 rounded-xl text-white text-sm font-semibold tracking-wide transition-all hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
+                style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
               >
                 {loading
                   ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Signing in…</>
-                  : 'Login'}
+                  : 'Sign In'}
               </button>
             </form>
 
             {/* Divider */}
-            <div className="flex items-center gap-3 my-5">
+            <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400 whitespace-nowrap">Instant Login</span>
+              <span className="text-xs text-gray-400 font-medium">OR CONTINUE WITH</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
             {/* Google OAuth */}
             <a
               href="/api/auth/google"
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
             >
               <GoogleIcon />
               Continue with Google
             </a>
 
             <p className="mt-6 text-center text-sm text-gray-500">
-              Don&apos;t have any account?{' '}
-              <Link href="/register" className="font-bold text-gray-900 hover:underline">
-                Register
-              </Link>
-            </p>
-
-            <div className="mt-4 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 text-center">
-              <strong>Demo:</strong> admin@busybeds.com / admin123 &nbsp;|&nbsp; traveler@demo.com / demo123
-            </div>
-
-            <p className="mt-5 text-center">
-              <Link href="/" className="text-xs text-gray-400 hover:text-gray-700 transition-colors inline-flex items-center gap-1">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                Back to Home
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Sign up
               </Link>
             </p>
           </div>
+
+          {/* Demo credentials */}
+          <div className="mt-4 p-3 bg-white/60 backdrop-blur-sm rounded-xl text-xs text-gray-600 text-center border border-gray-100">
+            <strong className="text-gray-700">Demo:</strong> admin@busybeds.com / admin123 &nbsp;|&nbsp; traveler@demo.com / demo123
+          </div>
+
+          {/* Back to home */}
+          <p className="mt-4 text-center">
+            <Link href="/" className="text-xs text-gray-500 hover:text-gray-700 transition-colors inline-flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back to Home
+            </Link>
+          </p>
         </div>
       </div>
     </div>
