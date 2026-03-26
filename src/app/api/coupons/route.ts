@@ -27,13 +27,21 @@ export async function GET(req: NextRequest) {
     orderBy: { generatedAt: 'desc' },
   });
 
-  // Auto-expire old active coupons (only when fetching all, not filtered)
+  // Auto-expire old active coupons using batch update (not individual)
   if (!filterHotelId && !filterStatus) {
     const now = new Date();
-    for (const c of coupons) {
-      if (c.status === 'active' && c.expiresAt < now) {
-        await prisma.coupon.update({ where: { id: c.id }, data: { status: 'expired' } });
-        c.status = 'expired';
+    const expiredIds = coupons
+      .filter(c => c.status === 'active' && c.expiresAt < now)
+      .map(c => c.id);
+    
+    if (expiredIds.length > 0) {
+      await prisma.coupon.updateMany({
+        where: { id: { in: expiredIds } },
+        data: { status: 'expired' }
+      });
+      // Update local state
+      for (const c of coupons) {
+        if (expiredIds.includes(c.id)) c.status = 'expired';
       }
     }
   }

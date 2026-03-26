@@ -2,9 +2,21 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'busybeds-dev-secret-change-in-production'
-);
+// Security: Fail fast in production if JWT_SECRET is not set
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL: JWT_SECRET environment variable is required in production');
+    }
+    // Dev fallback only
+    console.warn('⚠️ Using default JWT secret for development. Set JWT_SECRET in production!');
+    return new TextEncoder().encode('busybeds-dev-secret-change-in-production');
+  }
+  return new TextEncoder().encode(secret);
+}
+
+const SECRET = getJwtSecret();
 
 export interface JWTPayload {
   userId: string;

@@ -37,12 +37,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!isAdmin(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { urls } = await req.json(); // string[]
   if (!Array.isArray(urls)) return NextResponse.json({ error: 'urls array required' }, { status: 400 });
-  // Delete existing, then recreate
+  
+  // Delete existing photos, then recreate
   await prisma.hotelPhoto.deleteMany({ where: { hotelId: params.id } });
-  const photos = await prisma.$queryRawUnsafe(
-    `SELECT 1` // no-op; we use createMany below
-  ).catch(() => null);
-  void photos;
+  
   if (urls.length > 0) {
     await prisma.hotelPhoto.createMany({
       data: urls.filter(Boolean).map((url: string, i: number) => ({

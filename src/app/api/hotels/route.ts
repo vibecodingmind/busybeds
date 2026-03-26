@@ -37,62 +37,68 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  const page  = parseInt(searchParams.get('page')  || '1');
-  const limit = parseInt(searchParams.get('limit') || '18');
+  const page  = Math.max(1, parseInt(searchParams.get('page')  || '1'));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '18'))); // Cap at 100
   const skip  = (page - 1) * limit;
 
   try {
-    let hotels = await prisma.hotel.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        city: true,
-        country: true,
-        coverImage: true,
-        discountPercent: true,
-        starRating: true,
-        avgRating: true,
-        reviewCount: true,
-        isFeatured: true,
-        vibeTags: true,
-        amenities: true,
-        partnershipStatus: true,
-        adminFeatured: true,
-        adminFeaturedUntil: true,
-        roomTypes: {
-          orderBy: { displayOrder: 'asc' },
-          select: { pricePerNight: true }
-        },
-        photos: {
-          orderBy: { displayOrder: 'asc' },
-          select: { id: true, url: true },
-          take: 5
-        },
-        subscription: {
-          where: { status: 'active' },
-          select: {
-            status: true,
-            tier: {
-              select: {
-                name: true,
-                displayName: true,
-                searchBoost: true,
-                showVerifiedBadge: true,
-                featuredOnHomepage: true,
+    // Run count and findMany in parallel for better performance
+    const [hotelsResult, totalCount] = await Promise.all([
+      prisma.hotel.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          city: true,
+          country: true,
+          coverImage: true,
+          discountPercent: true,
+          starRating: true,
+          avgRating: true,
+          reviewCount: true,
+          isFeatured: true,
+          vibeTags: true,
+          amenities: true,
+          partnershipStatus: true,
+          adminFeatured: true,
+          adminFeaturedUntil: true,
+          roomTypes: {
+            orderBy: { displayOrder: 'asc' },
+            select: { pricePerNight: true }
+          },
+          photos: {
+            orderBy: { displayOrder: 'asc' },
+            select: { id: true, url: true },
+            take: 5
+          },
+          subscription: {
+            where: { status: 'active' },
+            select: {
+              status: true,
+              tier: {
+                select: {
+                  name: true,
+                  displayName: true,
+                  searchBoost: true,
+                  showVerifiedBadge: true,
+                  featuredOnHomepage: true,
+                }
               }
             }
-          }
+          },
+          _count: { select: { coupons: true } },
         },
-        _count: { select: { coupons: true } },
-      },
-      orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
-             : sortBy === 'rating'   ? [{ avgRating: 'desc' }]
-             : [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
-      skip,
-      take: limit,
-    });
+        orderBy: sortBy === 'discount' ? [{ discountPercent: 'desc' }]
+               : sortBy === 'rating'   ? [{ avgRating: 'desc' }]
+               : [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      prisma.hotel.count({ where })
+    ]);
+
+    let hotels = hotelsResult;
 
     // Transform subscription data and apply search boost
     hotels = hotels.map(hotel => {
@@ -135,7 +141,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ hotels, total: hotels.length });
+    return NextResponse.json({ hotels, total: totalCount, page, limit });
   } catch (err) {
     console.error('[GET /api/hotels]', err);
     return NextResponse.json({ hotels: [], total: 0 }, { status: 500 });

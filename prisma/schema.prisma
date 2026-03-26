@@ -64,6 +64,11 @@ model User {
   messagesSent     Message[] @relation("MessagesSent")
   messagesReceived Message[] @relation("MessagesReceived")
   notificationPreference NotificationPreference?
+
+  // Performance indexes
+  @@index([role])
+  @@index([createdAt])
+  @@index([emailVerified])
 }
 
 model HotelType {
@@ -149,6 +154,17 @@ model Hotel {
   flashDeals       FlashDeal[]
   subscription     HotelSubscription?
   landmarks        Landmark[]
+
+  // Performance indexes for common queries
+  @@index([status])
+  @@index([city])
+  @@index([country])
+  @@index([starRating])
+  @@index([avgRating])
+  @@index([category])
+  @@index([adminFeatured])
+  @@index([status, city])
+  @@index([status, avgRating])
 }
 
 // Nearby landmarks for hotels (markets, supermarkets, parks, etc.)

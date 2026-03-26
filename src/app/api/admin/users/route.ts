@@ -1,7 +1,19 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
+import { z } from 'zod';
 import prisma from '@/lib/prisma';
+
+// Valid roles for validation
+const VALID_ROLES = ['traveler', 'hotel_owner', 'hotel_manager', 'admin'] as const;
+const VALID_ACTIONS = ['ban', 'unban', 'set_role'] as const;
+
+// Input validation schema
+const patchSchema = z.object({
+  userId: z.string().min(1, 'userId is required'),
+  action: z.enum(VALID_ACTIONS, { errorMap: () => ({ message: 'Invalid action. Must be ban, unban, or set_role' }) }),
+  role: z.enum(VALID_ROLES, { errorMap: () => ({ message: 'Invalid role' }) }).optional(),
+});
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -53,15 +65,31 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { userId, action, role } = await req.json();
-  if (!userId || !action) return NextResponse.json({ error: 'userId and action required' }, { status: 400 });
+  // Parse and validate input
+  const body = await req.json();
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.errors[0]?.message || 'Invalid input' }, { status: 400 });
+  }
+
+  const { userId, action, role } = parsed.data;
+
+  // Additional validation: set_role requires a role
+  if (action === 'set_role' && !role) {
+    return NextResponse.json({ error: 'Role is required for set_role action' }, { status: 400 });
+  }
 
   try {
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     let updateData: any = {};
     if (action === 'ban') updateData.isBanned = true;
     else if (action === 'unban') updateData.isBanned = false;
     else if (action === 'set_role' && role) updateData.role = role;
-    else return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
     const user = await prisma.user.update({ where: { id: userId }, data: updateData });
 

@@ -1,11 +1,22 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
+import { rateLimit, getIp } from '@/lib/rateLimit';
 import prisma from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Please sign in to redeem a gift card' }, { status: 401 });
+
+  // Rate limit: 5 redemption attempts per 5 minutes per IP to prevent brute-force
+  const ip = getIp(req);
+  const rl = rateLimit(`giftcard-redeem:${ip}`, { limit: 5, windowSec: 300 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'Too many redemption attempts. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+    );
+  }
 
   try {
     const { code } = await req.json();

@@ -51,12 +51,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ valid: false, reason: 'Coupon expired', coupon }, { status: 410 });
   }
 
-  // All checks passed — redeem it
-  const redeemed = await prisma.coupon.update({
-    where: { id: coupon.id },
+  // All checks passed — redeem it atomically to prevent race conditions
+  // Use updateMany with status check to ensure atomic redemption
+  const redeemed = await prisma.coupon.updateMany({
+    where: { 
+      id: coupon.id, 
+      status: 'active',  // Only update if still active
+      expiresAt: { gte: now }  // And not expired
+    },
     data: { status: 'redeemed', redeemedAt: now, redeemedBy: session.userId },
+  });
+
+  // Check if the update was successful
+  if (redeemed.count === 0) {
+    // Coupon was already redeemed by another request (race condition)
+    return NextResponse.json({ 
+      valid: false, 
+      reason: 'Coupon already redeemed or expired', 
+      coupon 
+    }, { status: 409 });
+  }
+
+  // Fetch the updated coupon to return
+  const updatedCoupon = await prisma.coupon.findUnique({
+    where: { id: coupon.id },
     include: { hotel: true, user: { select: { fullName: true, email: true } } },
   });
 
-  return NextResponse.json({ valid: true, coupon: redeemed });
+  return NextResponse.json({ valid: true, coupon: updatedCoupon });
 }
