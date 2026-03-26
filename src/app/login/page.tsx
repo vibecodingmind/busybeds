@@ -90,8 +90,8 @@ function LoginForm() {
             backgroundImage: 'url("https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")'
           }}
         />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-transparent" />
+        {/* Dark Overlay for better text visibility */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/75 via-black/65 to-black/75" />
         
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 h-full">
@@ -108,10 +108,10 @@ function LoginForm() {
 
           {/* Hero Text */}
           <div className="max-w-md">
-            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4 drop-shadow-lg">
               Find Your Perfect Hotel Deal
             </h1>
-            <p className="text-lg text-white/80 leading-relaxed">
+            <p className="text-lg text-white leading-relaxed drop-shadow-md">
               Discover exclusive discounts at top hotels. Save up to 70% on your next booking with verified coupons.
             </p>
           </div>

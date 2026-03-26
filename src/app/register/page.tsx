@@ -276,8 +276,8 @@ function RegisterForm() {
             backgroundImage: 'url("https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")'
           }}
         />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-transparent" />
+        {/* Dark Overlay for better text visibility */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/75 via-black/65 to-black/75" />
         
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 h-full">
@@ -294,10 +294,10 @@ function RegisterForm() {
 
           {/* Hero Text */}
           <div className="max-w-md">
-            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4 drop-shadow-lg">
               Start Saving on Hotels Today
             </h1>
-            <p className="text-lg text-white/80 leading-relaxed">
+            <p className="text-lg text-white leading-relaxed drop-shadow-md">
               Join thousands of travelers getting exclusive discounts. Create your free account in seconds.
             </p>
           </div>
