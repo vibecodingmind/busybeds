@@ -84,54 +84,51 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
-          <div className="absolute top-0 -right-4 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
-          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
-          <div className="absolute -bottom-8 right-20 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-3000" />
-        </div>
-        {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
+      {/* Light Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        {/* Decorative blobs */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-rose-200/40 to-pink-200/40 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-violet-200/40 to-purple-200/40 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-gradient-to-br from-cyan-200/30 to-sky-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-gradient-to-br from-amber-200/30 to-orange-200/30 rounded-full blur-3xl" />
       </div>
 
       {/* Glass Card */}
       <div className="relative w-full max-w-md">
-        {/* Glow Effect Behind Card */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-3xl blur-lg opacity-30 animate-pulse" />
+        {/* Subtle Shadow */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-200 via-violet-200 to-cyan-200 rounded-3xl blur opacity-40" />
         
-        <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-8 md:p-10">
+        <div className="relative backdrop-blur-2xl bg-white/70 border border-white/80 rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10">
           {/* Logo & Header */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center justify-center gap-3 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 transform hover:scale-105 transition-transform duration-300">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 via-pink-500 to-violet-500 flex items-center justify-center shadow-lg shadow-pink-500/25 transform hover:scale-105 transition-transform duration-300">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
                   <path d="M9 22V12h6v10"/>
                 </svg>
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">BusyBeds</span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-rose-500 via-pink-500 to-violet-500 bg-clip-text text-transparent">BusyBeds</span>
             </Link>
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-white/60">Sign in to continue your journey</p>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome Back</h1>
+            <p className="text-slate-500">Sign in to continue your journey</p>
           </div>
 
           {/* Status Messages */}
           {verified && (
-            <div className="mb-5 bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+            <div className="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
               Email verified! You can now sign in.
             </div>
           )}
           {tokenError && (
-            <div className="mb-5 bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-300 px-4 py-3 rounded-xl text-sm">
+            <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm">
               Invalid or expired link. Please{' '}
-              <Link href="/register" className="underline font-medium hover:text-white">register again</Link>.
+              <Link href="/register" className="underline font-medium hover:text-red-800">register again</Link>.
             </div>
           )}
           {rateLimited && (
-            <div className="mb-5 bg-orange-500/20 backdrop-blur-sm border border-orange-500/30 text-orange-300 px-4 py-3 rounded-xl text-sm">
+            <div className="mb-5 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-2xl text-sm">
               Too many attempts. Please wait before trying again.
             </div>
           )}
@@ -139,11 +136,11 @@ function LoginForm() {
           <form onSubmit={submit} className="space-y-5">
             {/* Email Field */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white/80">Email Address</label>
+              <label className="text-sm font-medium text-slate-700">Email Address</label>
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl blur opacity-0 group-focus-within:opacity-30 transition-opacity" />
-                <div className="relative flex items-center">
-                  <span className="absolute left-4 text-white/40 group-focus-within:text-cyan-400 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
+                <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
+                  <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                       <polyline points="22,6 12,13 2,6"/>
@@ -154,7 +151,7 @@ function LoginForm() {
                     placeholder="you@example.com"
                     value={form.email}
                     onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-transparent text-slate-800 placeholder-slate-400 text-sm focus:outline-none"
                   />
                 </div>
               </div>
@@ -162,11 +159,11 @@ function LoginForm() {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white/80">Password</label>
+              <label className="text-sm font-medium text-slate-700">Password</label>
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl blur opacity-0 group-focus-within:opacity-30 transition-opacity" />
-                <div className="relative flex items-center">
-                  <span className="absolute left-4 text-white/40 group-focus-within:text-cyan-400 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
+                <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
+                  <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                       <path d="M7 11V7a5 5 0 0110 0v4"/>
@@ -177,12 +174,12 @@ function LoginForm() {
                     placeholder="Enter your password"
                     value={form.password}
                     onChange={e => setForm({ ...form, password: e.target.value })}
-                    className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition-all"
+                    className="w-full pl-12 pr-12 py-4 bg-transparent text-slate-800 placeholder-slate-400 text-sm focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 text-white/40 hover:text-white transition-colors"
+                    className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     {showPass ? <EyeOff /> : <EyeOpen />}
                   </button>
@@ -200,16 +197,17 @@ function LoginForm() {
                     onChange={e => setForm({ ...form, remember: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-5 h-5 border-2 border-white/20 rounded-md peer-checked:bg-gradient-to-r peer-checked:from-cyan-500 peer-checked:to-purple-500 peer-checked:border-transparent transition-all" />
-                  <svg className="absolute top-0.5 left-0.5 w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
+                  <div className="w-5 h-5 border-2 border-slate-300 rounded-lg peer-checked:bg-gradient-to-r peer-checked:from-rose-400 peer-checked:to-pink-500 peer-checked:border-transparent transition-all flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
                 </div>
-                <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors">Remember me</span>
+                <span className="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">Remember me</span>
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm font-medium bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent hover:from-cyan-300 hover:to-purple-300 transition-all"
+                className="text-sm font-medium bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent hover:from-rose-600 hover:to-pink-600 transition-all"
               >
                 Forgot password?
               </Link>
@@ -217,7 +215,7 @@ function LoginForm() {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="8" x2="12" y2="12"/>
@@ -232,8 +230,8 @@ function LoginForm() {
               type="submit" disabled={loading}
               className="relative w-full group"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity" />
-              <div className="relative w-full py-4 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-xl text-white font-semibold tracking-wide transition-all hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
+              <div className="absolute inset-0 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity" />
+              <div className="relative w-full py-4 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl text-white font-semibold tracking-wide transition-all hover:shadow-lg hover:shadow-pink-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
                 {loading ? (
                   <>
                     <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
@@ -253,23 +251,23 @@ function LoginForm() {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <span className="text-xs text-white/40 font-medium uppercase tracking-wider">Or continue with</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Or continue with</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
           </div>
 
           {/* Social Login */}
           <div className="grid grid-cols-2 gap-3">
             <a
               href="/api/auth/google"
-              className="flex items-center justify-center gap-2 px-4 py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all group"
+              className="flex items-center justify-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all"
             >
               <GoogleIcon />
               Google
             </a>
             <button
               type="button"
-              className="flex items-center justify-center gap-2 px-4 py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all group"
+              className="flex items-center justify-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all"
             >
               <MicrosoftIcon />
               Microsoft
@@ -277,47 +275,25 @@ function LoginForm() {
           </div>
 
           {/* Sign Up Link */}
-          <p className="mt-8 text-center text-sm text-white/50">
+          <p className="mt-8 text-center text-sm text-slate-500">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent hover:from-cyan-300 hover:to-purple-300 transition-all">
+            <Link href="/register" className="font-semibold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent hover:from-rose-600 hover:to-pink-600 transition-all">
               Create account
             </Link>
           </p>
         </div>
 
         {/* Demo Credentials */}
-        <div className="mt-4 p-3 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl text-xs text-white/50 text-center">
-          <strong className="text-white/70">Demo:</strong> admin@busybeds.com / admin123
+        <div className="mt-4 p-3 backdrop-blur-xl bg-white/50 border border-white/80 rounded-2xl text-xs text-slate-500 text-center shadow-sm">
+          <strong className="text-slate-700">Demo:</strong> admin@busybeds.com / admin123
         </div>
 
         {/* Back to Home */}
-        <Link href="/" className="mt-4 text-center text-xs text-white/40 hover:text-white/60 transition-colors inline-flex items-center gap-1 w-full justify-center">
+        <Link href="/" className="mt-4 text-center text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1 w-full justify-center">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           Back to Home
         </Link>
       </div>
-
-      {/* CSS for blob animation */}
-      <style jsx global>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        .animation-delay-3000 {
-          animation-delay: 3s;
-        }
-      `}</style>
     </div>
   );
 }
