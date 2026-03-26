@@ -323,5 +323,5 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return <Suspense><LoginForm /></Suspense>;
+  return <Suspense fallback={null}><LoginForm /></Suspense>;
 }
