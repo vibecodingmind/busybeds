@@ -33,13 +33,10 @@ function GoogleIcon() {
   );
 }
 
-function MicrosoftIcon() {
+function LinkedInIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
-      <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-      <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
-      <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
-      <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0A66C2"/>
     </svg>
   );
 }
@@ -83,216 +80,225 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Light Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-slate-100">
-        {/* Decorative blobs */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-rose-200/40 to-pink-200/40 rounded-full blur-3xl" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-violet-200/40 to-purple-200/40 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-gradient-to-br from-cyan-200/30 to-sky-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-gradient-to-br from-amber-200/30 to-orange-200/30 rounded-full blur-3xl" />
+    <div className="min-h-screen flex">
+      {/* Left Side - Hero Image */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: 'url("https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")'
+          }}
+        />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-transparent" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 h-full">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
+                <path d="M9 22V12h6v10"/>
+              </svg>
+            </div>
+            <span className="text-2xl font-bold text-white">BusyBeds</span>
+          </Link>
+
+          {/* Hero Text */}
+          <div className="max-w-md">
+            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+              Find Your Perfect Hotel Deal
+            </h1>
+            <p className="text-lg text-white/80 leading-relaxed">
+              Discover exclusive discounts at top hotels. Save up to 70% on your next booking with verified coupons.
+            </p>
+          </div>
+
+          {/* Navigation Dots */}
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-white" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/40" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/40" />
+          </div>
+        </div>
       </div>
 
-      {/* Glass Card */}
-      <div className="relative w-full max-w-md">
-        {/* Subtle Shadow */}
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-200 via-violet-200 to-cyan-200 rounded-3xl blur opacity-40" />
-        
-        <div className="relative backdrop-blur-2xl bg-white/70 border border-white/80 rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10">
-          {/* Logo & Header */}
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center justify-center gap-3 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 via-pink-500 to-violet-500 flex items-center justify-center shadow-lg shadow-pink-500/25 transform hover:scale-105 transition-transform duration-300">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
-                  <path d="M9 22V12h6v10"/>
-                </svg>
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="w-full max-w-md">
+          
+          {/* Mobile Logo */}
+          <Link href="/" className="flex items-center justify-center gap-2 mb-8 lg:hidden">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
+                <path d="M9 22V12h6v10"/>
+              </svg>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">BusyBeds</span>
+          </Link>
+
+          {/* Glass Card */}
+          <div className="relative">
+            {/* Glow Effect */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-3xl blur-xl opacity-50" />
+            
+            <div className="relative backdrop-blur-xl bg-white/80 border border-white rounded-3xl shadow-2xl shadow-slate-200/50 p-8 md:p-10">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Welcome Back to BusyBeds!</h2>
+                <p className="text-slate-500">Sign in to your account</p>
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-rose-500 via-pink-500 to-violet-500 bg-clip-text text-transparent">BusyBeds</span>
-            </Link>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome Back</h1>
-            <p className="text-slate-500">Sign in to continue your journey</p>
-          </div>
 
-          {/* Status Messages */}
-          {verified && (
-            <div className="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Email verified! You can now sign in.
-            </div>
-          )}
-          {tokenError && (
-            <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm">
-              Invalid or expired link. Please{' '}
-              <Link href="/register" className="underline font-medium hover:text-red-800">register again</Link>.
-            </div>
-          )}
-          {rateLimited && (
-            <div className="mb-5 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-2xl text-sm">
-              Too many attempts. Please wait before trying again.
-            </div>
-          )}
-
-          <form onSubmit={submit} className="space-y-5">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Email Address</label>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
-                <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                  <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                      <polyline points="22,6 12,13 2,6"/>
-                    </svg>
-                  </span>
-                  <input
-                    type="email" required
-                    placeholder="you@example.com"
-                    value={form.email}
-                    onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-4 bg-transparent text-slate-800 placeholder-slate-400 text-sm focus:outline-none"
-                  />
+              {/* Status Messages */}
+              {verified && (
+                <div className="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Email verified! You can now sign in.
                 </div>
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Password</label>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
-                <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                  <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4"/>
-                    </svg>
-                  </span>
-                  <input
-                    type={showPass ? 'text' : 'password'} required
-                    placeholder="Enter your password"
-                    value={form.password}
-                    onChange={e => setForm({ ...form, password: e.target.value })}
-                    className="w-full pl-12 pr-12 py-4 bg-transparent text-slate-800 placeholder-slate-400 text-sm focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPass ? <EyeOff /> : <EyeOpen />}
-                  </button>
+              )}
+              {tokenError && (
+                <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm">
+                  Invalid or expired link. Please{' '}
+                  <Link href="/register" className="underline font-medium hover:text-red-800">register again</Link>.
                 </div>
-              </div>
-            </div>
+              )}
+              {rateLimited && (
+                <div className="mb-5 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-2xl text-sm">
+                  Too many attempts. Please wait before trying again.
+                </div>
+              )}
 
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={form.remember}
-                    onChange={e => setForm({ ...form, remember: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-5 h-5 border-2 border-slate-300 rounded-lg peer-checked:bg-gradient-to-r peer-checked:from-rose-400 peer-checked:to-pink-500 peer-checked:border-transparent transition-all flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
+              <form onSubmit={submit} className="space-y-5">
+                {/* Email */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-600">Your Email</label>
+                  <div className="relative">
+                    <input
+                      type="email" required
+                      placeholder="you@example.com"
+                      value={form.email}
+                      onChange={e => setForm({ ...form, email: e.target.value })}
+                      className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all"
+                    />
                   </div>
                 </div>
-                <span className="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">Remember me</span>
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent hover:from-rose-600 hover:to-pink-600 transition-all"
-              >
-                Forgot password?
-              </Link>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                {error}
-              </div>
-            )}
+                {/* Password */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-600">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPass ? 'text' : 'password'} required
+                      placeholder="Enter your password"
+                      value={form.password}
+                      onChange={e => setForm({ ...form, password: e.target.value })}
+                      className="w-full px-5 py-4 pr-12 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      {showPass ? <EyeOff /> : <EyeOpen />}
+                    </button>
+                  </div>
+                </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit" disabled={loading}
-              className="relative w-full group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity" />
-              <div className="relative w-full py-4 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl text-white font-semibold tracking-wide transition-all hover:shadow-lg hover:shadow-pink-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
-                {loading ? (
-                  <>
-                    <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                {/* Remember & Forgot */}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.remember}
+                      onChange={e => setForm({ ...form, remember: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 text-pink-500 focus:ring-pink-500"
+                    />
+                    <span className="text-sm text-slate-600">Remember Me</span>
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-slate-500 hover:text-pink-500 transition-colors"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+
+                {/* Error */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                  </>
+                    {error}
+                  </div>
                 )}
+
+                {/* Submit */}
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl text-white font-semibold tracking-wide transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      Signing in...
+                    </>
+                  ) : 'Sign In'}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Instant Login</span>
+                <div className="flex-1 h-px bg-slate-200" />
               </div>
-            </button>
-          </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Or continue with</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+              {/* Social Login */}
+              <div className="space-y-3">
+                <a
+                  href="/api/auth/google"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+                >
+                  <GoogleIcon />
+                  Continue with Google
+                </a>
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+                >
+                  <LinkedInIcon />
+                  Continue with LinkedIn
+                </button>
+              </div>
+
+              {/* Register Link */}
+              <p className="mt-6 text-center text-sm text-slate-500">
+                Don&apos;t have any account?{' '}
+                <Link href="/register" className="font-semibold text-pink-500 hover:text-pink-600 transition-colors">
+                  Register
+                </Link>
+              </p>
+            </div>
           </div>
 
-          {/* Social Login */}
-          <div className="grid grid-cols-2 gap-3">
-            <a
-              href="/api/auth/google"
-              className="flex items-center justify-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all"
-            >
-              <GoogleIcon />
-              Google
-            </a>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all"
-            >
-              <MicrosoftIcon />
-              Microsoft
-            </button>
+          {/* Demo Credentials */}
+          <div className="mt-6 p-4 backdrop-blur-xl bg-white/60 border border-white rounded-2xl text-xs text-slate-500 text-center shadow-sm">
+            <p><strong className="text-slate-700">Demo:</strong> admin@busybeds.com / admin123</p>
+            <p className="mt-1">traveler@demo.com / demo123</p>
           </div>
 
-          {/* Sign Up Link */}
-          <p className="mt-8 text-center text-sm text-slate-500">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent hover:from-rose-600 hover:to-pink-600 transition-all">
-              Create account
-            </Link>
-          </p>
+          {/* Back to Home */}
+          <Link href="/" className="mt-4 text-center text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1 w-full justify-center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Home
+          </Link>
         </div>
-
-        {/* Demo Credentials */}
-        <div className="mt-4 p-3 backdrop-blur-xl bg-white/50 border border-white/80 rounded-2xl text-xs text-slate-500 text-center shadow-sm">
-          <strong className="text-slate-700">Demo:</strong> admin@busybeds.com / admin123
-        </div>
-
-        {/* Back to Home */}
-        <Link href="/" className="mt-4 text-center text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1 w-full justify-center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Back to Home
-        </Link>
       </div>
     </div>
   );

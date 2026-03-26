@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { COUNTRIES, getCities } from '@/lib/locations';
@@ -17,13 +17,10 @@ function GoogleIcon() {
   );
 }
 
-function MicrosoftIcon() {
+function LinkedInIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
-      <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-      <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
-      <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
-      <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0A66C2"/>
     </svg>
   );
 }
@@ -56,8 +53,6 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
   ];
   return levels[score];
 }
-
-const inputCls = 'w-full pl-12 pr-4 py-4 bg-transparent text-slate-800 placeholder-slate-400 text-sm focus:outline-none';
 
 const ROLE_OPTIONS = [
   {
@@ -96,21 +91,99 @@ function StepIndicator({ step }: { step: number }) {
             <div
               className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all"
               style={{
-                background: done ? '#dcfce7' : active ? 'linear-gradient(135deg, #fb7185, #ec4899)' : 'rgba(255,255,255,0.8)',
+                background: done ? '#dcfce7' : active ? '#0f172a' : '#f1f5f9',
                 color: done ? '#16a34a' : active ? 'white' : '#94a3b8',
                 border: done ? '1px solid #bbf7d0' : active ? '1px solid transparent' : '1px solid #e2e8f0',
-                boxShadow: active ? '0 4px 15px rgba(251, 113, 133, 0.3)' : 'none',
               }}
             >
               {done ? <CheckIcon /> : <span className="w-4 h-4 flex items-center justify-center">{n}</span>}
               <span>{label}</span>
             </div>
             {n < 3 && (
-              <div className="w-8 h-0.5 rounded-full" style={{ background: done ? '#22c55e' : '#e2e8f0' }} />
+              <div className="w-6 h-0.5 rounded-full" style={{ background: done ? '#22c55e' : '#e2e8f0' }} />
             )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Searchable Select Component
+function SearchableSelect({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder 
+}: { 
+  options: string[]; 
+  value: string; 
+  onChange: (val: string) => void; 
+  placeholder: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtered = options.filter(opt => 
+    opt.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-sm text-left focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all flex items-center justify-between"
+      >
+        <span className={value ? 'text-slate-800' : 'text-slate-400'}>
+          {value || placeholder}
+        </span>
+        <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-100"
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-slate-400 text-center">No results found</div>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => { onChange(opt); setIsOpen(false); setSearch(''); }}
+                  className={`w-full px-4 py-2.5 text-sm text-left hover:bg-pink-50 transition-colors ${value === opt ? 'bg-pink-50 text-pink-600 font-medium' : 'text-slate-700'}`}
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -193,275 +266,337 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Light Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-slate-100">
-        {/* Decorative blobs */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-rose-200/40 to-pink-200/40 rounded-full blur-3xl" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-violet-200/40 to-purple-200/40 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-gradient-to-br from-cyan-200/30 to-sky-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-gradient-to-br from-amber-200/30 to-orange-200/30 rounded-full blur-3xl" />
-      </div>
-
-      {/* Glass Card */}
-      <div className="relative w-full max-w-md">
-        {/* Subtle Shadow */}
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-200 via-violet-200 to-cyan-200 rounded-3xl blur opacity-40" />
+    <div className="min-h-screen flex">
+      {/* Left Side - Hero Image */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: 'url("https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")'
+          }}
+        />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-transparent" />
         
-        <div className="relative backdrop-blur-2xl bg-white/70 border border-white/80 rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10">
-          {/* Logo & Header */}
-          <div className="text-center mb-6">
-            <Link href="/" className="inline-flex items-center justify-center gap-3 mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 via-pink-500 to-violet-500 flex items-center justify-center shadow-lg shadow-pink-500/25 transform hover:scale-105 transition-transform duration-300">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
-                  <path d="M9 22V12h6v10"/>
-                </svg>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-rose-500 via-pink-500 to-violet-500 bg-clip-text text-transparent">BusyBeds</span>
-            </Link>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Create Account</h1>
-            <p className="text-slate-500">Join thousands of smart travelers</p>
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 h-full">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
+                <path d="M9 22V12h6v10"/>
+              </svg>
+            </div>
+            <span className="text-2xl font-bold text-white">BusyBeds</span>
+          </Link>
+
+          {/* Hero Text */}
+          <div className="max-w-md">
+            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+              Start Saving on Hotels Today
+            </h1>
+            <p className="text-lg text-white/80 leading-relaxed">
+              Join thousands of travelers getting exclusive discounts. Create your free account in seconds.
+            </p>
           </div>
 
-          {/* Step Indicator */}
-          <StepIndicator step={step} />
+          {/* Navigation Dots */}
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-white/40" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/40" />
+          </div>
+        </div>
+      </div>
 
-          {/* STEP 1: Role selection */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {ROLE_OPTIONS.map(opt => {
-                  const selected = form.role === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => { setForm({ ...form, role: opt.value }); setError(''); }}
-                      className={`p-5 rounded-2xl text-left transition-all border-2 ${selected ? 'border-pink-300 bg-pink-50 shadow-lg shadow-pink-200/50' : 'border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white/80'}`}
-                    >
-                      <div className="text-pink-500 mb-3">{opt.icon}</div>
-                      <div className="font-semibold text-slate-800 text-sm">{opt.title}</div>
-                      <div className="text-xs text-slate-500 mb-2">{opt.desc}</div>
-                      {selected && (
-                        <div className="flex items-center gap-1 text-xs text-pink-600 font-medium">
-                          <CheckIcon /> Selected
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-4 my-4">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-                <span className="text-xs text-slate-400 font-medium">OR</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-              </div>
-
-              <a href="/api/auth/google"
-                className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all">
-                <GoogleIcon /> Continue with Google
-              </a>
-
-              {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">{error}</p>}
-
-              <button type="button" onClick={nextStep}
-                className="w-full py-4 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-pink-500/25 flex items-center justify-center gap-2">
-                Continue
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
+      {/* Right Side - Register Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="w-full max-w-md">
+          
+          {/* Mobile Logo */}
+          <Link href="/" className="flex items-center justify-center gap-2 mb-6 lg:hidden">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9L12 3l9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/>
+                <path d="M9 22V12h6v10"/>
+              </svg>
             </div>
-          )}
+            <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">BusyBeds</span>
+          </Link>
 
-          {/* STEP 2: Credentials */}
-          {step === 2 && (
-            <div className="space-y-4">
-              {referralApplied && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 text-sm flex items-center gap-2">
-                  Gift Referral code applied - 7 bonus days incoming!
+          {/* Glass Card */}
+          <div className="relative">
+            {/* Glow Effect */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-3xl blur-xl opacity-50" />
+            
+            <div className="relative backdrop-blur-xl bg-white/80 border border-white rounded-3xl shadow-2xl shadow-slate-200/50 p-8 md:p-10">
+              {/* Header */}
+              <div className="text-center mb-4">
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Create Your Account</h2>
+                <p className="text-slate-500">Join thousands of smart travelers</p>
+              </div>
+
+              {/* Step Indicator */}
+              <StepIndicator step={step} />
+
+              {/* STEP 1: Role selection */}
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {ROLE_OPTIONS.map(opt => {
+                      const selected = form.role === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { setForm({ ...form, role: opt.value }); setError(''); }}
+                          className={`p-5 rounded-2xl text-left transition-all border-2 ${selected ? 'border-pink-400 bg-pink-50 shadow-lg shadow-pink-100' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                        >
+                          <div className="text-pink-500 mb-3">{opt.icon}</div>
+                          <div className="font-semibold text-slate-800 text-sm">{opt.title}</div>
+                          <div className="text-xs text-slate-500 mb-2">{opt.desc}</div>
+                          {selected && (
+                            <div className="flex items-center gap-1 text-xs text-pink-600 font-medium">
+                              <CheckIcon /> Selected
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-4 my-4">
+                    <div className="flex-1 h-px bg-slate-200" />
+                    <span className="text-xs text-slate-400 font-medium">OR</span>
+                    <div className="flex-1 h-px bg-slate-200" />
+                  </div>
+
+                  <a href="/api/auth/google"
+                    className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                    <GoogleIcon /> Continue with Google
+                  </a>
+
+                  <button type="button"
+                    className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                    <LinkedInIcon /> Continue with LinkedIn
+                  </button>
+
+                  {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">{error}</p>}
+
+                  <button type="button" onClick={nextStep}
+                    className="w-full py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl text-white text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                    Continue
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
                 </div>
               )}
 
-              {/* Full name */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Full Name</label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
-                  <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                    <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </span>
-                    <input className={inputCls} placeholder="John Smith" value={form.fullName} onChange={e => setForm({ ...form, fullName: e.target.value })} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Email Address</label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
-                  <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                    <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    </span>
-                    <input className={inputCls} type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Phone <span className="text-slate-400 font-normal">(optional)</span></label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
-                  <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                    <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.7 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012.62 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.34a16 16 0 006.72 6.72l.91-.91a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 15.61z"/></svg>
-                    </span>
-                    <input className={inputCls} type="tel" placeholder="+1 555 000 0000" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Password</label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-200 via-pink-200 to-violet-200 rounded-2xl blur opacity-0 group-focus-within:opacity-50 transition-opacity" />
-                  <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                    <span className="absolute left-4 text-slate-400 group-focus-within:text-pink-500 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                    </span>
-                    <input className={`${inputCls} pr-12`} type={showPass ? 'text' : 'password'} placeholder="At least 6 characters" minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors">
-                      <EyeIcon open={showPass} />
-                    </button>
-                  </div>
-                </div>
-                {form.password && (
-                  <div className="flex items-center gap-2 mt-2">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="flex-1 h-1.5 rounded-full transition-all" style={{ background: i <= pwStrength.score ? pwStrength.color : '#e2e8f0' }} />
-                    ))}
-                    {pwStrength.label && <span className="text-xs font-medium" style={{ color: pwStrength.color }}>{pwStrength.label}</span>}
-                  </div>
-                )}
-              </div>
-
-              {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">{error}</p>}
-
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(1)} className="px-5 py-4 rounded-2xl border border-slate-200 bg-white/50 text-sm font-medium text-slate-600 hover:bg-white transition-all">
-                  Back
-                </button>
-                <button type="button" onClick={nextStep}
-                  className="flex-1 py-4 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-pink-500/25 flex items-center justify-center gap-2">
-                  Continue
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: Location + Finalize */}
-          {step === 3 && (
-            <div className="space-y-4">
-              {/* Country + City */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Country</label>
-                  <div className="relative group">
-                    <div className="flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                      <select className={`${inputCls} pl-4`} value={form.country} onChange={e => setForm({ ...form, country: e.target.value, city: '' })}>
-                        <option value="">Select...</option>
-                        {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">City</label>
-                  <div className="relative group">
-                    <div className="flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl group-focus-within:border-pink-300 transition-colors">
-                      {cities.length > 0 ? (
-                        <select className={`${inputCls} pl-4`} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })}>
-                          <option value="">Select...</option>
-                          {cities.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      ) : (
-                        <input className={`${inputCls} pl-4`} placeholder={form.country ? 'Enter city...' : 'Country first'} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} disabled={!form.country} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hotel picker for hotel_owner */}
-              {form.role === 'hotel_owner' && (
-                <div className="p-4 bg-pink-50 rounded-2xl border border-pink-200 space-y-3">
-                  <p className="text-sm font-semibold text-slate-700">Select your hotel</p>
-                  <div className="relative group">
-                    <div className="flex items-center bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl">
-                      <input className={inputCls} placeholder="Search by name or city..." value={hotelSearch} onChange={e => setHotelSearch(e.target.value)} />
-                    </div>
-                  </div>
-                  {selectedHotel ? (
-                    <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-200">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-slate-800">{selectedHotel.name}</p>
-                        <p className="text-xs text-slate-500">{selectedHotel.city}, {selectedHotel.country}</p>
-                      </div>
-                      <button type="button" onClick={() => setSelectedHotel(null)} className="text-xs text-pink-500 hover:text-pink-600">Change</button>
-                    </div>
-                  ) : (
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {!hotelsLoaded && <div className="text-center py-2"><span className="animate-spin w-4 h-4 border-2 border-pink-400 border-t-transparent rounded-full inline-block" /></div>}
-                      {hotelsLoaded && filteredHotels.slice(0, 5).map(h => (
-                        <button key={h.id} type="button" onClick={() => setSelectedHotel(h)} className="w-full p-2 rounded-xl border border-slate-200 bg-white hover:border-pink-300 hover:bg-pink-50 text-left text-sm text-slate-700 transition-all">
-                          {h.name} <span className="text-slate-400">- {h.city}</span>
-                        </button>
-                      ))}
+              {/* STEP 2: Credentials */}
+              {step === 2 && (
+                <div className="space-y-4">
+                  {referralApplied && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 text-sm flex items-center gap-2">
+                      Gift Referral code applied - 7 bonus days incoming!
                     </div>
                   )}
+
+                  {/* Full name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-600">Full Name</label>
+                    <input 
+                      className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all"
+                      placeholder="John Smith" 
+                      value={form.fullName} 
+                      onChange={e => setForm({ ...form, fullName: e.target.value })} 
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-600">Email Address</label>
+                    <input 
+                      className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all"
+                      type="email" 
+                      placeholder="you@example.com" 
+                      value={form.email} 
+                      onChange={e => setForm({ ...form, email: e.target.value })} 
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-600">Phone <span className="text-slate-400 font-normal">(optional)</span></label>
+                    <input 
+                      className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all"
+                      type="tel" 
+                      placeholder="+1 555 000 0000" 
+                      value={form.phone} 
+                      onChange={e => setForm({ ...form, phone: e.target.value })} 
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-600">Password</label>
+                    <div className="relative">
+                      <input 
+                        className="w-full px-5 py-4 pr-12 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all"
+                        type={showPass ? 'text' : 'password'} 
+                        placeholder="At least 6 characters" 
+                        minLength={6} 
+                        value={form.password} 
+                        onChange={e => setForm({ ...form, password: e.target.value })} 
+                      />
+                      <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                        <EyeIcon open={showPass} />
+                      </button>
+                    </div>
+                    {form.password && (
+                      <div className="flex items-center gap-2 mt-2">
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} className="flex-1 h-1.5 rounded-full transition-all" style={{ background: i <= pwStrength.score ? pwStrength.color : '#e2e8f0' }} />
+                        ))}
+                        {pwStrength.label && <span className="text-xs font-medium" style={{ color: pwStrength.color }}>{pwStrength.label}</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">{error}</p>}
+
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setStep(1)} className="px-5 py-4 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+                      Back
+                    </button>
+                    <button type="button" onClick={nextStep}
+                      className="flex-1 py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl text-white text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                      Continue
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Summary */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Account Summary</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-slate-800">{form.fullName || '-'}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-medium text-slate-800 truncate max-w-32">{form.email || '-'}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Role</span><span className="font-medium text-slate-800">{form.role === 'traveler' ? 'Traveler' : 'Hotel Host'}</span></div>
+              {/* STEP 3: Location + Finalize */}
+              {step === 3 && (
+                <div className="space-y-4">
+                  {/* Country + City with Searchable Dropdowns */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-600">Country</label>
+                      <SearchableSelect
+                        options={COUNTRIES}
+                        value={form.country}
+                        onChange={val => setForm({ ...form, country: val, city: '' })}
+                        placeholder="Select country..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-600">City</label>
+                      {form.country && cities.length > 0 ? (
+                        <SearchableSelect
+                          options={cities}
+                          value={form.city}
+                          onChange={val => setForm({ ...form, city: val })}
+                          placeholder="Select city..."
+                        />
+                      ) : (
+                        <input
+                          className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100 transition-all disabled:opacity-50"
+                          placeholder={form.country ? 'Enter city...' : 'Select country first'}
+                          value={form.city}
+                          onChange={e => setForm({ ...form, city: e.target.value })}
+                          disabled={!form.country}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Hotel Search for owners - NO SCROLLBAR, just search */}
+                  {form.role === 'hotel_owner' && (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <p className="text-sm font-semibold text-slate-700">Search Your Hotel</p>
+                      <div className="relative">
+                        <input 
+                          className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all"
+                          placeholder="Type hotel name or city..."
+                          value={hotelSearch}
+                          onChange={e => { setHotelSearch(e.target.value); setSelectedHotel(null); }}
+                        />
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                        </svg>
+                      </div>
+                      
+                      {selectedHotel ? (
+                        <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-200">
+                          <div>
+                            <p className="font-medium text-sm text-slate-800">{selectedHotel.name}</p>
+                            <p className="text-xs text-slate-500">{selectedHotel.city}, {selectedHotel.country}</p>
+                          </div>
+                          <button type="button" onClick={() => setSelectedHotel(null)} className="text-xs text-pink-500 hover:text-pink-600 font-medium">Change</button>
+                        </div>
+                      ) : hotelSearch && (
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                          {!hotelsLoaded ? (
+                            <div className="p-4 text-center"><span className="animate-spin w-5 h-5 border-2 border-pink-400 border-t-transparent rounded-full inline-block" /></div>
+                          ) : filteredHotels.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-slate-500">No hotels found</div>
+                          ) : (
+                            filteredHotels.slice(0, 3).map(h => (
+                              <button 
+                                key={h.id} 
+                                type="button" 
+                                onClick={() => { setSelectedHotel(h); setHotelSearch(''); }}
+                                className="w-full p-3 text-left hover:bg-pink-50 transition-colors border-b border-slate-100 last:border-b-0"
+                              >
+                                <p className="font-medium text-sm text-slate-800">{h.name}</p>
+                                <p className="text-xs text-slate-500">{h.city}, {h.country}</p>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Account Summary</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-slate-800">{form.fullName || '-'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-medium text-slate-800 truncate max-w-32">{form.email || '-'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Role</span><span className="font-medium text-slate-800">{form.role === 'traveler' ? 'Traveler' : 'Hotel Host'}</span></div>
+                    </div>
+                  </div>
+
+                  {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">{error}</p>}
+
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setStep(2)} className="px-5 py-4 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">Back</button>
+                    <button type="button" onClick={submit} disabled={loading}
+                      className="flex-1 py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl text-white text-sm font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                      {loading ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Creating...</> : 'Create Account'}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">{error}</p>}
-
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(2)} className="px-5 py-4 rounded-2xl border border-slate-200 bg-white/50 text-sm font-medium text-slate-600 hover:bg-white transition-all">Back</button>
-                <button type="button" onClick={submit} disabled={loading}
-                  className="flex-1 py-4 bg-gradient-to-r from-rose-400 via-pink-500 to-violet-500 rounded-2xl text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-pink-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
-                  {loading ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Creating...</> : 'Create Account'}
-                </button>
-              </div>
+              <p className="mt-6 text-center text-sm text-slate-500">
+                Already have an account?{' '}
+                <Link href="/login" className="font-semibold text-pink-500 hover:text-pink-600 transition-colors">Sign in</Link>
+              </p>
             </div>
-          )}
+          </div>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Already have an account?{' '}
-            <Link href="/login" className="font-semibold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent hover:from-rose-600 hover:to-pink-600 transition-all">Sign in</Link>
-          </p>
+          {/* Back to Home */}
+          <Link href="/" className="mt-4 text-center text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1 w-full justify-center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Home
+          </Link>
         </div>
-
-        {/* Back to Home */}
-        <Link href="/" className="mt-4 text-center text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1 w-full justify-center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          Back to Home
-        </Link>
       </div>
     </div>
   );
@@ -469,7 +604,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100"><div className="animate-spin w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100"><div className="animate-spin w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full" /></div>}>
       <RegisterForm />
     </Suspense>
   );
