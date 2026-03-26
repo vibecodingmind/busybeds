@@ -1,7 +1,10 @@
-const CACHE_NAME = 'busybeds-v2'; // Incremented version to force cache clear
+const CACHE_NAME = 'busybeds-v3'; // Incremented version to force cache clear with new icons
 const STATIC_URLS = [
   '/',
   '/offline.html',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/manifest.json',
 ];
 
 // Paths that should NEVER be cached (dynamic data)
@@ -138,7 +141,7 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: '/icon-192x192.png',
+      icon: '/icon-192.png',
       badge: '/badge-72x72.png',
     })
   );
