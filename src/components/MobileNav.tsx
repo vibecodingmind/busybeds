@@ -53,7 +53,7 @@ const NAV_ITEMS = [
 export default function MobileNav() {
   const pathname = usePathname();
 
-  const hideOn = ['/admin', '/portal', '/login', '/register', '/apply', '/forgot-password', '/reset-password', '/share', '/onboarding'];
+  const hideOn = ['/admin', '/portal', '/login', '/register', '/forgot-password', '/reset-password', '/share'];
   if (hideOn.some(p => pathname.startsWith(p))) return null;
 
   return (

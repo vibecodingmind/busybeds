@@ -124,14 +124,6 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* Become Host */}
-          <Link
-            href="/onboarding"
-            className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-black/5 active:scale-95 transition-all duration-200 whitespace-nowrap"
-          >
-            Become Host
-          </Link>
-
           {/* Language */}
           <div className="hidden md:block">
             <LanguageSelector />
@@ -271,11 +263,6 @@ export default function Navbar() {
                       >
                         Create Account
                       </Link>
-                    </div>
-                    <div className="mx-3 border-t border-black/[0.06] pt-2 pb-1">
-                      <MenuItem href="/onboarding" onClick={() => setMenuOpen(false)} icon={
-                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                      }>Become Host</MenuItem>
                     </div>
                   </div>
                 )}

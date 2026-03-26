@@ -1,10 +1,9 @@
 'use client';
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, Suspense, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { COUNTRIES, getCities } from '@/lib/locations';
 
-interface Hotel { id: string; name: string; city: string; country: string; starRating: number; }
 
 function GoogleIcon() {
   return (
@@ -58,23 +57,12 @@ const ROLE_OPTIONS = [
   {
     value: 'traveler',
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
         <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
       </svg>
     ),
     title: 'Traveler',
     desc: 'I want hotel discounts',
-  },
-  {
-    value: 'hotel_owner',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    ),
-    title: 'Hotel Host',
-    desc: 'I manage a property',
   },
 ];
 
@@ -199,29 +187,11 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [referralApplied, setReferralApplied] = useState(false);
 
-  const [hotels, setHotels] = useState<Hotel[]>([]);
-  const [hotelSearch, setHotelSearch] = useState('');
-  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
-  const [hotelsLoaded, setHotelsLoaded] = useState(false);
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams.get('ref');
   const cities = getCities(form.country);
   const pwStrength = passwordStrength(form.password);
-
-  useEffect(() => {
-    if (form.role === 'hotel_owner' && !hotelsLoaded) {
-      fetch('/api/hotels?status=active')
-        .then(r => r.json())
-        .then(d => { setHotels(d.hotels || []); setHotelsLoaded(true); });
-    }
-  }, [form.role, hotelsLoaded]);
-
-  const filteredHotels = hotels.filter(h =>
-    h.name.toLowerCase().includes(hotelSearch.toLowerCase()) ||
-    h.city.toLowerCase().includes(hotelSearch.toLowerCase())
-  );
 
   const nextStep = () => {
     if (step === 1 && !form.role) { setError('Please choose your role to continue.'); return; }
@@ -235,9 +205,6 @@ function RegisterForm() {
   };
 
   const submit = async () => {
-    if (form.role === 'hotel_owner' && !selectedHotel) {
-      setError('Please select the hotel you represent before continuing.'); return;
-    }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/auth/register', {
@@ -246,7 +213,6 @@ function RegisterForm() {
         body: JSON.stringify({
           ...form,
           phone: form.phone || undefined,
-          hotelId: form.role === 'hotel_owner' ? selectedHotel?.id : undefined,
         }),
       });
       const data = await res.json();
@@ -260,7 +226,7 @@ function RegisterForm() {
           if (refRes.ok) setReferralApplied(true);
         } catch (err) { console.error('Referral error:', err); }
       }
-      router.push(form.role === 'traveler' ? '/subscribe' : '/apply/status');
+      router.push('/subscribe');
       router.refresh();
     } finally { setLoading(false); }
   };
@@ -514,61 +480,12 @@ function RegisterForm() {
                     </div>
                   </div>
 
-                  {/* Hotel Search for owners - NO SCROLLBAR, just search */}
-                  {form.role === 'hotel_owner' && (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                      <p className="text-sm font-semibold text-slate-700">Search Your Hotel</p>
-                      <div className="relative">
-                        <input 
-                          className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all"
-                          placeholder="Type hotel name or city..."
-                          value={hotelSearch}
-                          onChange={e => { setHotelSearch(e.target.value); setSelectedHotel(null); }}
-                        />
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                        </svg>
-                      </div>
-                      
-                      {selectedHotel ? (
-                        <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-200">
-                          <div>
-                            <p className="font-medium text-sm text-slate-800">{selectedHotel.name}</p>
-                            <p className="text-xs text-slate-500">{selectedHotel.city}, {selectedHotel.country}</p>
-                          </div>
-                          <button type="button" onClick={() => setSelectedHotel(null)} className="text-xs text-pink-500 hover:text-pink-600 font-medium">Change</button>
-                        </div>
-                      ) : hotelSearch && (
-                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                          {!hotelsLoaded ? (
-                            <div className="p-4 text-center"><span className="animate-spin w-5 h-5 border-2 border-pink-400 border-t-transparent rounded-full inline-block" /></div>
-                          ) : filteredHotels.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-slate-500">No hotels found</div>
-                          ) : (
-                            filteredHotels.slice(0, 3).map(h => (
-                              <button 
-                                key={h.id} 
-                                type="button" 
-                                onClick={() => { setSelectedHotel(h); setHotelSearch(''); }}
-                                className="w-full p-3 text-left hover:bg-pink-50 transition-colors border-b border-slate-100 last:border-b-0"
-                              >
-                                <p className="font-medium text-sm text-slate-800">{h.name}</p>
-                                <p className="text-xs text-slate-500">{h.city}, {h.country}</p>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Summary */}
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Account Summary</p>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-slate-800">{form.fullName || '-'}</span></div>
                       <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-medium text-slate-800 truncate max-w-32">{form.email || '-'}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-500">Role</span><span className="font-medium text-slate-800">{form.role === 'traveler' ? 'Traveler' : 'Hotel Host'}</span></div>
                     </div>
                   </div>
 
