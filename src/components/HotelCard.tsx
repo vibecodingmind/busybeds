@@ -292,10 +292,10 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           </div>
         )}
 
-        {/* Row 4: Price */}
-        {minPrice && (
+        {/* Row 4: Price — only show for ACTIVE partners, otherwise "Contact for price" */}
+        {isPartnerActive && minPrice ? (
           <div className="flex items-baseline gap-1.5 mt-1">
-            {isPartnerActive && discountedPrice && discountedPrice < minPrice ? (
+            {discountedPrice && discountedPrice < minPrice ? (
               <>
                 {hasMultiplePrices && <span className="text-gray-500 text-sm font-medium">From</span>}
                 <span className="line-through text-gray-400 text-sm">{format(minPrice)}</span>
@@ -310,7 +310,14 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
               </>
             )}
           </div>
-        )}
+        ) : !isPartnerActive ? (
+          <div className="flex items-center gap-1.5 mt-1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+            </svg>
+            <span className="text-gray-500 text-sm font-medium">Contact for price</span>
+          </div>
+        ) : null}
       </div>
     </Link>
   );

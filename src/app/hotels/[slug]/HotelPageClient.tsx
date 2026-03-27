@@ -333,8 +333,15 @@ export default function HotelPageClient({
                               <p className="text-xl font-bold text-emerald-700">${disc}<span className="text-sm font-normal text-gray-400">/night</span></p>
                               <p className="text-xs font-semibold text-emerald-600 mt-1">Save ${roomSavings}</p>
                             </>
-                          ) : (
+                          ) : isPartnerActive ? (
                             <p className="text-xl font-bold text-gray-900">${room.pricePerNight.toFixed(0)}<span className="text-sm font-normal text-gray-400">/night</span></p>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
+                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+                              </svg>
+                              <span className="text-sm font-medium text-gray-500">Contact for price</span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -499,25 +506,32 @@ export default function HotelPageClient({
               </div>
             )}
             
-            {/* Pricing */}
-            {minPrice && (
+            {/* Pricing — only for ACTIVE partners */}
+            {isPartnerActive && minPrice ? (
               <div className="mb-5">
                 <div className="flex items-end gap-2 mb-1">
                   {hasMultiplePrices && <span className="text-gray-500 text-base mb-1">From</span>}
                   <span className="text-4xl font-extrabold text-gray-900">${discountedPrice}</span>
-                  {isPartnerActive && savings && (
+                  {savings && (
                     <span className="text-gray-400 line-through text-base mb-1">${minPrice.toFixed(0)}</span>
                   )}
                 </div>
                 <p className="text-xs text-gray-400">per night · before taxes</p>
-                {isPartnerActive && savings && (
+                {savings && (
                   <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-semibold text-emerald-700">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                     You save ${savings}/night · {hotel.discountPercent}% off
                   </div>
                 )}
               </div>
-            )}
+            ) : !isPartnerActive ? (
+              <div className="mb-5 flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+                </svg>
+                <span className="text-sm font-medium text-gray-600">Contact hotel for pricing</span>
+              </div>
+            ) : null}
 
             {/* Coupon generation — only for active partners */}
             {isPartnerActive ? (
