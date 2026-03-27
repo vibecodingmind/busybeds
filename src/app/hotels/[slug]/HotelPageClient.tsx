@@ -204,62 +204,72 @@ export default function HotelPageClient({
         <div className="min-w-0">
 
           {/* Hotel title + meta */}
-          <div className="py-8 border-b border-gray-200">
-            <div className="flex items-start gap-3 flex-wrap mb-3">
+          <div className="pb-8 border-b border-gray-100">
+            {/* Badges row */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
               {hotel.category && (
-                <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">{hotel.category}</span>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">{hotel.category}</span>
               )}
               {hotel.isFeatured && (
-                <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">⭐ Featured</span>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">⭐ Featured</span>
               )}
               {flashDeal && (
-                <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-orange-500 text-white animate-pulse">
-                  ⚡ Flash Deal: {flashDeal.discountPercent}% Off
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-orange-500 text-white animate-pulse">⚡ Flash Deal: {flashDeal.discountPercent}% Off</span>
+              )}
+              {isPartnerActive && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#10B981">
+                    <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                  </svg>
+                  Verified
                 </span>
               )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
+
+            {/* Hotel name + stars */}
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-2">
               {hotel.name}
-              <span className="ml-2 inline-flex items-center gap-1">
-                <Stars n={hotel.starRating} size={18} />
-              </span>
             </h1>
-            <div className="flex flex-wrap items-center gap-3 mb-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Stars n={hotel.starRating} size={16} />
+              <span className="text-sm text-gray-500">{hotel.starRating}-star hotel</span>
+            </div>
+
+            {/* Location + rating row */}
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              <a href="#map" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {hotel.address || `${hotel.city}, ${hotel.country}`}
+              </a>
               {hotel.avgRating && (
-                <a href="#reviews" className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <a href="#reviews" className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 hover:underline">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                   {hotel.avgRating.toFixed(1)}
-                  <span className="text-gray-500 font-normal">({hotel.reviewCount} reviews)</span>
+                  <span className="text-gray-500 font-normal">({hotel.reviewCount} review{hotel.reviewCount !== 1 ? 's' : ''})</span>
                 </a>
               )}
             </div>
-            <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-4">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              {hotel.address || `${hotel.city}, ${hotel.country}`}
-            </p>
-            
-            {/* Save X% with coupon badge */}
-            {isPartnerActive && hotel.discountPercent > 0 && (
-              <div className="mb-3">
+
+            {/* Discount + social proof */}
+            <div className="flex flex-wrap items-center gap-3">
+              {isPartnerActive && hotel.discountPercent > 0 && (
                 <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 font-semibold px-3 py-1.5 rounded-full border border-emerald-200 text-sm">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Save {hotel.discountPercent}% with coupon
                 </span>
-              </div>
-            )}
-            
-            {/* Social proof badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              {(hotel.redeemedThisMonth ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="20 6 9 17 4 12"/></svg>
-                  {hotel.redeemedThisMonth} coupon{hotel.redeemedThisMonth !== 1 ? 's' : ''} redeemed this month
+              )}
+              {!isPartnerActive && (
+                <span className="inline-flex items-center gap-1.5 bg-gray-50 text-gray-500 font-medium px-3 py-1.5 rounded-full border border-gray-200 text-sm">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+                  </svg>
+                  Contact for pricing
                 </span>
               )}
-              {hotel.lastCouponAt && (
+              {(hotel.redeemedThisMonth ?? 0) > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                  <span className="text-gray-300">•</span>
-                  Last coupon {timeAgo(hotel.lastCouponAt)}
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  {hotel.redeemedThisMonth} redeemed this month
                 </span>
               )}
             </div>
@@ -485,118 +495,129 @@ export default function HotelPageClient({
         {/* ════ RIGHT COLUMN (sticky) ══════════════════════════ */}
         <div className="lg:sticky lg:top-24 space-y-4">
 
-          {/* ── Coupon Widget ── */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            {/* Partnership status banner for non-active partners */}
-            {!isPartnerActive && (
-              <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-gray-500">
-                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                  <span className="text-sm font-semibold text-gray-700">
-                    {hotel.partnershipStatus === 'LISTING_ONLY' ? 'Listed for Reference' : 'Partnership Ended'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">
-                  {hotel.partnershipStatus === 'LISTING_ONLY' 
-                    ? 'This property is listed for information only. Coupons are not available.'
-                    : 'This property was previously a partner. Coupons are no longer available.'}
-                </p>
-              </div>
-            )}
-            
-            {/* Pricing — only for ACTIVE partners */}
-            {isPartnerActive && minPrice ? (
-              <div className="mb-5">
-                <div className="flex items-end gap-2 mb-1">
-                  {hasMultiplePrices && <span className="text-gray-500 text-base mb-1">From</span>}
-                  <span className="text-4xl font-extrabold text-gray-900">${discountedPrice}</span>
+          {/* ── Main Action Card ── */}
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-lg overflow-hidden">
+            {/* Card header — partner vs listing */}
+            {isPartnerActive ? (
+              <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+                <div className="flex items-baseline justify-between mb-1">
+                  <div>
+                    {minPrice ? (
+                      <>
+                        <div className="flex items-baseline gap-2">
+                          {hasMultiplePrices && <span className="text-gray-400 text-sm">From</span>}
+                          <span className="text-4xl font-extrabold text-gray-900">${discountedPrice}</span>
+                          {savings && <span className="text-gray-400 line-through text-lg">${minPrice.toFixed(0)}</span>}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">per night · before taxes</p>
+                      </>
+                    ) : (
+                      <p className="text-base font-semibold text-gray-700">Get your discount coupon</p>
+                    )}
+                  </div>
                   {savings && (
-                    <span className="text-gray-400 line-through text-base mb-1">${minPrice.toFixed(0)}</span>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                      -{hotel.discountPercent}%
+                    </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-400">per night · before taxes</p>
                 {savings && (
-                  <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-semibold text-emerald-700">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    You save ${savings}/night · {hotel.discountPercent}% off
+                  <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-emerald-600">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    You save ${savings}/night with your coupon
                   </div>
                 )}
               </div>
-            ) : !isPartnerActive ? (
-              <div className="mb-5 flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
-                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-                </svg>
-                <span className="text-sm font-medium text-gray-600">Contact hotel for pricing</span>
-              </div>
-            ) : null}
-
-            {/* Coupon generation — only for active partners */}
-            {isPartnerActive ? (
-              subState === 'loading' ? (
-                <div className="flex justify-center py-4">
-                  <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-700 rounded-full animate-spin" />
-                </div>
-              ) : (
-                <GetCouponButton hotelId={hotel.id} hotelName={hotel.name} hotel={hotel} subState={subState} />
-              )
             ) : (
-              <div className="py-4 text-center">
-                <p className="text-sm text-gray-600 mb-2">Interested in this property?</p>
-                <a href={hotel.websiteUrl || `mailto:${hotel.email || 'contact@busybeds.com'}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90 bg-emerald-700">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                  Contact Property
-                </a>
-              </div>
-            )}
-
-            {isPartnerActive && (
-              <p className="text-xs text-gray-400 text-center mt-3">
-                Valid for {hotel.couponValidDays} days · Show at reception
-              </p>
-            )}
-          </div>
-
-          {/* ── Stay Request (Premium) ── */}
-          {isPartnerActive && hotel.roomTypes.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">Premium</span>
-                <h3 className="text-sm font-semibold text-gray-900">Request a Stay</h3>
-              </div>
-              <p className="text-xs text-gray-400 mb-3">
-                Extended stays (3+ nights) get deeper discounts. Submit a request and the hotel confirms availability.
-              </p>
-              {stayRequestSuccess ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700 font-medium flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Request submitted! The hotel will respond within 48 hours.
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowStayRequest(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-violet-600 text-violet-700 font-semibold text-sm hover:bg-violet-50 transition-colors"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              <div className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth={2} strokeLinecap="round">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
                   </svg>
-                  Request Extended Stay
-                </button>
+                  <span className="text-sm font-semibold text-gray-700">Contact hotel for pricing</span>
+                </div>
+                <p className="text-xs text-gray-400">This property is listed for reference. Reach out directly for rates and availability.</p>
+              </div>
+            )}
+
+            {/* Action button area */}
+            <div className="p-6">
+              {isPartnerActive ? (
+                <>
+                  {subState === 'loading' ? (
+                    <div className="flex justify-center py-4">
+                      <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <GetCouponButton hotelId={hotel.id} hotelName={hotel.name} hotel={hotel} subState={subState} />
+                  )}
+                  <p className="text-xs text-gray-400 text-center mt-3">
+                    Valid for {hotel.couponValidDays} days · Show at hotel reception
+                  </p>
+                  {/* Stay Request */}
+                  {hotel.roomTypes.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 uppercase tracking-wide">Premium</span>
+                        <span className="text-xs font-semibold text-gray-700">Request an Extended Stay</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-3">Hotel confirms availability within 48 hours. 25% deposit secures your booking.</p>
+                      {stayRequestSuccess ? (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-xs text-emerald-700 font-medium flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          Request sent! You'll hear back within 48 hours.
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowStayRequest(true)}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-violet-300 text-violet-700 font-semibold text-sm hover:bg-violet-50 transition-colors"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                          </svg>
+                          Request Extended Stay
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-3">
+                  {hotel.whatsapp && (
+                    <a href={`https://wa.me/${hotel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
+                      style={{ background: '#25D366' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      WhatsApp Hotel
+                    </a>
+                  )}
+                  {hotel.email && (
+                    <a href={`mailto:${hotel.email}`}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      Email Hotel
+                    </a>
+                  )}
+                  {hotel.websiteUrl && (
+                    <a href={hotel.websiteUrl} target="_blank" rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                      Visit Website
+                    </a>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
 
           {/* ── Price Alert ── */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">Price Alert</h3>
-            <p className="text-xs text-gray-400 mb-3">Get notified when the discount increases</p>
-            <PriceAlertButton hotelId={hotel.id} hotelName={hotel.name} discountPercent={hotel.discountPercent} />
-          </div>
+          {isPartnerActive && (
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">🔔 Price Alert</h3>
+              <p className="text-xs text-gray-400 mb-3">Get notified when the discount increases</p>
+              <PriceAlertButton hotelId={hotel.id} hotelName={hotel.name} discountPercent={hotel.discountPercent} />
+            </div>
+          )}
 
           {/* ── Share This Deal ── */}
           <SocialShareButtons

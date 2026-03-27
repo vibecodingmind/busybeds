@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import MobileNav from '@/components/MobileNav';
-import PWARegister from '@/components/PWARegister';
 import PWAInstaller from '@/components/PWAInstaller';
 import CompareBar from '@/components/CompareBar';
 import PromoBanners from '@/components/PromoBanners';
@@ -72,7 +71,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
               <CompareBar />
               <MobileNav />
-              <PWARegister />
               <PWAInstaller />
             </CompareProvider>
           </CurrencyProvider>

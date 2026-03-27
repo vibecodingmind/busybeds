@@ -113,14 +113,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             {hotel.discountPercent}% off
           </div>
         )}
-        
-        {/* ── Listing only badge (for non-partners) ── */}
-        {!isPartnerActive && (
-          <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 shadow-lg"
-            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)' }}>
-            {hotel.partnershipStatus === 'LISTING_ONLY' ? 'Listed' : 'Partner Ended'}
-          </div>
-        )}
+        {/* Non-partner hotels: no badge — plain listing */}
 
         {/* ── Premium/Subscription badge (top-right corner) ── */}
         {hotel.subscription?.status === 'active' && (
