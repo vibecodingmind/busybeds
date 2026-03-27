@@ -207,7 +207,7 @@ export default async function HotelPage({ params }: PageProps) {
       rating: l.rating ? Number(l.rating) : null,
       totalRatings: l.totalRatings,
     })),
-    affiliateLinks: hotel.affiliateLinks.map(l => ({ id: l.id, platform: l.platform, url: l.url })),
+    affiliateLinks: [], // Removed — travelers stay on BusyBeds
     reviews: (hotel as any).reviews.map((r: any) => ({
       id: r.id,
       rating: r.rating,

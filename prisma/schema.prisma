@@ -64,6 +64,7 @@ model User {
   messagesSent     Message[] @relation("MessagesSent")
   messagesReceived Message[] @relation("MessagesReceived")
   notificationPreference NotificationPreference?
+  stayRequests           StayRequest[] @relation("StayRequestTraveler")
 
   // Performance indexes
   @@index([role])
@@ -154,6 +155,7 @@ model Hotel {
   flashDeals       FlashDeal[]
   subscription     HotelSubscription?
   landmarks        Landmark[]
+  stayRequests     StayRequest[]
 
   // Performance indexes for common queries
   @@index([status])
@@ -239,7 +241,8 @@ model RoomType {
   maxOccupancy   Int     @default(2)
   displayOrder   Int     @default(0)
 
-  hotel          Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotel          Hotel         @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  stayRequests   StayRequest[]
 }
 
 model HotelPhoto {
@@ -311,6 +314,7 @@ model Coupon {
   user            User      @relation("CouponOwner", fields: [userId], references: [id])
   hotel           Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   redeemer        User?     @relation("CouponRedeemer", fields: [redeemedBy], references: [id])
+  stayRequest     StayRequest? @relation("StayRequestCoupon")
 
   @@index([hotelId])
   @@index([status])
@@ -837,4 +841,109 @@ model HotelSubscription {
   @@index([hotelId])
   @@index([status])
   @@index([currentPeriodEnd])
+}
+
+// ── Stay Request System ────────────────────────────────────────────────────────
+
+// Status flow: pending_approval → approved → pending_payment → paid → confirmed → completed
+//                                          → declined (by hotel)
+//                                                              → cancelled (by traveler, refundable if >3 days)
+//                                                                          → no_show (non-refundable)
+model StayRequest {
+  id              String    @id @default(cuid())
+
+  // Parties
+  travelerId      String
+  hotelId         String
+  roomTypeId      String
+  managerId       String?   // Hotel manager who approved/declined
+
+  // Stay details
+  checkIn         DateTime
+  checkOut        DateTime
+  nights          Int
+  guests          Int       @default(1)
+
+  // Pricing (snapshot at time of request)
+  roomPricePerNight  Float
+  totalStayCost      Float   // nights × roomPricePerNight
+  depositAmount      Float   // 25% of totalStayCost
+  platformFeeAmount  Float   // 5% of depositAmount (BusyBeds fee)
+  hotelReceives      Float   // depositAmount - platformFeeAmount
+  discountPercent    Int     // discount applied on remaining balance at hotel
+
+  // Status
+  status          String    @default("pending_approval")
+  // pending_approval | approved | declined | pending_payment | paid | confirmed | completed | cancelled | no_show
+
+  // Approval
+  approvedAt      DateTime?
+  declinedAt      DateTime?
+  declineReason   String?
+  approvalDeadline DateTime? // 48hrs after request created
+
+  // Payment
+  paidAt          DateTime?
+  paymentMethod   String?   // stripe | paypal | pesapal
+  paymentRef      String?   // external payment reference
+
+  // Cancellation
+  cancelledAt     DateTime?
+  cancelledBy     String?   // traveler userId
+  refundAmount    Float?    // amount refunded (0 if within 3 days)
+  refundedAt      DateTime?
+
+  // Check-in confirmation
+  confirmedAt     DateTime? // when staff scans QR at check-in
+  completedAt     DateTime? // after checkout
+
+  // Linked coupon (generated after payment)
+  couponId        String?   @unique
+
+  // Notes
+  travelerNotes   String?
+  managerNotes    String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  traveler        User      @relation("StayRequestTraveler", fields: [travelerId], references: [id], onDelete: Cascade)
+  hotel           Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType        RoomType  @relation(fields: [roomTypeId], references: [id])
+  coupon          Coupon?   @relation("StayRequestCoupon", fields: [couponId], references: [id])
+
+  @@index([travelerId])
+  @@index([hotelId])
+  @@index([status])
+  @@index([checkIn])
+  @@index([createdAt])
+}
+
+// ── Deposit Transaction Tracking ───────────────────────────────────────────────
+model DepositTransaction {
+  id              String    @id @default(cuid())
+  stayRequestId   String    @unique
+
+  amount          Float     // total deposit charged
+  platformFee     Float     // BusyBeds fee deducted
+  hotelAmount     Float     // amount to be released to hotel
+  currency        String    @default("USD")
+
+  paymentMethod   String    // stripe | paypal | pesapal
+  paymentRef      String?   // external payment ID
+
+  status          String    @default("pending")
+  // pending | captured | released_to_hotel | refunded | partially_refunded
+
+  capturedAt      DateTime?
+  releasedAt      DateTime?
+  refundedAt      DateTime?
+  refundAmount    Float?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([stayRequestId])
+  @@index([status])
 }

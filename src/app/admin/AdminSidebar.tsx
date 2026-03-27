@@ -17,6 +17,7 @@ const navItems = [
       { href: '/admin/hotels', label: 'Hotels', icon: 'hotel' },
       { href: '/admin/users', label: 'Users', icon: 'users' },
       { href: '/admin/coupons', label: 'Coupons', icon: 'coupon' },
+      { href: '/admin/stay-requests', label: 'Stay Requests', icon: 'calendar' },
       { href: '/admin/reviews', label: 'Reviews', icon: 'review' },
       { href: '/admin/kyc', label: 'KYC Claims', icon: 'kyc', badge: true },
     ],

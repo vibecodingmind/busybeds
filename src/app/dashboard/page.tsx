@@ -221,10 +221,10 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 px-0.5">Quick Actions</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { href: '/',          icon: '🏨', label: 'Browse Hotels',  sub: 'Find deals',     bg: 'bg-blue-50',   ring: '#BFDBFE' },
-              { href: '/coupons',   icon: '🎫', label: 'My Coupons',    sub: `${activeCount} active`, bg: 'bg-yellow-50', ring: '#FDE68A' },
-              { href: '/favorites', icon: '❤️', label: 'Saved Hotels',  sub: `${favCount} saved`, bg: 'bg-red-50',    ring: '#FECACA' },
-              { href: '/referral',  icon: '🎁', label: 'Refer & Earn',  sub: 'Earn bonus days', bg: 'bg-green-50',  ring: '#BBF7D0' },
+              { href: '/',                   icon: '🏨', label: 'Browse Hotels',   sub: 'Find deals',      bg: 'bg-blue-50',   ring: '#BFDBFE' },
+              { href: '/coupons',            icon: '🎫', label: 'My Coupons',     sub: `${activeCount} active`, bg: 'bg-yellow-50', ring: '#FDE68A' },
+              { href: '/my-stay-requests',   icon: '📅', label: 'Stay Requests',  sub: 'Extended stays',  bg: 'bg-violet-50', ring: '#DDD6FE' },
+              { href: '/referral',           icon: '🎁', label: 'Refer & Earn',   sub: 'Earn bonus days', bg: 'bg-green-50',  ring: '#BBF7D0' },
             ].map(item => (
               <Link
                 key={item.href}

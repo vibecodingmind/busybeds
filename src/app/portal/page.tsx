@@ -71,6 +71,7 @@ function PortalContent() {
 
   const navItems = [
     { href: '/portal', label: 'Scanner', icon: '🎫' },
+    { href: '/portal/stay-requests', label: 'Stay Requests', icon: '📅' },
     { href: '/portal/manage', label: 'Manage Hotel', icon: '🏨' },
     { href: '/portal/analytics', label: 'Analytics', icon: '📊' },
   ];

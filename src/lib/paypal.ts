@@ -107,6 +107,45 @@ export async function createPayPalSubscription(
   return { subscriptionId: data.id, approvalUrl: approvalLink?.href };
 }
 
+/** Create a one-time PayPal Order (for deposits) */
+export async function createPayPalOrder({
+  amount,
+  currency = 'USD',
+  description,
+  returnUrl,
+  cancelUrl,
+}: {
+  amount: number;
+  currency?: string;
+  description: string;
+  returnUrl: string;
+  cancelUrl: string;
+}): Promise<{ approvalUrl: string; orderId: string }> {
+  const token = await getAccessToken();
+  const res = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: { currency_code: currency, value: amount.toFixed(2) },
+        description,
+      }],
+      application_context: {
+        brand_name: 'Busy Beds',
+        shipping_preference: 'NO_SHIPPING',
+        user_action: 'PAY_NOW',
+        return_url: returnUrl,
+        cancel_url: cancelUrl,
+      },
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`PayPal order creation failed: ${JSON.stringify(data)}`);
+  const approvalLink = data.links?.find((l: { rel: string }) => l.rel === 'approve');
+  return { orderId: data.id, approvalUrl: approvalLink?.href };
+}
+
 /** Get subscription details */
 export async function getPayPalSubscription(subscriptionId: string) {
   const token = await getAccessToken();
