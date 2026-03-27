@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { VIBE_TAGS } from '@/lib/vibeTags';
 
@@ -28,7 +28,7 @@ export default function FilterPanel({ params }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
 
-  /* local state synced from URL params */
+  /* local state — synced from URL params whenever they change */
   const [sort,        setSort]        = useState(params.sort || 'best');
   const [stars,       setStars]       = useState<string[]>(params.stars ? params.stars.split(',') : []);
   const [minPrice,    setMinPrice]    = useState(params.minPrice || '');
@@ -38,6 +38,21 @@ export default function FilterPanel({ params }: Props) {
     params.amenities ? params.amenities.split(',').filter(Boolean) : [],
   );
   const [vibeTag,     setVibeTag]     = useState(params.vibeTag || '');
+
+  /* Re-sync local state when URL params change (e.g. chip removals, back/forward) */
+  useEffect(() => {
+    setSort(params.sort || 'best');
+    setStars(params.stars ? params.stars.split(',').filter(Boolean) : []);
+    setMinPrice(params.minPrice || '');
+    setMaxPrice(params.maxPrice || '');
+    setMinDiscount(params.minDiscount || '');
+    setAmenities(params.amenities ? params.amenities.split(',').filter(Boolean) : []);
+    setVibeTag(params.vibeTag || '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    params.sort, params.stars, params.minPrice, params.maxPrice,
+    params.minDiscount, params.amenities, params.vibeTag,
+  ]);
 
   const activeFilterCount = [
     stars.length > 0,

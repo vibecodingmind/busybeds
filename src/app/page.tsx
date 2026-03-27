@@ -411,13 +411,13 @@ export default async function HomePage({
   const nearMe = !!(searchParams.lat && searchParams.lng);
   const viewMode = searchParams.view === 'map' ? 'map' : 'list';
 
-  /* detect if ANY filter/search is active */
+  /* detect if ANY filter/search is active — map view also uses filtered layout */
   const isFiltered = !!(
     searchParams.search || searchParams.city || searchParams.stars ||
     searchParams.minDiscount || searchParams.featured || searchParams.amenities ||
     (searchParams.category && searchParams.category !== 'all') ||
     searchParams.minPrice || searchParams.maxPrice || searchParams.sort ||
-    searchParams.vibeTag || nearMe
+    searchParams.vibeTag || nearMe || viewMode === 'map'
   );
 
   // Sequential to avoid connection pool exhaustion (Supabase connection_limit=1)
