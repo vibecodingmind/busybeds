@@ -3,6 +3,7 @@ export const revalidate = 0;
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
+import HotelCard from '@/components/HotelCard';
 import HotelViewContainer from '@/components/HotelViewContainer';
 import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
@@ -249,7 +250,19 @@ async function getHotels(
   switch (sort) {
     case 'rating':   orderBy = [{ avgRating: 'desc' }, { reviewCount: 'desc' }]; break;
     case 'discount': orderBy = [{ discountPercent: 'desc' }]; break;
-    default:         orderBy = [{ isFeatured: 'desc' }, { avgRating: 'desc' }, { createdAt: 'desc' }];
+    default:
+      // Default 4-tier priority:
+      // Tier 1: Featured + ACTIVE + discount > 0
+      // Tier 2: ACTIVE + discount > 0 (non-featured)
+      // Tier 3: ACTIVE + no discount
+      // Tier 4: LISTING_ONLY / INACTIVE
+      // Within each tier: adminFeatured → subscriptionBoost → rating
+      orderBy = [
+        { isFeatured: 'desc' },
+        { discountPercent: 'desc' },
+        { avgRating: 'desc' },
+        { createdAt: 'desc' },
+      ];
   }
 
   // Sequential queries to avoid connection pool exhaustion on Supabase (connection_limit=1)
@@ -285,15 +298,23 @@ async function getHotels(
     _boostScore: (h.subscription as unknown as Array<{ tier: { searchBoost: number } }>)?.[0]?.tier?.searchBoost || 0,
   }));
 
-  // Apply subscription boost sorting when no specific sort
+  // Apply full 4-tier priority sort (overrides DB orderBy for precise control)
   if (!sort || sort === 'best') {
     processedHotels.sort((a, b) => {
-      // Admin featured first
-      if (a.adminFeatured && !b.adminFeatured) return -1;
-      if (!a.adminFeatured && b.adminFeatured) return 1;
-      // Then by subscription boost
+      // Compute tier: lower number = higher priority
+      const tierOf = (h: typeof processedHotels[0]) => {
+        const isActive = h.partnershipStatus === 'ACTIVE';
+        const hasCoupon = isActive && h.discountPercent > 0;
+        const isFeat   = h.adminFeatured || h.isFeatured;
+        if (isFeat && hasCoupon)  return 1; // Featured + partner + coupon
+        if (hasCoupon)            return 2; // Active partner + coupon
+        if (isActive)             return 3; // Active partner, no coupon
+        return 4;                           // LISTING_ONLY / INACTIVE
+      };
+      const ta = tierOf(a), tb = tierOf(b);
+      if (ta !== tb) return ta - tb;
+      // Within same tier: subscription boost → rating
       if (a._boostScore !== b._boostScore) return b._boostScore - a._boostScore;
-      // Then by rating
       return (b.avgRating || 0) - (a.avgRating || 0);
     });
   }
@@ -326,6 +347,48 @@ async function getCities() {
   try {
     const rows = await prisma.hotel.findMany({ where: { status: 'active' }, select: { city: true }, distinct: ['city'] });
     return rows.map(h => h.city);
+  } catch { return []; }
+}
+
+/* Fetch LISTING_ONLY hotels grouped by city for regional sections.
+   Returns top cities (by hotel count) with up to REGION_LIMIT hotels each. */
+const REGION_LIMIT = 6;
+const MAX_REGIONS  = 4;
+
+async function getRegionalListings() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hotels = await (prisma as any).hotel.findMany({
+      where: {
+        status: 'active',
+        partnershipStatus: { in: ['LISTING_ONLY', 'INACTIVE'] },
+        coverImage: { not: null }, // only hotels with photos
+      },
+      include: {
+        roomTypes: { orderBy: { displayOrder: 'asc' }, take: 1 },
+        photos:    { orderBy: { displayOrder: 'asc' }, take: 1 },
+      },
+      orderBy: [{ avgRating: 'desc' }, { reviewCount: 'desc' }],
+    });
+
+    // Group by city
+    const byCity = new Map<string, typeof hotels>();
+    for (const h of hotels) {
+      const key = `${h.city}, ${h.country}`;
+      if (!byCity.has(key)) byCity.set(key, []);
+      byCity.get(key)!.push(h);
+    }
+
+    // Sort cities by hotel count (most hotels first), take top MAX_REGIONS
+    const sorted = Array.from(byCity.entries())
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, MAX_REGIONS);
+
+    return sorted.map(([region, regionHotels]) => ({
+      region,
+      hotels: regionHotels.slice(0, REGION_LIMIT),
+      total: regionHotels.length,
+    }));
   } catch { return []; }
 }
 
@@ -366,10 +429,11 @@ export default async function HomePage({
     searchParams.sort, searchParams.vibeTag,
     searchParams.lat, searchParams.lng, searchParams.radius,
   ).catch(() => ({ hotels: [], total: 0 }));
-  const cities     = await getCities();
-  const hotelTypes = await getHotelTypes();
-  const trending   = isFiltered ? [] : await getTrending();
-  const featured   = isFiltered ? [] : await getFeaturedHotels();
+  const cities          = await getCities();
+  const hotelTypes      = await getHotelTypes();
+  const trending        = isFiltered ? [] : await getTrending();
+  const featured        = isFiltered ? [] : await getFeaturedHotels();
+  const regionalListings = isFiltered ? [] : await getRegionalListings();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -711,6 +775,22 @@ export default async function HomePage({
         <RecentlyViewed />
         <FlashDealsWidget />
 
+        {/* ── Region quick-filter pills (unfiltered only, when cities exist) ── */}
+        {!isFiltered && cities.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2 mb-7">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mr-1">Browse by city:</span>
+            {cities.slice(0, 10).map(c => (
+              <Link
+                key={c}
+                href={`/?city=${encodeURIComponent(c)}`}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:border-[#E8395A] hover:text-[#E8395A] transition-all"
+              >
+                {c}
+              </Link>
+            ))}
+          </div>
+        )}
+
         {/* ── Hotel grid / empty state ── */}
         {hotels.length === 0 ? (
           <div className="text-center py-28">
@@ -733,7 +813,7 @@ export default async function HomePage({
             </h3>
             <p className="text-gray-500 mb-8 text-sm">
               {nearMe
-                ? 'We couldn\'t find any hotels within 200km of your location. Try browsing all hotels instead.'
+                ? "We couldn't find any hotels within 200km of your location. Try browsing all hotels instead."
                 : 'Try adjusting your search or clearing some filters'}
             </p>
             <Link
@@ -744,7 +824,121 @@ export default async function HomePage({
               {nearMe ? 'Browse all hotels' : 'Clear all filters'}
             </Link>
           </div>
+        ) : !isFiltered ? (
+          /* ── UNFILTERED HOME: tiered layout ── */
+          <div className="space-y-12">
+
+            {/* ── Tier 1 + 2: Partner hotels with coupons ── */}
+            {(() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const partners = (hotels as any[]).filter(
+                h => h.partnershipStatus === 'ACTIVE' && h.discountPercent > 0
+              );
+              if (!partners.length) return null;
+              return (
+                <section>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <span className="text-xl">🎟️</span> Partner Hotels — Exclusive Coupons
+                      </h2>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {partners.length} hotel{partners.length !== 1 ? 's' : ''} · Get a coupon and save up to{' '}
+                        {Math.max(...partners.map((h: any) => h.discountPercent))}% at check-in
+                      </p>
+                    </div>
+                    <Link
+                      href="/?minDiscount=1"
+                      className="text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1"
+                    >
+                      View all
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-8">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {partners.map((hotel: any) => (
+                      <HotelCard key={hotel.id} hotel={hotel} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
+
+            {/* ── Tier 3: Active partners without coupon ── */}
+            {(() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const noCoupon = (hotels as any[]).filter(
+                h => h.partnershipStatus === 'ACTIVE' && h.discountPercent === 0
+              );
+              if (!noCoupon.length) return null;
+              return (
+                <section>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <span className="text-xl">🏨</span> More Partner Hotels
+                      </h2>
+                      <p className="text-xs text-gray-400 mt-0.5">Verified partners · contact hotel directly for rates</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-8">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {noCoupon.map((hotel: any) => (
+                      <HotelCard key={hotel.id} hotel={hotel} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
+
+            {/* ── Tier 4: Regional sections for LISTING_ONLY ── */}
+            {regionalListings.length > 0 && (
+              <div className="space-y-10">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
+                    Explore by Region
+                  </span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(regionalListings as any[]).map(({ region, hotels: rHotels, total: rTotal }) => (
+                  <section key={region}>
+                    <div className="flex items-center justify-between mb-5">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8395A" strokeWidth={2} strokeLinecap="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                          </svg>
+                          {region}
+                        </h2>
+                        <p className="text-xs text-gray-400 mt-0.5">{rTotal} hotel{rTotal !== 1 ? 's' : ''} in this area</p>
+                      </div>
+                      {rTotal > REGION_LIMIT && (
+                        <Link
+                          href={`/?city=${encodeURIComponent(region.split(',')[0].trim())}`}
+                          className="text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1"
+                        >
+                          See all {rTotal}
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </Link>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-8">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {(rHotels as any[]).map((hotel: any) => (
+                        <HotelCard key={hotel.id} hotel={hotel} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
+          /* ── FILTERED: normal paginated grid ── */
           <HotelViewContainer
             initialHotels={hotels as any[]}
             searchParams={searchParams as Record<string, string | undefined>}
