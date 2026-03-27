@@ -50,20 +50,19 @@ export default function ImportHotelsPage() {
   const [selected, setSelected]         = useState<Set<string>>(new Set());
 
   // Import settings
-  const [noDiscount, setNoDiscount]           = useState(false); // If true, hotel has no coupon discount
+  const [noDiscount, setNoDiscount]           = useState(false);
   const [discountPercent, setDiscountPercent] = useState(15);
   const [couponValidDays, setCouponValidDays] = useState(30);
-  const [defaultPrice, setDefaultPrice]       = useState(0); // 0 = auto from price_level
-  const [selectedCategory, setSelectedCategory] = useState(''); // Hotel type category
-  const [importReviews, setImportReviews]     = useState(true); // Default: import reviews
-  const [importLandmarks, setImportLandmarks] = useState(true); // Default: import landmarks
-  const [fetchAllPages, setFetchAllPages]     = useState(true); // Default: fetch all 60 results
-  const [markAsPartner, setMarkAsPartner]     = useState(false); // Default: false (LISTING_ONLY)
+  const [defaultPrice, setDefaultPrice]       = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [importReviews, setImportReviews]     = useState(true);
+  const [importLandmarks, setImportLandmarks] = useState(true);
+  const [fetchAllPages, setFetchAllPages]     = useState(true);
+  const [markAsPartner, setMarkAsPartner]     = useState(false);
 
-  // Country/Region/City selector for quick search
+  // Country/City for quick search
   const [selectedCountry, setSelectedCountry] = useState('Tanzania');
   const [selectedCity, setSelectedCity] = useState('');
-  
   const availableCities = CITIES_BY_COUNTRY[selectedCountry] || [];
 
   // Hotel types from DB
@@ -74,21 +73,20 @@ export default function ImportHotelsPage() {
   const [importResults, setImportResults] = useState<ImportResult[]>([]);
   const [showResults, setShowResults]     = useState(false);
 
+  // Settings panel
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch hotel types on mount
   useEffect(() => {
     fetch('/api/hotel-types')
       .then(r => r.json())
-      .then(data => {
-        setHotelTypes(data.types || []);
-        setLoadingTypes(false);
-      })
+      .then(data => { setHotelTypes(data.types || []); setLoadingTypes(false); })
       .catch(() => setLoadingTypes(false));
   }, []);
 
-  /* ── Search by URL (Google Maps link) ── */
-  const doUrlImport = useCallback(async (url: string) => {
+  /* ── Search by URL ── */
+  const doUrlSearch = useCallback(async (url: string) => {
     if (!url.trim()) return;
     setStatus('searching');
     setSearchError('');
@@ -101,18 +99,17 @@ export default function ImportHotelsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setSearchError(data.error || 'Failed to process URL');
-        if (data.hint) setSearchError(`${data.error} (${data.hint})`);
+        const hint = data.hint ? ` — ${data.hint}` : '';
+        setSearchError((data.error || 'Failed to process URL') + hint);
         setStatus('idle');
         return;
       }
 
-      setResults(data.results);
+      setResults(data.results || []);
       setNextPageToken(null);
       if (data.urlResolved) setUrlResolvedName(data.urlResolved);
-      if (data.message) setSearchError(''); // Clear any previous errors
-      
-      // Auto-select the result if it's not already imported
+
+      // Auto-select if not already imported
       if (data.results?.[0] && !data.results[0].alreadyImported) {
         setSelected(new Set([data.results[0].placeId]));
       }
@@ -156,11 +153,9 @@ export default function ImportHotelsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSelected(new Set());
-    if (importMode === 'url') {
-      doUrlImport(urlInput);
-    } else {
-      doSearch(query);
-    }
+    setShowResults(false);
+    if (importMode === 'url') doUrlSearch(urlInput);
+    else doSearch(query);
   };
 
   /* ── Select / deselect ── */
@@ -171,9 +166,10 @@ export default function ImportHotelsPage() {
       return next;
     });
   };
-  // Only select hotels that haven't been imported yet
-  const selectAll = () => setSelected(new Set(results.filter(r => !r.alreadyImported).map(r => r.placeId)));
-  const clearAll  = () => setSelected(new Set());
+  const newResults   = results.filter(r => !r.alreadyImported);
+  const doneResults  = results.filter(r =>  r.alreadyImported);
+  const selectAll    = () => setSelected(new Set(newResults.map(r => r.placeId)));
+  const clearAll     = () => setSelected(new Set());
 
   /* ── Import ── */
   const doImport = async () => {
@@ -211,218 +207,196 @@ export default function ImportHotelsPage() {
       successIds.forEach(id => next.delete(id));
       return next;
     });
-    setResults(prev => prev.filter(r => !successIds.has(r.placeId)));
+    // Mark them as already imported in results list
+    setResults(prev => prev.map(r =>
+      successIds.has(r.placeId) ? { ...r, alreadyImported: true } : r
+    ));
   };
 
   /* ── Helpers ── */
-  const priceLevelLabel = (level: number | null) => {
-    if (level === null) return null;
-    return ['Free', '$', '$$', '$$$', '$$$$'][level] ?? null;
-  };
+  const priceLevelLabel = (level: number | null) =>
+    level === null ? null : ['Free', '$', '$$', '$$$', '$$$$'][level] ?? null;
 
-  // Quick search by selected location
   const searchByLocation = useCallback(() => {
-    const locationQuery = selectedCity 
+    const q = selectedCity
       ? `hotels in ${selectedCity}, ${selectedCountry}`
       : `hotels in ${selectedCountry}`;
-    setQuery(locationQuery);
-    doSearch(locationQuery);
+    setQuery(q);
+    doSearch(q);
   }, [selectedCountry, selectedCity, doSearch]);
 
   const isImporting = status === 'importing';
   const isSearching = status === 'searching';
+  const nonImportedCount = newResults.length;
+  const alreadyImportedCount = doneResults.length;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg, #F4F6FB)' }}>
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
         {/* ── Header ── */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6">
           <Link
             href="/admin/hotels"
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 hover:border-gray-300 transition-colors shadow-sm"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 hover:border-gray-300 transition-colors shadow-sm flex-shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Import Hotels</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Search Google Places → preview → import into BusyBeds</p>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-gray-900">Import from Google</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Search Google Places or paste a Google Maps link → select → import</p>
           </div>
         </div>
 
         {/* ── Info banner ── */}
-        <div
-          className="flex items-start gap-3 p-4 rounded-2xl mb-7 text-sm"
-          style={{ background: 'rgba(13,61,94,0.06)', border: '1px solid rgba(13,61,94,0.12)' }}
-        >
-          <svg className="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D3D5E" strokeWidth={2} strokeLinecap="round">
+        <div className="flex items-start gap-3 p-4 rounded-2xl mb-6 text-sm"
+          style={{ background: 'rgba(13,61,94,0.05)', border: '1px solid rgba(13,61,94,0.12)' }}>
+          <svg className="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D3D5E" strokeWidth={2} strokeLinecap="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <div style={{ color: '#0D3D5E' }}>
-            <strong>Imported hotels live in your own database.</strong> If the Google API is ever disabled, every imported hotel remains completely unaffected — names, addresses, photos, and coordinates are all stored permanently in BusyBeds. No ongoing Google dependency.
-          </div>
+          <span style={{ color: '#0D3D5E' }}>
+            Hotels are stored permanently in your database — photos, addresses, and coordinates saved. No ongoing Google dependency.
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
 
           {/* ── Left: search + results ── */}
-          <div className="space-y-6">
+          <div className="space-y-5">
 
-            {/* Mode Tabs */}
-            <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
-              <button
-                onClick={() => { setImportMode('search'); setResults([]); setSearchError(''); }}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  importMode === 'search'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span className="flex items-center gap-2">
+            {/* Mode Tabs + Search */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
+              {/* Tabs */}
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+                <button
+                  onClick={() => { setImportMode('search'); setResults([]); setSearchError(''); setUrlResolvedName(null); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
+                    importMode === 'search' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   Search
-                </span>
-              </button>
-              <button
-                onClick={() => { setImportMode('url'); setResults([]); setSearchError(''); }}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  importMode === 'url'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span className="flex items-center gap-2">
+                </button>
+                <button
+                  onClick={() => { setImportMode('url'); setResults([]); setSearchError(''); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
+                    importMode === 'url' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                  Add by URL
-                </span>
-              </button>
+                  Google Maps Link
+                </button>
+              </div>
+
+              {/* Search form */}
+              <form onSubmit={handleSearch}>
+                {importMode === 'search' ? (
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                      <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                        placeholder='e.g. "luxury hotels in Dar es Salaam" or "safari lodges Serengeti"'
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 focus:bg-white"
+                        disabled={isImporting}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSearching || !query.trim()}
+                      className="px-5 py-3 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
+                    >
+                      {isSearching
+                        ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>Searching…</>
+                        : 'Search'
+                      }
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                      </svg>
+                      <input
+                        type="text"
+                        value={urlInput}
+                        onChange={e => setUrlInput(e.target.value)}
+                        placeholder='Paste Google Maps URL — https://maps.google.com/... or goo.gl/maps/...'
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 focus:bg-white"
+                        disabled={isImporting}
+                      />
+                    </div>
+                    {/* Supported formats hint */}
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      <span className="flex items-center gap-1"><span className="text-green-500 font-bold">✓</span> google.com/maps/place/...</span>
+                      <span className="flex items-center gap-1"><span className="text-green-500 font-bold">✓</span> goo.gl/maps/...</span>
+                      <span className="flex items-center gap-1"><span className="text-green-500 font-bold">✓</span> maps.app.goo.gl/...</span>
+                      <span className="flex items-center gap-1"><span className="text-green-500 font-bold">✓</span> Place ID (ChIJ...)</span>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSearching || !urlInput.trim()}
+                      className="w-full py-3 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg, #0D3D5E, #1A5C8A)' }}
+                    >
+                      {isSearching
+                        ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>Looking up hotel…</>
+                        : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Look up from Google Maps</>
+                      }
+                    </button>
+                  </div>
+                )}
+              </form>
+
+              {/* URL resolved success */}
+              {importMode === 'url' && urlResolvedName && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Found: <strong>{urlResolvedName}</strong>
+                </div>
+              )}
             </div>
 
-            {/* Search Form */}
-            <form onSubmit={handleSearch} className="flex gap-3">
-              {importMode === 'search' ? (
-                <>
-                  <div className="flex-1 relative">
-                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={query}
-                      onChange={e => setQuery(e.target.value)}
-                      placeholder='e.g. "luxury hotels in Dar es Salaam" or "safari lodges Serengeti"'
-                      className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 shadow-sm"
-                      disabled={isImporting}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isSearching || !query.trim()}
-                    className="px-6 py-3 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 16px rgba(232,57,90,0.30)' }}
-                  >
-                    {isSearching ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        Searching…
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        Search
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex-1 relative">
-                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                    </svg>
-                    <input
-                      type="text"
-                      value={urlInput}
-                      onChange={e => setUrlInput(e.target.value)}
-                      placeholder='Paste Google Maps URL or Place ID (e.g. ChIJ...)'
-                      className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A] focus:ring-2 focus:ring-[#E8395A]/10 shadow-sm"
-                      disabled={isImporting}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isSearching || !urlInput.trim()}
-                    className="px-6 py-3 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 16px rgba(232,57,90,0.30)' }}
-                  >
-                    {isSearching ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        Loading…
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Import
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
-            </form>
-
-            {/* URL Resolved Info */}
-            {importMode === 'url' && urlResolvedName && (
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-100 text-sm text-green-700">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Found: <strong>{urlResolvedName}</strong>
-              </div>
-            )}
-
-            {/* Quick suggestions */}
+            {/* Quick location search — only in search mode when no results */}
             {importMode === 'search' && !results.length && !searchError && (
-              <div className="space-y-4">
-                {/* Location Selector */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Quick search by location</p>
-                  <div className="flex flex-wrap items-center gap-3">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Quick search by location</p>
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={selectedCountry}
                       onChange={e => { setSelectedCountry(e.target.value); setSelectedCity(''); }}
-                      className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A]"
+                      className="px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#E8395A]"
                     >
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    
                     {availableCities.length > 0 && (
                       <select
                         value={selectedCity}
                         onChange={e => setSelectedCity(e.target.value)}
-                        className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#E8395A]"
+                        className="px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#E8395A]"
                       >
                         <option value="">All cities</option>
                         {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     )}
-                    
                     <button
                       onClick={searchByLocation}
                       disabled={isSearching}
                       className="px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50"
                       style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}
                     >
-                      {isSearching ? 'Searching...' : `Search ${selectedCity || selectedCountry}`}
+                      {isSearching ? 'Searching…' : `Search ${selectedCity || selectedCountry}`}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    📍 Location is auto-assigned from Google Maps when importing
-                  </p>
                 </div>
-                
-                {/* Popular searches */}
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Popular searches</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Popular searches</p>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'luxury hotels Dar es Salaam',
@@ -445,88 +419,62 @@ export default function ImportHotelsPage() {
               </div>
             )}
 
-            {/* URL Examples */}
-            {importMode === 'url' && !results.length && !searchError && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Supported formats</p>
-                <div className="space-y-2 text-xs text-gray-500">
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <span><strong>Google Maps URLs:</strong> https://www.google.com/maps/place/Hotel+Name/...</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <span><strong>Shortened links:</strong> https://goo.gl/maps/... or https://maps.app.goo.gl/...</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <span><strong>Direct Place ID:</strong> ChIJc1LSG5fX3xARiwDZt5CLo8E</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Error */}
             {searchError && (
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm text-red-700">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {searchError}
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-700">
+                <svg className="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{searchError}</span>
               </div>
             )}
 
-            {/* ── Import results ── */}
+            {/* ── Import Results Banner ── */}
             {showResults && importResults.length > 0 && (
               <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
                   <h3 className="font-bold text-gray-900 text-sm">Import Results</h3>
                   <div className="flex items-center gap-3 text-xs">
-                    <span className="text-green-700 font-semibold">
-                      ✓ {importResults.filter(r => r.success).length} imported
-                    </span>
+                    {importResults.filter(r => r.success).length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">
+                        ✓ {importResults.filter(r => r.success).length} imported
+                      </span>
+                    )}
                     {importResults.filter(r => !r.success && r.skipped).length > 0 && (
-                      <span className="text-amber-600 font-semibold">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">
                         ↩ {importResults.filter(r => r.skipped).length} skipped
                       </span>
                     )}
                     {importResults.filter(r => !r.success && !r.skipped).length > 0 && (
-                      <span className="text-red-600 font-semibold">
+                      <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
                         ✗ {importResults.filter(r => !r.success && !r.skipped).length} failed
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
                   {importResults.map(r => (
                     <div key={r.placeId} className="flex items-center gap-3 px-5 py-3">
                       {r.success ? (
                         <>
                           <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900 truncate">{r.name}</p>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <span>{r.city}, {r.country}</span>
-                              {r.reviewsImported && r.reviewsImported > 0 && (
-                                <span className="text-green-600 font-medium">· {r.reviewsImported} reviews</span>
-                              )}
-                              {r.landmarksImported && r.landmarksImported > 0 && (
-                                <span className="text-blue-600 font-medium">· {r.landmarksImported} landmarks</span>
-                              )}
+                              {!!r.reviewsImported && <span className="text-green-600 font-medium">· {r.reviewsImported} reviews</span>}
+                              {!!r.landmarksImported && <span className="text-blue-600 font-medium">· {r.landmarksImported} landmarks</span>}
                             </div>
                           </div>
-                          <Link
-                            href={`/hotels/${r.hotelSlug}`}
-                            target="_blank"
-                            className="text-xs text-[#E8395A] font-semibold hover:underline flex-shrink-0"
-                          >
+                          <Link href={`/hotels/${r.hotelSlug}`} target="_blank"
+                            className="text-xs text-[#E8395A] font-bold hover:underline flex-shrink-0">
                             View →
                           </Link>
                         </>
                       ) : r.skipped ? (
                         <>
                           <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-700 truncate">Already in BusyBeds</p>
@@ -536,7 +484,7 @@ export default function ImportHotelsPage() {
                       ) : (
                         <>
                           <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2.5} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2.5} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-700 truncate">Failed to import</p>
@@ -550,139 +498,170 @@ export default function ImportHotelsPage() {
               </div>
             )}
 
-            {/* ── Results grid ── */}
+            {/* ── Results ── */}
             {results.length > 0 && (
-              <div>
+              <div className="space-y-4">
+
                 {/* Toolbar */}
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-gray-500">
-                    <span className="font-bold text-gray-900">{results.length}</span> results
-                    {selected.size > 0 && (
-                      <span className="ml-2 text-[#E8395A] font-semibold">· {selected.size} selected</span>
-                    )}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-bold text-gray-900">{results.length}</span> results
+                      {alreadyImportedCount > 0 && (
+                        <span className="ml-1.5 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">
+                          {alreadyImportedCount} already imported
+                        </span>
+                      )}
+                      {selected.size > 0 && (
+                        <span className="ml-1.5 text-[#E8395A] font-semibold">
+                          · {selected.size} selected
+                        </span>
+                      )}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <button onClick={selectAll} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold transition-colors">
-                      Select all
-                    </button>
+                    {nonImportedCount > 0 && (
+                      <button onClick={selectAll}
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold transition-colors">
+                        Select all new ({nonImportedCount})
+                      </button>
+                    )}
                     {selected.size > 0 && (
-                      <button onClick={clearAll} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold transition-colors">
+                      <button onClick={clearAll}
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold transition-colors">
                         Clear
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Cards grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {results.map(place => {
-                    const isSelected   = selected.has(place.placeId);
-                    const isImported   = place.alreadyImported;
-                    return (
-                      <button
-                        key={place.placeId}
-                        onClick={() => !isImported && toggle(place.placeId)}
-                        disabled={isImporting || isImported}
-                        className={`relative text-left rounded-2xl overflow-hidden border-2 transition-all duration-200 focus:outline-none group ${
-                          isImported
-                            ? 'border-green-400 opacity-75 cursor-default'
-                            : isSelected
-                            ? 'border-[#E8395A] shadow-lg shadow-[#E8395A]/15 scale-[1.01]'
-                            : 'border-transparent hover:border-gray-200 hover:shadow-md'
-                        } bg-white`}
-                      >
-                        {/* Photo */}
-                        <div className="relative h-40 bg-gray-100 overflow-hidden">
-                          {place.photoUrl ? (
-                            <img
-                              src={place.photoUrl}
-                              alt={place.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={1.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                            </div>
-                          )}
+                {/* Not yet imported — full colour cards */}
+                {nonImportedCount > 0 && (
+                  <div>
+                    {alreadyImportedCount > 0 && (
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+                        Not yet imported ({nonImportedCount})
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {newResults.map(place => {
+                        const isSelected = selected.has(place.placeId);
+                        return (
+                          <button
+                            key={place.placeId}
+                            onClick={() => toggle(place.placeId)}
+                            disabled={isImporting}
+                            className={`relative text-left rounded-2xl overflow-hidden border-2 transition-all duration-200 focus:outline-none group bg-white ${
+                              isSelected
+                                ? 'border-[#E8395A] shadow-lg shadow-[#E8395A]/15 scale-[1.01]'
+                                : 'border-transparent hover:border-gray-300 hover:shadow-md'
+                            }`}
+                          >
+                            {/* Photo */}
+                            <div className="relative h-40 bg-gray-100 overflow-hidden">
+                              {place.photoUrl ? (
+                                <img src={place.photoUrl} alt={place.name}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={1.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-                          {/* Gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                              {/* Category pill */}
+                              <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                                style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+                                {place.category}
+                              </div>
 
-                          {/* Already imported banner */}
-                          {isImported && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
-                                style={{ background: 'rgba(22,163,74,0.90)', backdropFilter: 'blur(8px)' }}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                Already imported
+                              {/* Price level */}
+                              {place.priceLevel !== null && (
+                                <div className="absolute top-2.5 right-10 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                                  style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+                                  {priceLevelLabel(place.priceLevel)}
+                                </div>
+                              )}
+
+                              {/* Checkbox */}
+                              <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                isSelected ? 'border-[#E8395A] bg-[#E8395A]' : 'border-white/80 bg-white/25 backdrop-blur-sm'
+                              }`}>
+                                {isSelected && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                              </div>
+
+                              {/* Rating */}
+                              {place.rating && (
+                                <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
+                                  style={{ background: 'rgba(255,255,255,0.92)', color: '#0F172A' }}>
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                  {place.rating.toFixed(1)}
+                                  {place.reviewCount && <span className="text-gray-500 font-normal">({place.reviewCount.toLocaleString()})</span>}
+                                </div>
+                              )}
+
+                              {/* Price */}
+                              <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                                style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+                                ~${place.estimatedPrice}/night
                               </div>
                             </div>
-                          )}
 
-                          {/* Category pill */}
-                          <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
-                            style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(8px)' }}>
-                            {place.category}
+                            {/* Info */}
+                            <div className="p-3.5">
+                              <p className="font-bold text-gray-900 text-sm leading-snug truncate">{place.name}</p>
+                              <p className="text-xs text-gray-500 truncate mt-0.5">{place.address}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Already imported — muted list style */}
+                {alreadyImportedCount > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Already in BusyBeds ({alreadyImportedCount})
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {doneResults.map(place => (
+                        <div key={place.placeId}
+                          className="relative flex items-center gap-3 bg-white rounded-xl border border-green-200 p-3 opacity-75">
+                          {/* Thumb */}
+                          <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                            {place.photoUrl ? (
+                              <img src={place.photoUrl} alt={place.name}
+                                className="w-full h-full object-cover"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={1.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                              </div>
+                            )}
                           </div>
-
-                          {/* Price level */}
-                          {place.priceLevel !== null && (
-                            <div className="absolute top-2.5 right-10 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
-                              style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(8px)' }}>
-                              {priceLevelLabel(place.priceLevel)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-700 truncate">{place.name}</p>
+                            <p className="text-xs text-gray-400 truncate">{place.address}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              <span className="text-[11px] text-green-600 font-semibold">Imported</span>
                             </div>
-                          )}
-
-                          {/* Checkbox — hidden for already-imported */}
-                          {!isImported && (
-                            <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                              isSelected
-                                ? 'border-[#E8395A] bg-[#E8395A]'
-                                : 'border-white/70 bg-white/20 backdrop-blur-sm'
-                            }`}>
-                              {isSelected && (
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Rating */}
-                          {place.rating && (
-                            <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
-                              style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', color: '#0F172A' }}>
-                              <svg width="9" height="9" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                              {place.rating.toFixed(1)}
-                              {place.reviewCount && (
-                                <span className="text-gray-500 font-normal">({place.reviewCount.toLocaleString()})</span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Est. price */}
-                          <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
-                            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
-                            ~${place.estimatedPrice}/night
-                          </div>
-                        </div>
-
-                        {/* Info */}
-                        <div className="p-3.5">
-                          <p className="font-bold text-gray-900 text-sm leading-snug truncate">{place.name}</p>
-                          <p className="text-xs text-gray-500 truncate mt-0.5">{place.address}</p>
-                          <div className="flex items-center gap-1 mt-1.5 text-[11px] text-gray-400">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
                           </div>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Load more */}
                 {nextPageToken && (
-                  <div className="text-center mt-5">
+                  <div className="text-center pt-2">
                     <button
                       onClick={() => doSearch(query, nextPageToken)}
                       disabled={isSearching}
@@ -696,192 +675,10 @@ export default function ImportHotelsPage() {
             )}
           </div>
 
-          {/* ── Right: import settings + import button (sticky) ── */}
-          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
+          {/* ── Right: Settings + Import button (sticky) ── */}
+          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
 
-            {/* Import settings card */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="font-bold text-gray-900 text-sm">Import Settings</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Applied to all imported hotels</p>
-              </div>
-              <div className="p-5 space-y-4">
-
-                {/* Hotel Type Category Selector */}
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Hotel Type Category
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={e => setSelectedCategory(e.target.value)}
-                    disabled={loadingTypes || isImporting}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] bg-white disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">Auto-detect from Google</option>
-                    {hotelTypes.map(type => (
-                      <option key={type.id} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Leave empty to auto-detect from Google Places types
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Discount %
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number" min={0} max={80}
-                      value={noDiscount ? 0 : discountPercent}
-                      onChange={e => setDiscountPercent(Number(e.target.value))}
-                      disabled={noDiscount}
-                      className={`w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] ${noDiscount ? 'bg-gray-100 text-gray-400' : ''}`}
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">%</span>
-                  </div>
-                  {/* No Discount Toggle */}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={noDiscount}
-                      onChange={e => setNoDiscount(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-[#E8395A] focus:ring-[#E8395A]"
-                    />
-                    <span className="text-xs text-gray-600">No coupon discount (0%)</span>
-                  </label>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Hotels without discount won&apos;t show &quot;Get Coupon&quot; button
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Coupon Valid Days
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number" min={1} max={365}
-                      value={couponValidDays}
-                      onChange={e => setCouponValidDays(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 pr-14 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">days</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Price Override <span className="font-normal normal-case text-gray-400">(optional)</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
-                    <input
-                      type="number" min={0}
-                      value={defaultPrice || ''}
-                      onChange={e => setDefaultPrice(Number(e.target.value))}
-                      placeholder="Auto from Google"
-                      className="w-full pl-8 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
-                    />
-                  </div>
-                  <p className="text-[11px] text-gray-400 mt-1">Leave empty to auto-estimate from Google price level</p>
-                </div>
-
-                {/* Import Reviews Toggle */}
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="relative flex-shrink-0 mt-0.5">
-                      <input
-                        type="checkbox"
-                        checked={importReviews}
-                        onChange={e => setImportReviews(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-6 rounded-full transition-colors ${importReviews ? 'bg-green-500' : 'bg-gray-300'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${importReviews ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-700">Import Google Reviews</span>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Up to 5 recent reviews per hotel (auto-approved)</p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Import Landmarks Toggle */}
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="relative flex-shrink-0 mt-0.5">
-                      <input
-                        type="checkbox"
-                        checked={importLandmarks}
-                        onChange={e => setImportLandmarks(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-6 rounded-full transition-colors ${importLandmarks ? 'bg-green-500' : 'bg-gray-300'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${importLandmarks ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-700">Import Nearby Landmarks</span>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Supermarkets, parks, hospitals, etc. (5km radius)</p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Mark as Partner Toggle - IMPORTANT */}
-                <div className="pt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="relative flex-shrink-0 mt-0.5">
-                      <input
-                        type="checkbox"
-                        checked={markAsPartner}
-                        onChange={e => setMarkAsPartner(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-6 rounded-full transition-colors ${markAsPartner ? 'bg-green-500' : 'bg-gray-300'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${markAsPartner ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-amber-800">✓ Mark as Partner</span>
-                      <p className="text-[11px] text-amber-700 mt-0.5">
-                        {markAsPartner 
-                          ? '✓ Hotels can show "Get Coupon" button (with discount > 0%)' 
-                          : 'Hotels will be listed only - no coupon until you sign agreement'}
-                      </p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Fetch All Pages Toggle */}
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="relative flex-shrink-0 mt-0.5">
-                      <input
-                        type="checkbox"
-                        checked={fetchAllPages}
-                        onChange={e => setFetchAllPages(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-6 rounded-full transition-colors ${fetchAllPages ? 'bg-green-500' : 'bg-gray-300'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${fetchAllPages ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-700">Fetch All Results</span>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Auto-fetch up to 60 results (3 pages) from Google</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Import button */}
+            {/* Import button — primary CTA */}
             <button
               onClick={doImport}
               disabled={!selected.size || isImporting || isSearching}
@@ -892,41 +689,166 @@ export default function ImportHotelsPage() {
               }}
             >
               {isImporting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Importing…
+                <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>Importing…</>
+              ) : selected.size > 0 ? (
+                <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Import {selected.size} Hotel{selected.size !== 1 ? 's' : ''}
                 </>
               ) : (
-                <>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  {selected.size > 0
-                    ? `Import ${selected.size} Hotel${selected.size !== 1 ? 's' : ''}`
-                    : 'Select hotels to import'}
-                </>
+                <span className="text-white/80">Select hotels from results first</span>
               )}
             </button>
 
             {selected.size > 0 && (
-              <p className="text-xs text-center text-gray-400">
-                Each hotel will be added with photos, coordinates, and a default room type — fully editable after import.
+              <p className="text-xs text-center text-gray-400 -mt-1">
+                Photos, coordinates, and a default room type will be added — all editable after import.
               </p>
             )}
+
+            {/* Import settings — collapsible */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setSettingsOpen(v => !v)}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm text-left">Import Settings</h3>
+                  <p className="text-xs text-gray-400 mt-0.5 text-left">Discount, reviews, landmarks…</p>
+                </div>
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"
+                  className={`transition-transform text-gray-400 ${settingsOpen ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              {settingsOpen && (
+                <div className="border-t border-gray-100 p-5 space-y-4">
+
+                  {/* Hotel Type */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Hotel Type
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={e => setSelectedCategory(e.target.value)}
+                      disabled={loadingTypes || isImporting}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] bg-white"
+                    >
+                      <option value="">Auto-detect from Google</option>
+                      {hotelTypes.map(type => (
+                        <option key={type.id} value={type.name}>{type.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Discount */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Discount %</label>
+                    <div className="relative">
+                      <input
+                        type="number" min={0} max={80}
+                        value={noDiscount ? 0 : discountPercent}
+                        onChange={e => setDiscountPercent(Number(e.target.value))}
+                        disabled={noDiscount}
+                        className={`w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A] ${noDiscount ? 'bg-gray-100 text-gray-400' : ''}`}
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                    </div>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input type="checkbox" checked={noDiscount} onChange={e => setNoDiscount(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-[#E8395A] focus:ring-[#E8395A]"/>
+                      <span className="text-xs text-gray-600">No coupon (0% discount)</span>
+                    </label>
+                  </div>
+
+                  {/* Coupon days */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Coupon Valid Days</label>
+                    <div className="relative">
+                      <input type="number" min={1} max={365}
+                        value={couponValidDays}
+                        onChange={e => setCouponValidDays(Number(e.target.value))}
+                        className="w-full px-3 py-2.5 pr-14 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">days</span>
+                    </div>
+                  </div>
+
+                  {/* Price override */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Price Override <span className="font-normal text-gray-400">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                      <input type="number" min={0}
+                        value={defaultPrice || ''}
+                        onChange={e => setDefaultPrice(Number(e.target.value))}
+                        placeholder="Auto from Google"
+                        className="w-full pl-8 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#E8395A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Toggles */}
+                  {[
+                    { label: 'Import Google Reviews', sub: 'Up to 5 reviews per hotel (auto-approved)', val: importReviews, set: setImportReviews },
+                    { label: 'Import Nearby Landmarks', sub: 'Supermarkets, parks, hospitals (5km)', val: importLandmarks, set: setImportLandmarks },
+                    { label: 'Fetch All 60 Results', sub: 'Auto-fetch 3 pages from Google', val: fetchAllPages, set: setFetchAllPages },
+                  ].map(({ label, sub, val, set }) => (
+                    <label key={label} className="flex items-start gap-3 cursor-pointer pt-1">
+                      <div className="relative flex-shrink-0 mt-0.5">
+                        <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} className="sr-only"/>
+                        <div className={`w-10 h-6 rounded-full transition-colors ${val ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${val ? 'translate-x-4' : 'translate-x-0'}`}/>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-700">{label}</span>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
+                      </div>
+                    </label>
+                  ))}
+
+                  {/* Mark as Partner */}
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <div className="relative flex-shrink-0 mt-0.5">
+                        <input type="checkbox" checked={markAsPartner} onChange={e => setMarkAsPartner(e.target.checked)} className="sr-only"/>
+                        <div className={`w-10 h-6 rounded-full transition-colors ${markAsPartner ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${markAsPartner ? 'translate-x-4' : 'translate-x-0'}`}/>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-amber-800">Mark as Active Partner</span>
+                        <p className="text-[11px] text-amber-700 mt-0.5">
+                          {markAsPartner
+                            ? '✓ Hotels will show "Get Coupon" button'
+                            : 'Hotels listed only — no coupon until agreement signed'}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* How it works */}
             <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
               <p className="text-xs font-bold text-gray-700 mb-3">How it works</p>
               <div className="space-y-2.5">
                 {[
-                  { n: '1', text: 'Search any city or area' },
-                  { n: '2', text: 'Select the hotels you want' },
-                  { n: '3', text: 'Set discount % and valid days' },
-                  { n: '4', text: 'Click Import — done in seconds' },
+                  { n: '1', text: 'Search a city or paste a Google Maps link' },
+                  { n: '2', text: 'Select the hotels you want to add' },
+                  { n: '3', text: 'Adjust settings if needed' },
+                  { n: '4', text: 'Click Import — done in seconds!' },
                 ].map(({ n, text }) => (
                   <div key={n} className="flex items-center gap-2.5">
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
-                    >
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}>
                       {n}
                     </div>
                     <p className="text-xs text-gray-600">{text}</p>
@@ -935,10 +857,9 @@ export default function ImportHotelsPage() {
               </div>
             </div>
 
-            {/* API key info */}
             <div className="rounded-2xl border border-dashed border-gray-200 p-4">
               <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-                Uses your <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">GOOGLE_PLACES_API_KEY</code> (or <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>). Calls are made server-side only.
+                Uses your <code className="bg-gray-100 px-1 rounded text-gray-600">GOOGLE_PLACES_API_KEY</code> (server-side only — key is never exposed to users).
               </p>
             </div>
           </div>

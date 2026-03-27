@@ -718,18 +718,30 @@ export default async function HomePage({
               className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6"
               style={{ background: 'rgba(232,57,90,0.08)', border: '1px solid rgba(232,57,90,0.15)' }}
             >
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8395A" strokeWidth={1.5} strokeLinecap="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
+              {nearMe ? (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8395A" strokeWidth={1.5} strokeLinecap="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              ) : (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8395A" strokeWidth={1.5} strokeLinecap="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+              )}
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No hotels found</h3>
-            <p className="text-gray-500 mb-8 text-sm">Try adjusting your search or clearing some filters</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {nearMe ? 'No hotels found near you' : 'No hotels found'}
+            </h3>
+            <p className="text-gray-500 mb-8 text-sm">
+              {nearMe
+                ? 'We couldn\'t find any hotels within 200km of your location. Try browsing all hotels instead.'
+                : 'Try adjusting your search or clearing some filters'}
+            </p>
             <Link
               href="/"
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white text-sm font-bold transition-all hover:opacity-90 hover:shadow-lg"
               style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)', boxShadow: '0 4px 20px rgba(232,57,90,0.35)' }}
             >
-              Clear all filters
+              {nearMe ? 'Browse all hotels' : 'Clear all filters'}
             </Link>
           </div>
         ) : (

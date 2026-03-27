@@ -7,7 +7,6 @@ import LanguageSelector from './LanguageSelector';
 import NotificationBell from './NotificationBell';
 import NavbarSearch from './NavbarSearch';
 import Logo from './Logo';
-import { useTripPlanner } from '@/hooks/useTripPlanner';
 
 interface UserSession { userId: string; email: string; role: string; fullName: string; }
 
@@ -61,8 +60,6 @@ export default function Navbar() {
   };
 
   const initials = user?.fullName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '';
-  const { plan: tripPlan } = useTripPlanner();
-  const tripCount = tripPlan.length;
 
   const getDashboardLink = () => {
     if (!user) return null;
@@ -104,25 +101,6 @@ export default function Navbar() {
 
         {/* ── Right side ── */}
         <div className="flex items-center gap-1 flex-shrink-0">
-
-          {/* Trip Planner */}
-          <Link
-            href="/trip-planner"
-            className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 hover:bg-black/5 active:scale-95 transition-all duration-200 whitespace-nowrap relative"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-            </svg>
-            Trip Planner
-            {tripCount > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #E8395A, #C41F40)' }}
-              >
-                {tripCount}
-              </span>
-            )}
-          </Link>
 
           {/* Language */}
           <div className="hidden md:block">

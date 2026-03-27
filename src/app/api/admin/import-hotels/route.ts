@@ -120,76 +120,93 @@ async function extractPlaceIdFromUrl(url: string): Promise<string | null> {
   let targetUrl = trimmed;
   
   // Handle shortened URLs (goo.gl/maps, maps.app.goo.gl)
-  if (trimmed.includes('goo.gl/maps') || trimmed.includes('maps.app.goo.gl')) {
+  if (trimmed.includes('goo.gl') || trimmed.includes('maps.app.goo.gl')) {
     try {
-      // Use GET request as some URL shorteners don't respond to HEAD
-      const res = await fetch(trimmed, { 
+      // Follow redirect chain to get the full Google Maps URL
+      const res = await fetch(trimmed, {
         redirect: 'follow',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; BusyBedsBot/1.0)',
-          'Accept': 'text/html',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
       });
-      targetUrl = res.url;
-      console.log(`[URL Resolve] Shortened URL ${trimmed} resolved to: ${targetUrl}`);
+      // Use the final URL after following redirects
+      if (res.url && res.url !== trimmed) {
+        targetUrl = res.url;
+        console.log(`[URL Resolve] Shortened URL resolved to: ${targetUrl.substring(0, 100)}…`);
+      } else {
+        // Try to extract from the response body (for JS-based redirects)
+        const html = await res.text();
+        // Look for redirect URL in meta tags or window.location assignments
+        const metaMatch = html.match(/<meta[^>]+content="0;\s*url=([^"]+)"/i);
+        const windowMatch = html.match(/window\.location\s*=\s*["']([^"']+maps\.google[^"']+)["']/);
+        const hrefMatch = html.match(/href="(https:\/\/[^"]*google[^"]*\/maps[^"]+)"/);
+        const urlMatch = html.match(/(https:\/\/www\.google\.com\/maps\/place\/[^\s"'<]+)/);
+        if (metaMatch) targetUrl = decodeURIComponent(metaMatch[1]);
+        else if (windowMatch) targetUrl = windowMatch[1];
+        else if (hrefMatch) targetUrl = hrefMatch[1];
+        else if (urlMatch) targetUrl = urlMatch[1];
+      }
     } catch (err) {
       console.error(`[URL Resolve] Failed to resolve shortened URL:`, err);
-      // If redirect fails, try to use the URL as-is
+      // Continue with trimmed URL as fallback
     }
   }
-  
+
+  // URL-decode the target URL to handle encoded characters
+  try { targetUrl = decodeURIComponent(targetUrl); } catch { /* ignore */ }
+
   // Extract Place ID from URL patterns
-  
-  // Pattern 1: !1s<place_id> in data parameter (most common)
-  const dataPlaceIdMatch = targetUrl.match(/!1s(ChIJ[A-Za-z0-9_-]+)/);
-  if (dataPlaceIdMatch) return dataPlaceIdMatch[1];
-  
-  // Pattern 1b: !1s0x...:0x... format (hex coordinates as place ID)
+
+  // Pattern 1: ChIJ Place ID anywhere in URL (most reliable)
+  const anyPlaceIdMatch = targetUrl.match(/(ChIJ[A-Za-z0-9_-]{10,})/);
+  if (anyPlaceIdMatch) {
+    console.log(`[URL Resolve] Found ChIJ Place ID: ${anyPlaceIdMatch[1]}`);
+    return anyPlaceIdMatch[1];
+  }
+
+  // Pattern 2: !1s0x...:0x... format (hex coordinates as place ID)
   const hexPlaceIdMatch = targetUrl.match(/!1s(0x[A-Fa-f0-9]+:0x[A-Fa-f0-9]+)/i);
   if (hexPlaceIdMatch) return hexPlaceIdMatch[1];
-  
-  // Pattern 2: Look for place_id in various positions
-  // !4m2!3m1!1s<place_id> or similar patterns
-  const placeIdInData = targetUrl.match(/!1s([A-Za-z0-9_-]{20,})/);
-  if (placeIdInData && placeIdInData[1].startsWith('ChIJ')) {
-    return placeIdInData[1];
-  }
-  
-  // Pattern 3: ?cid= parameter (CID is different from Place ID, need to convert)
+
+  // Pattern 3: ?cid= parameter
   const cidMatch = targetUrl.match(/[?&]cid=(\d+)/);
   if (cidMatch) {
-    // CID can be used to look up Place ID via Places API
-    // Return the CID - we'll need to convert it via API
     return `cid:${cidMatch[1]}`;
   }
-  
+
   // Pattern 4: place_id=<place_id> parameter
   const placeIdParamMatch = targetUrl.match(/[?&]place_id=([A-Za-z0-9_-]+)/);
   if (placeIdParamMatch) return placeIdParamMatch[1];
-  
-  // Pattern 5: /place/.../@lat,lng or /place/name
-  // Try to extract coordinates and use reverse geocoding
+
+  // Pattern 5: /place/<name>/@lat,lng — use name + coords for best match
+  const placeWithCoordMatch = targetUrl.match(/\/maps\/place\/([^/@]+)\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (placeWithCoordMatch) {
+    const placeName = decodeURIComponent(placeWithCoordMatch[1]).replace(/\+/g, ' ');
+    const lat = placeWithCoordMatch[2];
+    const lng = placeWithCoordMatch[3];
+    console.log(`[URL Resolve] Extracted place name+coords: "${placeName}" @ ${lat},${lng}`);
+    return `namecoords:${placeName}|${lat}|${lng}`;
+  }
+
+  // Pattern 6: @lat,lng coordinates only
   const coordMatch = targetUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (coordMatch) {
     return `coords:${coordMatch[1]},${coordMatch[2]}`;
   }
-  
-  // Pattern 6: /maps/search/<query>
-  const searchMatch = targetUrl.match(/\/maps\/search\/([^/@]+)/);
+
+  // Pattern 7: /maps/search/<query>
+  const searchMatch = targetUrl.match(/\/maps\/search\/([^/@?]+)/);
   if (searchMatch) {
-    return `search:${decodeURIComponent(searchMatch[1])}`;
+    return `search:${decodeURIComponent(searchMatch[1]).replace(/\+/g, ' ')}`;
   }
-  
-  // Pattern 7: /place/<name> without other identifiers - extract the place name
-  const placeNameMatch = targetUrl.match(/\/maps\/place\/([^/@]+)/);
+
+  // Pattern 8: /place/<name> without coordinates
+  const placeNameMatch = targetUrl.match(/\/maps\/place\/([^/@?]+)/);
   if (placeNameMatch) {
-    return `placename:${decodeURIComponent(placeNameMatch[1])}`;
+    return `placename:${decodeURIComponent(placeNameMatch[1]).replace(/\+/g, ' ')}`;
   }
-  
-  // Pattern 8: Look for any ChIJ pattern anywhere in the URL
-  const anyPlaceIdMatch = targetUrl.match(/(ChIJ[A-Za-z0-9_-]{20,})/);
-  if (anyPlaceIdMatch) return anyPlaceIdMatch[1];
-  
+
   return null;
 }
 
@@ -279,11 +296,59 @@ async function resolvePlaceId(
     return null;
   }
   
+  // Handle name + coordinates (most accurate — search near exact location)
+  if (input.startsWith('namecoords:')) {
+    const parts = input.replace('namecoords:', '').split('|');
+    const name = parts[0] || '';
+    const lat = parseFloat(parts[1] || '0');
+    const lng = parseFloat(parts[2] || '0');
+    // Try nearby search first (most accurate)
+    const nearbyParams = new URLSearchParams({
+      location: `${lat},${lng}`,
+      radius: '100',
+      keyword: name,
+      type: 'lodging',
+      key: apiKey,
+    });
+    const nearbyRes = await fetch(`${PLACES_BASE}/nearbysearch/json?${nearbyParams}`);
+    const nearbyData = await nearbyRes.json();
+    console.log(`[resolvePlaceId] Name+coords nearby result for "${name}":`, nearbyData.status, nearbyData.results?.[0]?.name);
+    if (nearbyData.results?.[0]?.place_id) {
+      return { placeId: nearbyData.results[0].place_id, name: nearbyData.results[0].name };
+    }
+    // Fallback: text search with name
+    const textParams = new URLSearchParams({
+      query: `${name}`,
+      location: `${lat},${lng}`,
+      radius: '500',
+      type: 'lodging',
+      key: apiKey,
+    });
+    const textRes = await fetch(`${PLACES_BASE}/textsearch/json?${textParams}`);
+    const textData = await textRes.json();
+    if (textData.results?.[0]?.place_id) {
+      return { placeId: textData.results[0].place_id, name: textData.results[0].name };
+    }
+    // Last fallback: wider nearby search
+    const wideParams = new URLSearchParams({
+      location: `${lat},${lng}`,
+      radius: '500',
+      type: 'lodging',
+      key: apiKey,
+    });
+    const wideRes = await fetch(`${PLACES_BASE}/nearbysearch/json?${wideParams}`);
+    const wideData = await wideRes.json();
+    if (wideData.results?.[0]?.place_id) {
+      return { placeId: wideData.results[0].place_id, name: wideData.results[0].name };
+    }
+    return null;
+  }
+
   // Handle search query
   if (input.startsWith('search:') || input.startsWith('placename:')) {
     const query = input.replace(/^(search|placename):/, '');
     const params = new URLSearchParams({
-      query: `${query} hotel lodge resort`,
+      query: `${query}`,
       type: 'lodging',
       key: apiKey,
     });
@@ -291,7 +356,7 @@ async function resolvePlaceId(
     const data = await res.json();
     console.log(`[resolvePlaceId] Text search result for "${query}":`, data.status);
     if (data.results?.[0]?.place_id) {
-      return { 
+      return {
         placeId: data.results[0].place_id,
         name: data.results[0].name,
       };

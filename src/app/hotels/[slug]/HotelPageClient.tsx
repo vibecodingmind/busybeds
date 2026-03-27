@@ -187,13 +187,6 @@ export default function HotelPageClient({
               )}
             </div>
           ))}
-          {/* Show all photos button */}
-          <button 
-            onClick={() => { setLightboxIndex(0); setShowLightbox(true); }}
-            className="absolute bottom-4 right-4 flex items-center gap-2 bg-white border border-gray-800 rounded-lg px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition-colors shadow-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            Show all photos
-          </button>
         </div>
       </div>
 
@@ -281,41 +274,6 @@ export default function HotelPageClient({
             <p className="text-gray-600 leading-relaxed">{hotel.descriptionLong || hotel.descriptionShort}</p>
           </div>
 
-          {/* Contact details - outlined pills */}
-          {(hotel.whatsapp || hotel.email || hotel.websiteUrl) && (
-            <div className="py-8 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact</h2>
-              <div className="flex flex-wrap gap-3">
-                {hotel.whatsapp && (
-                  <a href={`https://wa.me/${hotel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                    className="border border-gray-300 rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 inline-flex items-center gap-2 transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    WhatsApp
-                  </a>
-                )}
-                {hotel.email && (
-                  <a href={`mailto:${hotel.email}`}
-                    className="border border-gray-300 rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 inline-flex items-center gap-2 transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                    </svg>
-                    Email
-                  </a>
-                )}
-                {hotel.websiteUrl && (
-                  <a href={hotel.websiteUrl} target="_blank" rel="noopener noreferrer"
-                    className="border border-gray-300 rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 inline-flex items-center gap-2 transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
-                    </svg>
-                    Website
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Room types */}
           {hotel.roomTypes.length > 0 && (
@@ -449,26 +407,33 @@ export default function HotelPageClient({
             <ReviewsSection hotelId={hotel.id} hotelName={hotel.name} avgRating={hotel.avgRating} reviewCount={hotel.reviewCount} />
           </div>
 
-          {/* Related Hotels - Horizontal scroll carousel */}
+          {/* Related Hotels - Grid */}
           {relatedHotels.length > 0 && (
             <div className="py-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                You might also like
-              </h2>
-              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory -mx-4 px-4">
-                {relatedHotels.map(h => {
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">You might also like</h2>
+                <div className="flex gap-2">
+                  <Link href="/" className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </Link>
+                  <Link href="/" className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </Link>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {relatedHotels.slice(0, 6).map(h => {
                   const img = h.photo || h.coverImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400';
-                  const disc = h.basePrice ? Math.round(h.basePrice * (1 - h.discountPercent / 100)) : null;
+                  const disc = h.basePrice && h.discountPercent > 0 ? Math.round(h.basePrice * (1 - h.discountPercent / 100)) : null;
                   return (
-                    <Link key={h.id} href={`/hotels/${h.slug}`}
-                      className="snap-start flex-shrink-0 w-64 group">
-                      <div className="relative rounded-xl overflow-hidden mb-2">
-                        <div className="aspect-[4/3] relative">
-                          <img src={img} alt={h.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        </div>
-                        <div className="absolute top-2 left-2 bg-emerald-700 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                          {h.discountPercent}% off
-                        </div>
+                    <Link key={h.id} href={`/hotels/${h.slug}`} className="group">
+                      <div className="relative rounded-xl overflow-hidden mb-2 aspect-[4/3]">
+                        <img src={img} alt={h.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        {h.discountPercent > 0 && (
+                          <div className="absolute top-2 left-2 bg-[#E8395A] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {h.discountPercent}% off
+                          </div>
+                        )}
                         {h.avgRating && (
                           <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-bold text-gray-800 flex items-center gap-0.5">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -478,10 +443,15 @@ export default function HotelPageClient({
                       </div>
                       <p className="font-semibold text-gray-900 text-sm truncate">{h.name}</p>
                       <p className="text-xs text-gray-500 mb-1">{h.city}, {h.country}</p>
-                      {disc && (
+                      {disc ? (
                         <p className="text-sm font-bold text-gray-900">
                           <span className="line-through text-gray-400 font-normal text-xs mr-1">${h.basePrice?.toFixed(0)}</span>
                           ${disc}<span className="text-xs text-gray-400 font-normal">/night</span>
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+                          Contact for price
                         </p>
                       )}
                     </Link>
