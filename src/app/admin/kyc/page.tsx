@@ -1,3 +1,5 @@
+export const revalidate = 0;
+
 import KycClient from './KycClient';
 import prisma from '@/lib/prisma';
 

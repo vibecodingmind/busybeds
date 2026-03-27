@@ -1,3 +1,5 @@
+export const revalidate = 0;
+
 import prisma from '@/lib/prisma';
 
 export const metadata = { title: 'Coupons — BusyBeds Admin' };

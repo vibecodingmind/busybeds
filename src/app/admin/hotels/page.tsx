@@ -1,3 +1,5 @@
+export const revalidate = 0;
+
 import Link from 'next/link';
 import HotelsBulkClient from './HotelsBulkClient';
 import prisma from '@/lib/prisma';
