@@ -4,18 +4,31 @@ import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { sendEmail, emailRenewalReminder } from '@/lib/email';
 
-export async function POST(req: NextRequest) {
-  // Check for admin session or cron secret key
+async function authCheck(req: NextRequest): Promise<boolean> {
   const session = await getSessionFromRequest(req);
-  const cronSecret = req.headers.get('X-Cron-Secret');
-  
-  const isAdmin = session?.role === 'admin';
-  const isValidCron = cronSecret && cronSecret === process.env.CRON_SECRET;
-  
-  if (!isAdmin && !isValidCron) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (session?.role === 'admin') return true;
+  const cronHeader = req.headers.get('X-Cron-Secret');
+  const authHeader = req.headers.get('Authorization');
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  if (cronHeader === secret) return true;
+  if (authHeader === `Bearer ${secret}`) return true;
+  return false;
+}
 
+// GET — called by Vercel Cron
+export async function GET(req: NextRequest) {
+  if (!await authCheck(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  return runReminders();
+}
+
+// POST — called manually by admin
+export async function POST(req: NextRequest) {
+  if (!await authCheck(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  return runReminders();
+}
+
+async function runReminders(): Promise<NextResponse> {
   try {
     const now = new Date();
     const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);

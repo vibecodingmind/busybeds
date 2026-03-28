@@ -39,6 +39,7 @@ const navItems = [
       { href: '/admin/hotel-subscriptions', label: 'Hotel Subs', icon: 'subscription' },
       { href: '/admin/packages', label: 'Packages', icon: 'package' },
       { href: '/admin/hotel-subscription-tiers', label: 'Tiers', icon: 'tier' },
+      { href: '/admin/corporate', label: 'Corporate Accounts', icon: 'corporate' },
     ],
   },
   {
@@ -162,6 +163,11 @@ const icons: Record<string, ({ active }: { active: boolean }) => JSX.Element> = 
   loyalty: ({ active }) => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round">
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  ),
+  corporate: ({ active }) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
     </svg>
   ),
 };

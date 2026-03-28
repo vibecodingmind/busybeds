@@ -4,16 +4,33 @@ import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { sendEmail, emailCouponExpiringSoon } from '@/lib/email';
 
-export async function POST(req: NextRequest) {
-  // Allow admin session or cron secret
+// Shared auth check for cron or admin
+async function authCheck(req: NextRequest): Promise<boolean> {
   const session = await getSessionFromRequest(req);
-  const cronSecret = req.headers.get('X-Cron-Secret');
-  const isAdmin = session?.role === 'admin';
-  const isValidCron = cronSecret && cronSecret === process.env.CRON_SECRET;
+  if (session?.role === 'admin') return true;
+  // X-Cron-Secret (manual trigger) or Authorization: Bearer <secret> (Vercel Cron)
+  const cronHeader = req.headers.get('X-Cron-Secret');
+  const authHeader = req.headers.get('Authorization');
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  if (cronHeader === secret) return true;
+  if (authHeader === `Bearer ${secret}`) return true;
+  return false;
+}
 
-  if (!isAdmin && !isValidCron) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+// GET — called by Vercel Cron (sends GET with Authorization: Bearer <CRON_SECRET>)
+export async function GET(req: NextRequest) {
+  if (!await authCheck(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  return runReminders();
+}
+
+// POST — called manually by admin or scripts
+export async function POST(req: NextRequest) {
+  if (!await authCheck(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  return runReminders();
+}
+
+async function runReminders(): Promise<NextResponse> {
 
   try {
     const now = new Date();

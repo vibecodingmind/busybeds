@@ -36,6 +36,11 @@ model User {
   language             String    @default("en")
   timezone             String    @default("UTC")
 
+  // Corporate
+  corporateAccountId   String?
+  corporateAccount     CorporateAccount? @relation("CorporateMembers", fields: [corporateAccountId], references: [id], onDelete: SetNull)
+  managedCorporate     CorporateAccount? @relation("CorporateAdmin")
+
   // Relations
   subscriptions        Subscription[]
   coupons              Coupon[]          @relation("CouponOwner")
@@ -273,20 +278,45 @@ model SubscriptionPackage {
 }
 
 model Subscription {
-  id           String    @id @default(cuid())
-  userId       String
-  packageId    String
-  status       String    @default("active")
-  billingCycle String    @default("monthly")
-  startsAt     DateTime  @default(now())
-  expiresAt    DateTime
-  stripeSubId  String?
-  compedBy     String?
-  compedReason String?
-  createdAt    DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  userId             String
+  packageId          String
+  status             String    @default("active")
+  billingCycle       String    @default("monthly")
+  startsAt           DateTime  @default(now())
+  expiresAt          DateTime
+  stripeSubId        String?
+  compedBy           String?
+  compedReason       String?
+  createdAt          DateTime  @default(now())
+  corporateAccountId String?
 
-  user         User      @relation(fields: [userId], references: [id])
-  package      SubscriptionPackage @relation(fields: [packageId], references: [id])
+  user               User      @relation(fields: [userId], references: [id])
+  package            SubscriptionPackage @relation(fields: [packageId], references: [id])
+  corporateAccount   CorporateAccount? @relation(fields: [corporateAccountId], references: [id], onDelete: SetNull)
+}
+
+// Corporate / Group accounts
+model CorporateAccount {
+  id            String   @id @default(cuid())
+  companyName   String
+  industry      String?
+  country       String   @default("Tanzania")
+  contactEmail  String
+  contactPhone  String?
+  adminUserId   String   @unique
+  maxSeats      Int      @default(10)
+  status        String   @default("pending") // pending, active, suspended
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  adminUser     User     @relation("CorporateAdmin", fields: [adminUserId], references: [id])
+  members       User[]   @relation("CorporateMembers")
+  subscriptions Subscription[]
+
+  @@index([status])
+  @@index([adminUserId])
 }
 
 model Coupon {
