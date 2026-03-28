@@ -1,19 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <rect width="100" height="100" rx="18" fill="#000000"/>
+  <rect width="100" height="100" rx="16" fill="#0D0D0D"/>
 
-  <!-- House left wall + floor -->
-  <path d="M 13 53 L 13 87 Q 13 95 21 95 L 47 95"
-        stroke="#E8395A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- House right wall + floor -->
-  <path d="M 87 53 L 87 87 Q 87 95 79 95 L 57 95"
-        stroke="#E8395A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Roof left -->
-  <path d="M 10 55 L 50 12" stroke="#E8395A" stroke-width="7" stroke-linecap="round"/>
-  <!-- Roof right -->
-  <path d="M 90 55 L 50 12" stroke="#E8395A" stroke-width="7" stroke-linecap="round"/>
+  <!-- House outline: left wall + rounded bottom-left -->
+  <path d="M 18 50 L 18 82 Q 18 90 26 90 L 42 90"
+        stroke="#E8395A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- House right wall + rounded bottom-right (stops before badge) -->
+  <path d="M 82 50 L 82 82 Q 82 90 74 90 L 62 90"
+        stroke="#E8395A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Roof left side -->
+  <path d="M 14 52 L 50 14" stroke="#E8395A" stroke-width="6.5" stroke-linecap="round"/>
+  <!-- Roof right side — ends before top-right so it looks open/rounded like your logo -->
+  <path d="M 86 52 L 58 23" stroke="#E8395A" stroke-width="6.5" stroke-linecap="round"/>
 
-  <!-- Circle with checkmark -->
-  <circle cx="50" cy="64" r="20" stroke="#E8395A" stroke-width="6.5"/>
-  <polyline points="37,64 47,73 64,55"
-            stroke="#E8395A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Badge circle (bottom-right) with black fill to cut into house -->
+  <circle cx="66" cy="74" r="20" fill="#0D0D0D"/>
+  <circle cx="66" cy="74" r="18" stroke="#E8395A" stroke-width="5.5"/>
+  <!-- Checkmark -->
+  <polyline points="56,74 63,81 77,63"
+            stroke="#E8395A" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
