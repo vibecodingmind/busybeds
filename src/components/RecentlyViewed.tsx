@@ -1,18 +1,35 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import Link from 'next/link';
 
 export default function RecentlyViewed() {
   const { recent, clearRecent } = useRecentlyViewed();
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [checked, setChecked] = useState(false);
 
-  if (recent.length === 0) return null;
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => { if (r.ok) setLoggedIn(true); })
+      .finally(() => setChecked(true));
+  }, []);
+
+  // Only render for logged-in users with history
+  if (!checked || !loggedIn || recent.length === 0) return null;
 
   return (
-    <section className="py-6 border-b border-gray-100">
+    <section className="py-8 border-t border-gray-100">
       <div className="max-w-[1760px] mx-auto px-6 sm:px-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">Recently Viewed</h2>
-          <button onClick={clearRecent} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Clear</button>
+          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <span>🕐</span> Recently Viewed
+          </h2>
+          <button
+            onClick={clearRecent}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Clear
+          </button>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {recent.map(hotel => (

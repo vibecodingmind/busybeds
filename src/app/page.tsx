@@ -755,8 +755,6 @@ export default async function HomePage({
           </div>
         )}
 
-        <RecentlyViewed />
-
         {/* ── Region quick-filter pills (unfiltered only, when cities exist) ── */}
         {!isFiltered && cities.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 mb-7">
@@ -1030,6 +1028,9 @@ export default async function HomePage({
           </div>
         </div>
       </section>
+
+      {/* ── Recently Viewed (logged-in users only, bottom of page) ── */}
+      <RecentlyViewed />
 
       {/* ══════════════════════════════════════════════════════
           FOOTER
