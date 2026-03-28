@@ -1071,8 +1071,8 @@ export default async function HomePage({
                 { href: '/subscribe', label: 'Pricing' },
                 { href: '/apply', label: 'List Your Hotel' },
                 { href: '/profile', label: 'Account' },
-                { href: '/apply', label: 'Privacy' },
-                { href: '/apply', label: 'Terms' },
+                { href: '/privacy', label: 'Privacy' },
+                { href: '/terms', label: 'Terms' },
               ].map(({ href, label }) => (
                 <Link
                   key={label}
