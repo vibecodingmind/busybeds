@@ -15,6 +15,7 @@ import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
 import { sendEmail, emailSubscriptionConfirmed } from '@/lib/email';
 import { awardReferralEarning } from '@/lib/referral';
+import { sendSMS, smsSubscriptionActivated } from '@/lib/sms';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
@@ -170,6 +171,15 @@ export async function POST(req: NextRequest) {
           html: emailSubscriptionConfirmed(user.fullName, pkg.name, expiresAt),
         });
       } catch (e) { console.error('[Stripe Webhook] Email error:', e); }
+
+      // SMS confirmation
+      if (user.phone) {
+        sendSMS({
+          to: user.phone,
+          message: smsSubscriptionActivated(pkg.name, expiresAt),
+          userId: user.id,
+        }).catch(e => console.error('[SMS] Stripe webhook error:', e));
+      }
 
       // Create referral earning for whoever referred this user (one-time, uses admin-configured %)
       await awardReferralEarning(userId, newSub.id, pkg.priceMonthly);

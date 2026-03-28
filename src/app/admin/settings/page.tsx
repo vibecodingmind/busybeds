@@ -101,6 +101,16 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    id: 'sms',
+    label: 'SMS (SDASMS)',
+    icon: '📱',
+    description: 'SDASMS API settings for automated SMS notifications',
+    fields: [
+      { key: 'sdasmsApiToken',  label: 'SDASMS API Token', placeholder: '1|your_token_here', type: 'text', hint: 'Get from my.sdasms.com → Developers → API Token' },
+      { key: 'sdasmsSenderId', label: 'Sender ID (max 11 chars)', placeholder: 'BusyBeds', type: 'text', hint: 'Alphanumeric sender shown to recipients. Max 11 characters.' },
+    ],
+  },
+  {
     id: 'currency',
     label: 'Currency Rates',
     icon: '💱',
@@ -114,6 +124,7 @@ const DEFAULT_VALS: Record<string, string> = {
   siteName: 'BusyBeds', defaultCurrency: 'TZS', defaultDiscountPercent: '15',
   defaultCouponValidDays: '30', maxCouponsPerUser: '10', maintenanceMode: 'false',
   referralRewardPercent: '20', referralHoldDays: '30', referralMinPayout: '20', referralBonusDays: '7',
+  sdasmsApiToken: '', sdasmsSenderId: 'BusyBeds',
 };
 
 const CURRENCY_META: Record<string, { name: string; symbol: string; flag: string }> = {

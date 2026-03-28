@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { sendEmail, emailCouponExpiringSoon } from '@/lib/email';
+import { sendSMS, smsCouponExpiringSoon } from '@/lib/sms';
 
 // Shared auth check for cron or admin
 async function authCheck(req: NextRequest): Promise<boolean> {
@@ -45,7 +46,7 @@ async function runReminders(): Promise<NextResponse> {
         expiresAt: { gte: in2Days, lte: in3Days },
       },
       include: {
-        user:  { select: { id: true, fullName: true, email: true } },
+        user:  { select: { id: true, fullName: true, email: true, phone: true } },
         hotel: { select: { name: true, slug: true } },
       },
     });
@@ -69,6 +70,16 @@ async function runReminders(): Promise<NextResponse> {
             shareUrl,
           ),
         });
+
+        // SMS reminder if user has a phone
+        if (coupon.user.phone) {
+          sendSMS({
+            to: coupon.user.phone,
+            message: smsCouponExpiringSoon(coupon.hotel.name, coupon.code, coupon.discountPercent, coupon.expiresAt),
+            userId: coupon.user.id,
+          }).catch(e => console.error(`[SMS] Coupon expiry reminder error ${coupon.id}:`, e));
+        }
+
         sent.push(coupon.id);
       } catch (e) {
         console.error(`Coupon expiry reminder failed for ${coupon.id}:`, e);

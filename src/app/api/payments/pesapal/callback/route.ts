@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getPesapalTransactionStatus } from '@/lib/pesapal';
 import { sendEmail, emailSubscriptionConfirmed } from '@/lib/email';
 import { awardReferralEarning } from '@/lib/referral';
+import { sendSMS, smsSubscriptionActivated } from '@/lib/sms';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
 
@@ -60,6 +61,15 @@ export async function GET(req: NextRequest) {
         html: emailSubscriptionConfirmed(sub.user.fullName, sub.package.name, sub.expiresAt),
       });
     } catch (e) { console.error('Email error:', e); }
+
+    // SMS confirmation
+    if (sub.user.phone) {
+      sendSMS({
+        to: sub.user.phone,
+        message: smsSubscriptionActivated(sub.package.name, sub.expiresAt),
+        userId: sub.user.id,
+      }).catch(e => console.error('[SMS] Pesapal callback error:', e));
+    }
 
     // Award referral commission if this user was referred (one-time)
     await awardReferralEarning(sub.userId, sub.id, sub.package.priceMonthly);

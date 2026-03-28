@@ -8,6 +8,7 @@ import { generateCouponCode, generateQRDataUrl } from '@/lib/qr';
 import { sendEmail, emailCouponGenerated, emailGiftCoupon } from '@/lib/email';
 import { getEffectiveDiscount } from '@/lib/discountRules';
 import { awardPoints } from '@/lib/loyalty';
+import { sendSMS, smsCouponGenerated } from '@/lib/sms';
 
 // GET /api/coupons — list caller's coupons (supports ?hotelId=&status= filters)
 export async function GET(req: NextRequest) {
@@ -140,9 +141,12 @@ export async function POST(req: NextRequest) {
   // Award loyalty points for coupon generation (+10 pts)
   await awardPoints(session.userId, 10, 'coupon_gen', `Generated coupon for ${hotel.name}`);
 
-  // Send coupon email
+  // Send coupon email + SMS
   try {
-    const user = await prisma.user.findUnique({ where: { id: session.userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      include: { notificationPreference: true },
+    });
     if (user) {
       if (guestName && guestEmail) {
         // Send gift coupon directly to friend's email
@@ -159,8 +163,18 @@ export async function POST(req: NextRequest) {
           html: emailCouponGenerated(recipientName, hotel.name, effectiveDiscount, code, expiresAt, qrDataUrl),
         });
       }
+
+      // SMS notification (only if user has a phone and SMS alerts enabled or preference not set)
+      const smsEnabled = user.notificationPreference?.smsAlerts !== false;
+      if (user.phone && smsEnabled) {
+        sendSMS({
+          to: user.phone,
+          message: smsCouponGenerated(hotel.name, code, effectiveDiscount, expiresAt),
+          userId: user.id,
+        }).catch(e => console.error('[SMS] Coupon gen error:', e));
+      }
     }
-  } catch (e) { console.error('Email error:', e); }
+  } catch (e) { console.error('Email/SMS error:', e); }
 
   return NextResponse.json({ coupon }, { status: 201 });
 }

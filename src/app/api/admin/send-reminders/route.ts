@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { sendEmail, emailRenewalReminder } from '@/lib/email';
+import { sendSMS, smsSubscriptionExpiringSoon } from '@/lib/sms';
 
 async function authCheck(req: NextRequest): Promise<boolean> {
   const session = await getSessionFromRequest(req);
@@ -44,7 +45,7 @@ async function runReminders(): Promise<NextResponse> {
       },
       include: {
         user: {
-          select: { id: true, fullName: true, email: true },
+          select: { id: true, fullName: true, email: true, phone: true },
         },
         package: {
           select: { name: true },
@@ -69,7 +70,16 @@ async function runReminders(): Promise<NextResponse> {
             `${process.env.NEXT_PUBLIC_APP_URL}/subscribe`
           ),
         });
-        
+
+        // SMS renewal reminder
+        if (sub.user.phone) {
+          sendSMS({
+            to: sub.user.phone,
+            message: smsSubscriptionExpiringSoon(sub.package.name, daysLeft),
+            userId: sub.user.id,
+          }).catch(e => console.error(`[SMS] Renewal reminder error ${sub.id}:`, e));
+        }
+
         sent.push(sub.id);
       } catch (error) {
         console.error(`Failed to send reminder for subscription ${sub.id}:`, error);

@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { stripe, hasStripe } from '@/lib/stripe';
 import { sendEmail, emailSubscriptionConfirmed } from '@/lib/email';
+import { sendSMS, smsSubscriptionActivated } from '@/lib/sms';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -86,6 +87,15 @@ export async function POST(req: NextRequest) {
         html: emailSubscriptionConfirmed(user.fullName, pkg.name, expiresAt),
       });
     } catch (e) { console.error('Email error:', e); }
+
+    // SMS confirmation
+    if (user.phone) {
+      sendSMS({
+        to: user.phone,
+        message: smsSubscriptionActivated(pkg.name, expiresAt),
+        userId: user.id,
+      }).catch(e => console.error('[SMS] Subscription activation error:', e));
+    }
 
     // Create referral earning for the user who referred this subscriber
     try {
