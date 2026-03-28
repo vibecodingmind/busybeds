@@ -37,7 +37,11 @@ export async function sendSMS(opts: SendSMSOptions): Promise<SMSResult> {
     return { success: false, error: 'SDASMS_API_TOKEN not configured' };
   }
 
-  const senderId = (opts.senderId || process.env.SDASMS_SENDER_ID || 'BusyBeds').slice(0, 11);
+  const senderId = (opts.senderId || process.env.SDASMS_SENDER_ID || '').slice(0, 11);
+  if (!senderId) {
+    console.warn('[SMS] SDASMS_SENDER_ID not set — skipping SMS send');
+    return { success: false, error: 'SDASMS_SENDER_ID not configured' };
+  }
   const recipient = Array.isArray(opts.to) ? opts.to.join(',') : opts.to;
 
   // Log each recipient separately in DB

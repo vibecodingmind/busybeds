@@ -39,9 +39,17 @@ function SendSMSPanel({ onSent }: { onSent: () => void }) {
   const [phone, setPhone] = useState('');
   const [customPhones, setCustomPhones] = useState('');
   const [message, setMessage] = useState('');
-  const [senderId, setSenderId] = useState('BusyBeds');
+  const [senderId, setSenderId] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  // Load configured sender ID from admin settings on mount
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.values?.sdasmsSenderId) setSenderId(d.values.sdasmsSenderId); })
+      .catch(() => {});
+  }, []);
 
   const charCount = message.length;
   const parts = charCount <= 160 ? 1 : Math.ceil(charCount / 153);
@@ -137,8 +145,11 @@ function SendSMSPanel({ onSent }: { onSent: () => void }) {
 
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">Sender ID <span className="text-gray-400">(max 11 chars)</span></label>
-        <input type="text" maxLength={11} value={senderId} onChange={e => setSenderId(e.target.value.slice(0, 11))}
+        <input type="text" maxLength={11} value={senderId}
+          onChange={e => setSenderId(e.target.value.slice(0, 11))}
+          placeholder="From SDASMS_SENDER_ID env"
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <p className="text-xs text-gray-400 mt-1">Set in <code className="bg-gray-100 px-1 rounded">SDASMS_SENDER_ID</code> env variable or Admin → API Settings → SMS</p>
       </div>
 
       <div className="mb-4">
