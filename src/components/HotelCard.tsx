@@ -91,7 +91,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* ── Image container ── */}
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3 shadow-sm transition-shadow duration-300 group-hover:shadow-xl"
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-slate-800 mb-3 shadow-sm transition-shadow duration-300 group-hover:shadow-xl"
            style={{ boxShadow: isHovered ? '0 12px 40px rgba(15,23,42,0.15)' : '0 2px 8px rgba(15,23,42,0.08)' }}>
         {/* Main image with smooth transitions */}
         <img
@@ -181,8 +181,8 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
                 comparing
                   ? 'bg-blue-500 text-white scale-105 shadow-lg'
                   : canAdd
-                  ? 'bg-white/90 text-gray-600 hover:bg-white hover:text-blue-600 hover:scale-105 hover:shadow-lg'
-                  : 'bg-white/60 text-gray-300 cursor-not-allowed'
+                  ? 'bg-white/90 dark:bg-slate-700/90 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-600 hover:text-blue-600 hover:scale-105 hover:shadow-lg'
+                  : 'bg-white/60 dark:bg-slate-700/60 text-gray-300 cursor-not-allowed'
               }`}
               title={comparing ? 'Remove from compare' : canAdd ? 'Add to compare' : 'Max 3 hotels'}
             >
@@ -198,15 +198,13 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           <>
             <button
               onClick={prev}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm"
-              style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm bg-white/90 dark:bg-slate-700/90 text-gray-700 dark:text-gray-200"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <button
               onClick={next}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm"
-              style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm bg-white/90 dark:bg-slate-700/90 text-gray-700 dark:text-gray-200"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -232,7 +230,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         {/* Row 1: Name + Verified + Rating */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-1 group-hover:text-gray-700 transition-colors duration-200">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px] leading-snug line-clamp-1 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-200">
               {hotel.name}
             </h3>
             {/* Verified badge for premium subscribers */}
@@ -245,18 +243,18 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             )}
           </div>
           {rating != null && (
-            <div className="flex items-center gap-1 flex-shrink-0 text-[13px] font-semibold text-gray-900">
+            <div className="flex items-center gap-1 flex-shrink-0 text-[13px] font-semibold text-gray-900 dark:text-gray-100">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="#E8395A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               {typeof rating === 'number' ? rating.toFixed(1) : rating}
               {hotel.reviewCount > 0 && (
-                <span className="text-gray-400 font-normal text-[12px]">({hotel.reviewCount})</span>
+                <span className="text-gray-400 dark:text-gray-500 font-normal text-[12px]">({hotel.reviewCount})</span>
               )}
             </div>
           )}
         </div>
 
         {/* Row 2: Location */}
-        <p className="text-gray-500 text-sm truncate">
+        <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
           {hotel.city}, {hotel.country}
         </p>
 
@@ -266,7 +264,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             {vibeTagObjects.map(vt => vt && (
               <span
                 key={vt.id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 text-gray-600 text-[11px] font-medium border border-gray-100"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-[11px] font-medium border border-gray-100 dark:border-slate-600"
               >
                 <span>{vt.emoji}</span>
                 <span>{vt.label}</span>
@@ -280,25 +278,25 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           <div className="flex items-baseline gap-1.5 mt-1">
             {discountedPrice && discountedPrice < minPrice ? (
               <>
-                {hasMultiplePrices && <span className="text-gray-500 text-sm font-medium">From</span>}
-                <span className="line-through text-gray-400 text-sm">{format(minPrice)}</span>
-                <span className="font-bold text-gray-900 text-[15px]">{format(discountedPrice)}</span>
-                <span className="text-gray-500 text-sm font-normal">/ night</span>
+                {hasMultiplePrices && <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">From</span>}
+                <span className="line-through text-gray-400 dark:text-gray-500 text-sm">{format(minPrice)}</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-[15px]">{format(discountedPrice)}</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm font-normal">/ night</span>
               </>
             ) : (
               <>
-                {hasMultiplePrices && <span className="text-gray-500 text-sm font-medium">From</span>}
-                <span className="font-bold text-gray-900 text-[15px]">{format(minPrice)}</span>
-                <span className="text-gray-500 text-sm font-normal">/ night</span>
+                {hasMultiplePrices && <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">From</span>}
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-[15px]">{format(minPrice)}</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm font-normal">/ night</span>
               </>
             )}
           </div>
         ) : !isPartnerActive ? (
           <div className="flex items-center gap-1.5 mt-1">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-500 dark:text-gray-400">
               <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
             </svg>
-            <span className="text-gray-500 text-sm font-medium">Contact for price</span>
+            <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">Contact for price</span>
           </div>
         ) : null}
       </div>

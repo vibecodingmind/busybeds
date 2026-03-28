@@ -144,8 +144,8 @@ export default function Navbar() {
               onClick={() => setMenuOpen(!menuOpen)}
               className={`flex items-center gap-2.5 rounded-full pl-3 pr-1.5 py-1.5 border transition-all duration-200 active:scale-95 ${
                 menuOpen
-                  ? 'border-gray-300 shadow-lg bg-white'
-                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white/80'
+                  ? 'border-gray-300 dark:border-slate-600 shadow-lg bg-white dark:bg-slate-800'
+                  : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-500 hover:shadow-md bg-white/80 dark:bg-slate-800/80'
               }`}
               aria-label="Open menu"
             >
@@ -173,13 +173,13 @@ export default function Navbar() {
             {/* ── Dropdown menu ── */}
             {menuOpen && (
               <div 
-                className="glass-panel absolute right-0 top-[calc(100%+12px)] w-64 z-50 animate-scale-in overflow-hidden"
+                className="glass-panel dark:bg-slate-900 dark:border-slate-700 absolute right-0 top-[calc(100%+12px)] w-64 z-50 animate-scale-in overflow-hidden"
                 style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.10)' }}
               >
                 {user ? (
                   <>
                     {/* User header */}
-                    <div className="px-4 py-4 border-b border-black/[0.06]" style={{ background: 'linear-gradient(135deg, rgba(232,57,90,0.04) 0%, transparent 100%)' }}>
+                    <div className="px-4 py-4 border-b border-black/[0.06] dark:border-white/[0.06]" style={{ background: 'linear-gradient(135deg, rgba(232,57,90,0.04) 0%, transparent 100%)' }}>
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-sm"
@@ -188,8 +188,8 @@ export default function Navbar() {
                           {initials}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-sm text-gray-900 truncate">{user.fullName}</p>
-                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{user.fullName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                         </div>
                       </div>
                     </div>
@@ -220,13 +220,13 @@ export default function Navbar() {
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 100 8 4 4 0 000-8z"/></svg>
                       }>Profile</MenuItem>
 
-                      <div className="mx-3 my-1.5 border-t border-black/[0.06]" />
+                      <div className="mx-3 my-1.5 border-t border-black/[0.06] dark:border-white/[0.06]" />
 
                       <MenuItem href="/apply" onClick={() => setMenuOpen(false)} icon={
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                       }>List Your Hotel</MenuItem>
 
-                      <div className="mx-3 my-1.5 border-t border-black/[0.06]" />
+                      <div className="mx-3 my-1.5 border-t border-black/[0.06] dark:border-white/[0.06]" />
 
                       <button
                         onClick={logout}
@@ -241,8 +241,8 @@ export default function Navbar() {
                 ) : (
                   <div className="py-3">
                     <div className="px-4 pb-3 pt-1">
-                      <p className="text-sm font-bold text-gray-900">Welcome to BusyBeds</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Sign in to unlock exclusive deals</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Welcome to BusyBeds</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sign in to unlock exclusive deals</p>
                     </div>
                     <div className="px-3 space-y-2 pb-2">
                       <Link
@@ -256,7 +256,7 @@ export default function Navbar() {
                       <Link
                         href="/register"
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-center w-full px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                        className="flex items-center justify-center w-full px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-[0.98] transition-all"
                       >
                         Create Account
                       </Link>
@@ -291,9 +291,9 @@ function MenuItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 mx-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-black/[0.04] active:bg-black/[0.06] rounded-xl transition-colors"
+      className="flex items-center gap-3 mx-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] active:bg-black/[0.06] dark:active:bg-white/[0.08] rounded-xl transition-colors"
     >
-      <span className="flex-shrink-0 text-gray-500">{icon}</span>
+      <span className="flex-shrink-0 text-gray-500 dark:text-gray-400">{icon}</span>
       {children}
     </Link>
   );
