@@ -10,6 +10,7 @@ import PersonalizedRecommendations from '@/components/PersonalizedRecommendation
 import FlashDealsWidget from '@/components/FlashDealsWidget';
 import NearMeButton from '@/components/NearMeButton';
 import ViewToggle from '@/components/ViewToggle';
+import CityFilter from '@/components/CityFilter';
 import { Suspense } from 'react';
 import prisma from '@/lib/prisma';
 import { VIBE_TAGS } from '@/lib/vibeTags';
@@ -550,6 +551,9 @@ export default async function HomePage({
             {/* RIGHT — controls */}
             <div className="flex items-center gap-1.5 flex-shrink-0">
 
+              {/* City filter */}
+              <CityFilter cities={cities} activeCity={searchParams.city} />
+
               {/* Near Me */}
               <Suspense fallback={null}><NearMeButton active={nearMe} /></Suspense>
 
@@ -752,22 +756,6 @@ export default async function HomePage({
                 )}
               </div>
             )}
-          </div>
-        )}
-
-        {/* ── Region quick-filter pills (unfiltered only, when cities exist) ── */}
-        {!isFiltered && cities.length > 1 && (
-          <div className="flex flex-wrap items-center gap-2 mb-7">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mr-1">Browse by city:</span>
-            {cities.slice(0, 10).map(c => (
-              <Link
-                key={c}
-                href={`/?city=${encodeURIComponent(c)}`}
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:border-[#E8395A] hover:text-[#E8395A] transition-all"
-              >
-                {c}
-              </Link>
-            ))}
           </div>
         )}
 
