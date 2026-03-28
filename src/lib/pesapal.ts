@@ -3,7 +3,7 @@
  * Docs: https://developer.pesapal.com/how-to-integrate/e-commerce/api-30-json/api-reference
  */
 
-const PESAPAL_BASE = process.env.PESAPAL_ENV === 'live'
+const PESAPAL_BASE = (process.env.PESAPAL_MODE || process.env.PESAPAL_ENV) === 'live'
   ? 'https://pay.pesapal.com/v3'
   : 'https://cybqa.pesapal.com/pesapalv3';
 
