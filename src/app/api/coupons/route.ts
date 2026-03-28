@@ -7,6 +7,7 @@ import { getSessionFromRequest } from '@/lib/auth';
 import { generateCouponCode, generateQRDataUrl } from '@/lib/qr';
 import { sendEmail, emailCouponGenerated, emailGiftCoupon } from '@/lib/email';
 import { getEffectiveDiscount } from '@/lib/discountRules';
+import { awardPoints } from '@/lib/loyalty';
 
 // GET /api/coupons — list caller's coupons (supports ?hotelId=&status= filters)
 export async function GET(req: NextRequest) {
@@ -135,6 +136,9 @@ export async function POST(req: NextRequest) {
 
   // Update hotel's lastCouponAt timestamp
   await prisma.hotel.update({ where: { id: hotelId }, data: { lastCouponAt: new Date() } }).catch(() => {});
+
+  // Award loyalty points for coupon generation (+10 pts)
+  await awardPoints(session.userId, 10, 'coupon_gen', `Generated coupon for ${hotel.name}`);
 
   // Send coupon email
   try {

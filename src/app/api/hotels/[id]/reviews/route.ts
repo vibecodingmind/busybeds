@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
+import { awardPoints } from '@/lib/loyalty';
 
 const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -110,6 +111,9 @@ export async function POST(
         reviewCount: agg._count.rating,
       },
     });
+
+    // Award loyalty points for leaving a review (+15 pts)
+    await awardPoints(userId, 15, 'review', `Left a review for ${hotelId}`);
 
     return NextResponse.json({ review }, { status: 201 });
   } catch (error) {

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
+import { awardPoints } from '@/lib/loyalty';
 
 // POST /api/coupon-redemption - redeem a coupon (with usage limit checking)
 export async function POST(req: NextRequest) {
@@ -48,6 +49,9 @@ export async function POST(req: NextRequest) {
     },
     include: { hotel: true },
   });
+
+  // Award loyalty points for coupon redemption (+25 pts) to coupon owner
+  await awardPoints(coupon.userId, 25, 'coupon_redeem', `Coupon redeemed at ${coupon.hotel.name}`);
 
   return NextResponse.json({ coupon: updated });
 }
