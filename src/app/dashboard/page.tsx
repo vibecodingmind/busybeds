@@ -185,14 +185,39 @@ export default async function DashboardPage() {
           </div>
         ) : (
           /* No subscription CTA */
-          <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center shadow-sm">
-            <div className="text-4xl mb-3">🎫</div>
-            <h3 className="font-bold text-gray-900 mb-1">No active subscription</h3>
-            <p className="text-sm text-gray-500 mb-4">Subscribe to start generating hotel discount coupons</p>
-            <Link href="/subscribe" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
-              style={{ background: '#1A3C5E' }}>
-              Choose a Plan →
-            </Link>
+          <div className="rounded-2xl overflow-hidden shadow-sm border border-[#E8395A]/20"
+            style={{ background: 'linear-gradient(135deg, #fff5f7 0%, #fff 60%)' }}>
+            <div className="p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                <div className="text-5xl flex-shrink-0">🎫</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-extrabold text-gray-900 mb-1">You&apos;re not subscribed yet</h3>
+                  <p className="text-sm text-gray-500 mb-4 max-w-sm">
+                    Pick a plan to unlock QR discount coupons at all partner hotels — show your phone, save instantly.
+                  </p>
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Link href="/subscribe" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                      style={{ background: 'linear-gradient(135deg, #E8395A, #c0284a)' }}>
+                      🚀 Choose a Plan
+                    </Link>
+                    <Link href="/" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                      Browse hotels first →
+                    </Link>
+                  </div>
+                </div>
+                {/* Mini feature list */}
+                <div className="hidden lg:flex flex-col gap-2 flex-shrink-0">
+                  {['QR coupons at checkout', 'Up to 40% off room rates', 'Cancel anytime'].map(f => (
+                    <div key={f} className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="text-green-500 font-bold">✓</span> {f}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="px-8 py-3 border-t border-[#E8395A]/10 bg-[#E8395A]/5 text-xs text-[#E8395A] font-medium">
+              ⚡ Subscribers save an average of $47 per hotel stay
+            </div>
           </div>
         )}
 

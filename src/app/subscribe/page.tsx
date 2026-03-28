@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 
@@ -31,6 +31,8 @@ export default function SubscribePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isNewUser = searchParams.get('welcome') === '1';
 
   useEffect(() => {
     fetch('/api/subscriptions/packages')
@@ -110,16 +112,27 @@ export default function SubscribePage() {
 
       <Navbar />
 
+      {/* ── New user welcome banner ── */}
+      {isNewUser && (
+        <div className="w-full py-4 px-4 text-center" style={{ background: 'linear-gradient(90deg, #E8395A, #c0284a)' }}>
+          <p className="text-white font-semibold text-sm md:text-base">
+            🎉 Account created! One last step — pick a plan to start saving at hotels.
+          </p>
+        </div>
+      )}
+
       {/* ── Hero ── */}
       <div className="text-center py-14 px-4" style={{ background: 'linear-gradient(135deg, #1A3C5E 0%, #0f6b6b 100%)' }}>
         <div className="inline-block bg-white/10 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4 tracking-wide uppercase">
           Simple pricing
         </div>
         <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
-          Choose your plan
+          {isNewUser ? 'Choose your plan to get started' : 'Choose your plan'}
         </h1>
         <p className="text-lg text-white/70 max-w-md mx-auto">
-          Unlock hotel discount coupons at hundreds of verified hotels. Pay once, save every trip.
+          {isNewUser
+            ? 'Your account is ready. Subscribe now and start generating hotel discount coupons instantly.'
+            : 'Unlock hotel discount coupons at hundreds of verified hotels. Pay once, save every trip.'}
         </p>
       </div>
 

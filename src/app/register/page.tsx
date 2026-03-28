@@ -359,7 +359,7 @@ function RegisterForm() {
           if (refRes.ok) setReferralApplied(true);
         } catch (err) { console.error('Referral error:', err); }
       }
-      router.push('/subscribe');
+      router.push('/subscribe?welcome=1');
       router.refresh();
     } finally { setLoading(false); }
   };
