@@ -1,58 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   viewBox="0 0 340 80"
-   fill="none"
-   version="1.1"
-   id="svg4"
-   sodipodi:docname="logo-light.svg"
-   xml:space="preserve"
-   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg"><defs
-     id="defs4" /><sodipodi:namedview
-     id="namedview4"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="1.830657"
-     inkscape:cx="151.3118"
-     inkscape:cy="-6.8281496"
-     inkscape:window-width="1792"
-     inkscape:window-height="1120"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg4" /><!-- CIRCLE BADGE --><!-- House icon — white, modern, centred in circle --><!-- Door --><!-- Left window --><!-- Right window --><!-- WORDMARK --><text
-     id="text2"
-     xml:space="preserve"
-     x="75.443253"
-     y="58.435081"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:50.9872px;font-family:Comfortaa;-inkscape-font-specification:'Comfortaa, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ea4d60;fill-opacity:1;stroke-width:4.24893"><tspan
-       id="tspan3"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:50.9872px;font-family:Comfortaa;-inkscape-font-specification:'Comfortaa, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#ea4d60;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4.24893"
-       x="75.443253"
-       y="58.435081">busy<tspan
-   style="fill:#181818"
-   id="tspan31">b</tspan><tspan
-   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:50.9872px;font-family:Comfortaa;-inkscape-font-specification:'Comfortaa, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#181818;fill-opacity:1;stroke-width:4.24893"
-   id="tspan5">eds</tspan></tspan></text><g
-     id="g30"><path
-       style="fill:#ea4d60;fill-opacity:1"
-       d="M 19.89976,69.862937 C 17.32636,69.482531 14.76567,68.246788 12.76856,66.421544 11.15072,64.94293 9.6836598,62.451956 9.0309598,60.075335 l -0.33232,-1.210071 -0.0381,-13.469541 c -0.0261,-9.21526 0.004,-13.79127 0.0958,-14.48816 0.39195,-2.9819 1.6187802,-5.46905 3.7473002,-7.5969 1.00548,-1.00516 2.06902,-1.75668 11.07605,-7.826612 5.48008,-3.69308 10.19414,-6.8308899 10.47569,-6.9728999 2.1277,-1.07322 3.71314,-1.43679 6.19211,-1.41995 1.64389,0.0112 2.07576,0.0578 3.13385,0.33826 1.98489,0.52615 3.27647,1.27069 9.47462,5.4617099 3.1798,2.15009 7.58046,5.122052 9.77926,6.604372 3.33726,2.24982 4.18137,2.87952 5.10878,3.81109 2.13608,2.14567 3.35695,4.62118 3.74861,7.60093 0.0916,0.69689 0.12185,5.2729 0.0958,14.48816 l -0.0381,13.469541 -0.33233,1.210071 c -1.30483,4.751153 -4.76952,8.214349 -9.53265,9.528535 l -1.20271,0.331837 -19.92754,0.0174 c -10.96015,0.0096 -20.25498,-0.03101 -20.65518,-0.09016 z"
-       id="path30" /><text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:44.5208px;line-height:1.1;font-family:Comfortaa;-inkscape-font-specification:'Comfortaa, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#ffffff;fill-opacity:1;stroke-width:4.71113;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke markers fill"
-       x="39.867851"
-       y="60.752583"
-       id="text30"><tspan
-         sodipodi:role="line"
-         id="tspan30"
-         x="39.867851"
-         y="60.752583"
-         style="fill:#ffffff;stroke-width:4.71113">%</tspan></text></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg fill="none" version="1.1" viewBox="0 0 340 80" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
+ <!-- CIRCLE BADGE -->
+ <!-- House icon &#8212; white, modern, centred in circle -->
+ <!-- Door -->
+ <!-- Left window -->
+ <!-- Right window -->
+ <!-- WORDMARK --><text x="75.443253" y="58.435081" fill="#ea4d60" font-family="Comfortaa" font-size="50.987px" font-weight="bold" stroke-width="4.2489" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal" xml:space="preserve"><tspan x="75.443253" y="58.435081" fill="#ea4d60" font-family="Comfortaa" font-size="50.987px" font-weight="bold" stroke-width="4.2489" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal">BusyBeds</tspan></text><g><path d="m19.9 69.863c-2.5734-0.38041-5.1341-1.6161-7.1312-3.4414-1.6178-1.4786-3.0849-3.9696-3.7376-6.3462l-0.33232-1.2101-0.0381-13.47c-0.0261-9.2153 4e-3 -13.791 0.0958-14.488 0.39195-2.9819 1.6188-5.469 3.7473-7.5969 1.0055-1.0052 2.069-1.7567 11.076-7.8266 5.4801-3.6931 10.194-6.8309 10.476-6.9729 2.1277-1.0732 3.7131-1.4368 6.1921-1.42 1.6439 0.0112 2.0758 0.0578 3.1338 0.33826 1.9849 0.52615 3.2765 1.2707 9.4746 5.4617 3.1798 2.1501 7.5805 5.1221 9.7793 6.6044 3.3373 2.2498 4.1814 2.8795 5.1088 3.8111 2.1361 2.1457 3.357 4.6212 3.7486 7.6009 0.0916 0.69689 0.12185 5.2729 0.0958 14.488l-0.0381 13.47-0.33233 1.2101c-1.3048 4.7512-4.7695 8.2143-9.5326 9.5285l-1.2027 0.33184-19.928 0.0174c-10.96 0.0096-20.255-0.03101-20.655-0.09016z" fill="#ea4d60"/><text x="39.867851" y="60.752583" fill="#ffffff" font-family="Comfortaa" font-size="44.521px" font-weight="bold" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.7111" text-align="center" text-anchor="middle" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;line-height:1.1;paint-order:stroke markers fill" xml:space="preserve"><tspan x="39.867851" y="60.752583" fill="#ffffff" stroke-width="4.7111">%</tspan></text></g></svg>

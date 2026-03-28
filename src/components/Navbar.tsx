@@ -82,7 +82,7 @@ export default function Navbar() {
 
         {/* ── Logo ── */}
         <Link href="/" className="flex items-center flex-shrink-0 group">
-          <Logo height={32} variant="dark" className="transition-all duration-300 group-hover:scale-[1.04] group-hover:opacity-90" />
+          <Logo height={44} variant={dark ? 'light' : 'dark'} className="transition-all duration-300 group-hover:scale-[1.04] group-hover:opacity-90" />
         </Link>
 
         {/* ── Center — search bar ── */}
