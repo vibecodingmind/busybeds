@@ -28,7 +28,7 @@ const SETTING_GROUPS: SettingGroup[] = [
       { key: 'siteName',    label: 'Platform Name',    placeholder: 'BusyBeds', type: 'text' },
       { key: 'siteUrl',     label: 'Site URL',          placeholder: 'https://busybeds.com', type: 'url' },
       { key: 'supportEmail',label: 'Support Email',     placeholder: 'support@busybeds.com', type: 'email' },
-      { key: 'defaultCurrency', label: 'Default Currency', placeholder: 'USD', type: 'select', options: ['USD', 'EUR', 'GBP', 'KES', 'NGN', 'ZAR'] },
+      { key: 'defaultCurrency', label: 'Default Currency', placeholder: 'TZS', type: 'select', options: ['TZS', 'USD'] },
     ],
   },
   {
@@ -89,6 +89,18 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    id: 'referral',
+    label: 'Referral Program',
+    icon: '🤝',
+    description: 'Control referral rewards, hold period and minimum payout',
+    fields: [
+      { key: 'referralRewardPercent',  label: 'Reward % of First Month',  placeholder: '20', type: 'number', hint: 'Referrer earns this % of the referred user\'s first subscription payment' },
+      { key: 'referralHoldDays',       label: 'Earnings Hold (days)',      placeholder: '30', type: 'number', hint: 'Days before earnings become available for withdrawal' },
+      { key: 'referralMinPayout',      label: 'Minimum Payout (USD)',      placeholder: '20', type: 'number', hint: 'Minimum balance required to request a payout' },
+      { key: 'referralBonusDays',      label: 'Bonus Days on Referral',    placeholder: '7',  type: 'number', hint: 'Free subscription days added to both referrer and referred' },
+    ],
+  },
+  {
     id: 'currency',
     label: 'Currency Rates',
     icon: '💱',
@@ -99,15 +111,14 @@ const SETTING_GROUPS: SettingGroup[] = [
 
 // Local state — persisted to .env.local / config in a real app via the API
 const DEFAULT_VALS: Record<string, string> = {
-  siteName: 'BusyBeds', defaultCurrency: 'USD', defaultDiscountPercent: '15',
+  siteName: 'BusyBeds', defaultCurrency: 'TZS', defaultDiscountPercent: '15',
   defaultCouponValidDays: '30', maxCouponsPerUser: '10', maintenanceMode: 'false',
+  referralRewardPercent: '20', referralHoldDays: '30', referralMinPayout: '20', referralBonusDays: '7',
 };
 
 const CURRENCY_META: Record<string, { name: string; symbol: string; flag: string }> = {
-  USD: { name: 'US Dollar',           symbol: '$',   flag: '🇺🇸' },
-  EUR: { name: 'Euro',                 symbol: '€',   flag: '🇪🇺' },
-  GBP: { name: 'British Pound',       symbol: '£',   flag: '🇬🇧' },
   TZS: { name: 'Tanzanian Shilling',  symbol: 'TSh', flag: '🇹🇿' },
+  USD: { name: 'US Dollar',           symbol: '$',   flag: '🇺🇸' },
 };
 
 export default function SettingsPage() {
@@ -118,7 +129,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
 
   // Currency rates state
-  const [rates, setRates]         = useState<Record<string, string>>({ USD: '1', EUR: '0.92', GBP: '0.79', TZS: '2600' });
+  const [rates, setRates]         = useState<Record<string, string>>({ TZS: '2600', USD: '1' });
   const [ratesSaved, setRatesSaved]   = useState(false);
   const [ratesSaving, setRatesSaving] = useState(false);
   const [ratesError, setRatesError]   = useState('');

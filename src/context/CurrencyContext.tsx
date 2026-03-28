@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'TZS';
+export type Currency = 'USD' | 'TZS';
 
 interface CurrencyInfo {
   code: Currency;
@@ -20,10 +20,8 @@ interface CurrencyInfo {
 //  All rates are: how many units of the currency equal 1 USD
 // ─────────────────────────────────────────────────────────────────
 const CURRENCIES: Record<Currency, CurrencyInfo> = {
-  USD: { code: 'USD', name: 'US Dollar',            symbol: '$',   flag: '🇺🇸', rate: 1      },
-  EUR: { code: 'EUR', name: 'Euro',                  symbol: '€',   flag: '🇪🇺', rate: 0.92   },
-  GBP: { code: 'GBP', name: 'British Pound',        symbol: '£',   flag: '🇬🇧', rate: 0.79   },
   TZS: { code: 'TZS', name: 'Tanzanian Shilling',   symbol: 'TSh', flag: '🇹🇿', rate: 2600   },
+  USD: { code: 'USD', name: 'US Dollar',             symbol: '$',   flag: '🇺🇸', rate: 1      },
 };
 
 interface CurrencyContextType {
@@ -37,20 +35,21 @@ interface CurrencyContextType {
 }
 
 const CurrencyContext = createContext<CurrencyContextType>({
-  currency: 'USD', setCurrency: () => {},
+  currency: 'TZS', setCurrency: () => {},
   currencies: CURRENCIES,
-  format: (n) => `$${n}`, convert: (n) => n,
-  rate: 1, info: CURRENCIES.USD,
+  format: (n) => `TSh${Math.round(n * 2600).toLocaleString()}`, convert: (n) => n * 2600,
+  rate: 2600, info: CURRENCIES.TZS,
 });
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrencyState] = useState<Currency>('USD');
+  const [currency, setCurrencyState] = useState<Currency>('TZS');
   // Live rates fetched from admin-configured database values (fallback to hardcoded defaults)
   const [liveRates, setLiveRates] = useState<Partial<Record<Currency, number>>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem('bb_currency') as Currency;
     if (saved && CURRENCIES[saved]) setCurrencyState(saved);
+    else setCurrencyState('TZS');
 
     // Load admin-configured rates from the database
     fetch('/api/currency-rates')

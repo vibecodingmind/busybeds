@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getPesapalTransactionStatus } from '@/lib/pesapal';
 import { sendEmail, emailSubscriptionConfirmed } from '@/lib/email';
+import { awardReferralEarning } from '@/lib/referral';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
 
@@ -41,7 +42,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (sub.status === 'active') {
-      // Already activated (IPN fired before redirect)
+      // Already activated (IPN fired before redirect) — safe to call, helper is idempotent
+      await awardReferralEarning(sub.userId, sub.id, sub.package.priceMonthly);
       return NextResponse.redirect(`${APP_URL}/subscribe/success`);
     }
 
@@ -58,6 +60,9 @@ export async function GET(req: NextRequest) {
         html: emailSubscriptionConfirmed(sub.user.fullName, sub.package.name, sub.expiresAt),
       });
     } catch (e) { console.error('Email error:', e); }
+
+    // Award referral commission if this user was referred (one-time)
+    await awardReferralEarning(sub.userId, sub.id, sub.package.priceMonthly);
 
     return NextResponse.redirect(`${APP_URL}/subscribe/success`);
   } catch (err) {

@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
 import { sendEmail, emailSubscriptionConfirmed } from '@/lib/email';
+import { awardReferralEarning } from '@/lib/referral';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
@@ -170,33 +171,8 @@ export async function POST(req: NextRequest) {
         });
       } catch (e) { console.error('[Stripe Webhook] Email error:', e); }
 
-      // Create referral earning for whoever referred this user
-      try {
-        const referralUse = await prisma.referralUse.findUnique({ where: { referredId: userId } });
-        if (referralUse) {
-          const earningAmount = Math.round(pkg.priceMonthly * 0.20 * 100) / 100;
-          const availableAt = new Date();
-          availableAt.setDate(availableAt.getDate() + 30);
-          await prisma.referralEarning.create({
-            data: {
-              referrerId: referralUse.referrerId,
-              referredId: userId,
-              amount: earningAmount,
-              subscriptionId: newSub.id,
-              availableAt,
-            },
-          });
-          await prisma.notification.create({
-            data: {
-              userId: referralUse.referrerId,
-              title: 'Referral Commission Earned!',
-              message: `You earned $${earningAmount.toFixed(2)} from a referral. Available in 30 days.`,
-              type: 'referral',
-              link: '/referral#earnings',
-            },
-          });
-        }
-      } catch (e) { console.error('[Stripe Webhook] Referral earning error:', e); }
+      // Create referral earning for whoever referred this user (one-time, uses admin-configured %)
+      await awardReferralEarning(userId, newSub.id, pkg.priceMonthly);
     }
 
     // ── invoice.payment_succeeded (renewal) ───────────────────────────────────
