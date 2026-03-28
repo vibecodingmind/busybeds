@@ -5,7 +5,7 @@ import { getSessionFromRequest } from '@/lib/auth';
 import { hasPayPal, createPayPalSubscription } from '@/lib/paypal';
 import { sendEmail, emailSubscriptionConfirmed } from '@/lib/email';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
 /** POST /api/payments/paypal — initiate PayPal subscription */
 export async function POST(req: NextRequest) {

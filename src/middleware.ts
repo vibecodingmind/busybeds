@@ -54,7 +54,10 @@ export async function middleware(req: NextRequest) {
   const isLocationPage = pathname.startsWith('/locations/');
 
   const token = req.cookies.get('bb_token')?.value;
-  const session = token ? await verifyToken(token) : null;
+  let session = null;
+  if (token) {
+    try { session = await verifyToken(token); } catch { /* treat as unauthenticated on bad token */ }
+  }
 
   // Redirect logged-in users away from /login and /register
   if (session && (pathname === '/login' || pathname === '/register')) {

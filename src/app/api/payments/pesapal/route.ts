@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { hasPesapal, createPesapalOrder, registerAndGetIpnId } from '@/lib/pesapal';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
 /** POST /api/payments/pesapal — initiate Pesapal payment */
 export async function POST(req: NextRequest) {

@@ -9,8 +9,14 @@ const PESAPAL_BASE = (process.env.PESAPAL_MODE || process.env.PESAPAL_ENV) === '
 
 export const hasPesapal = !!(process.env.PESAPAL_CONSUMER_KEY && process.env.PESAPAL_CONSUMER_SECRET);
 
-/** Get a short-lived auth token */
+// Token cache — Pesapal tokens are valid for ~5 minutes; we cache for 4 min to be safe
+let cachedPesapalToken: { token: string; expiresAt: number } | null = null;
+
+/** Get a short-lived auth token (cached for 4 minutes) */
 async function getAuthToken(): Promise<string> {
+  if (cachedPesapalToken && Date.now() < cachedPesapalToken.expiresAt) {
+    return cachedPesapalToken.token;
+  }
   const res = await fetch(`${PESAPAL_BASE}/api/Auth/RequestToken`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -21,6 +27,7 @@ async function getAuthToken(): Promise<string> {
   });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(`Pesapal auth failed: ${JSON.stringify(data)}`);
+  cachedPesapalToken = { token: data.token, expiresAt: Date.now() + 4 * 60 * 1000 };
   return data.token;
 }
 

@@ -12,12 +12,27 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 # Environment variables that should be set in Railway dashboard:
-# - DATABASE_URL (automatically set when you add PostgreSQL service)
-# - DIRECT_URL (set to same as DATABASE_URL for Railway)
-# - JWT_SECRET
-# - NEXT_PUBLIC_APP_URL
-# - STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-# - PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE
-# - PESAPAL_CONSUMER_KEY, PESAPAL_CONSUMER_SECRET, PESAPAL_MODE
+#
+# ── REQUIRED (app will not start without these) ───────────────────────────────
+# - DATABASE_URL          (auto-set when you add a Railway PostgreSQL service)
+# - DIRECT_URL            (set to same as DATABASE_URL for Railway)
+# - JWT_SECRET            (random secret, min 32 chars — REQUIRED in production)
+# - NEXT_PUBLIC_APP_URL   (your Railway domain, e.g. https://busybeds.up.railway.app)
+# - NEXT_PUBLIC_SITE_URL  (same as NEXT_PUBLIC_APP_URL)
+# - NODE_ENV=production
+#
+# ── PAYMENTS ─────────────────────────────────────────────────────────────────
+# - STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_HOTEL_WEBHOOK_SECRET
+# - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+# - PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE (sandbox|live), PAYPAL_WEBHOOK_ID
+# - PESAPAL_CONSUMER_KEY, PESAPAL_CONSUMER_SECRET, PESAPAL_MODE (sandbox|live), PESAPAL_IPN_URL
+#
+# ── AUTH & INTEGRATIONS ───────────────────────────────────────────────────────
 # - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
-# - EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM
+# - GOOGLE_PLACES_API_KEY, NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+# - RESEND_API_KEY, EMAIL_FROM, ADMIN_EMAIL
+# - SDASMS_API_TOKEN, SDASMS_SENDER_ID
+# - NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
+#
+# ── CRON & SECURITY ───────────────────────────────────────────────────────────
+# - CRON_SECRET  (random secret to authenticate scheduled cron job endpoints)
