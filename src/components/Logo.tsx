@@ -14,8 +14,8 @@ interface Props {
 }
 
 export default function Logo({ height = 32, className = '', variant = 'dark' }: Props) {
-  // Aspect ratio of the SVG viewBox: 340 × 80 = 4.25:1
-  const width = Math.round(height * 4.25);
+  // Aspect ratio of the SVG viewBox: 320 × 72 = 4.44:1
+  const width = Math.round(height * 4.44);
   const src = variant === 'light' ? '/logo-light.svg' : '/logo-dark.svg';
 
   return (

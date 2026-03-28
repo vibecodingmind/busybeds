@@ -5,7 +5,6 @@ import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
 import HotelCard from '@/components/HotelCard';
 import HotelViewContainer from '@/components/HotelViewContainer';
-import FilterPanel from '@/components/FilterPanel';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
 import FlashDealsWidget from '@/components/FlashDealsWidget';
@@ -488,21 +487,6 @@ export default async function HomePage({
     return buildHref({ [key]: undefined, page: undefined });
   };
 
-  // Pass params to FilterPanel (plain strings only)
-  const filterPanelParams: Record<string, string | undefined> = {
-    search:      searchParams.search,
-    city:        searchParams.city,
-    stars:       searchParams.stars,
-    minDiscount: searchParams.minDiscount,
-    featured:    searchParams.featured,
-    amenities:   searchParams.amenities,
-    category:    searchParams.category,
-    minPrice:    searchParams.minPrice,
-    maxPrice:    searchParams.maxPrice,
-    sort:        searchParams.sort,
-    vibeTag:     searchParams.vibeTag,
-  };
-
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       <Navbar />
@@ -574,13 +558,13 @@ export default async function HomePage({
                 <ViewToggle currentView={viewMode} />
               </Suspense>
 
-              {/* Sort + Filters */}
-              <FilterPanel params={filterPanelParams} />
-
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Flash Deals (full-width, above main content) ── */}
+      {!isFiltered && <FlashDealsWidget />}
 
       {/* ══════════════════════════════════════════════════════
           MAIN CONTENT
@@ -772,7 +756,6 @@ export default async function HomePage({
         )}
 
         <RecentlyViewed />
-        <FlashDealsWidget />
 
         {/* ── Region quick-filter pills (unfiltered only, when cities exist) ── */}
         {!isFiltered && cities.length > 1 && (
