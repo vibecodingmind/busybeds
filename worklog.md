@@ -97,6 +97,39 @@
 
 ---
 
+## Task 4: Security Hardening & Bug Fixes (Session: 2026-03-28)
+
+### Bug Fixes:
+
+#### 1. Profile Page Crash — `cookies()` Async Fix
+- **Issue**: Next.js 14.2+ requires `cookies()` from `next/headers` to be `await`ed; synchronous usage throws a runtime error displayed as "Something went wrong"
+- **Files Fixed**:
+  - `src/lib/auth.ts` — `getSession()` now `await`s `cookies()`
+  - `src/app/portal/analytics/page.tsx` — direct `cookies()` call now `await`ed
+  - `src/app/notifications/page.tsx` — direct `cookies()` call now `await`ed
+
+#### 2. Health Endpoint — Prisma Client Leak
+- **Issue**: `/api/health/route.ts` was instantiating a brand new `PrismaClient` on every call instead of using the shared singleton, causing connection pool exhaustion
+- **Fix**: Replaced `new PrismaClient()` with the shared `prisma` singleton from `@/lib/prisma`
+
+#### 3. Portal Hotel API — Double `req.json()` Bug
+- **Issue**: The PATCH handler in `/api/portal/hotel/route.ts` called `req.json()` twice — once to read `hotelId` for admin users and again to read the update payload. The second call always returned `{}` since the stream was already consumed
+- **Fix**: Parse `req.json()` once at the top and reuse the parsed body for both purposes
+
+#### 4. Portal Hotel API — Unprotected `JSON.parse`
+- **Issue**: `hotel.amenities` and `hotel.vibeTags` were parsed with `JSON.parse()` directly; corrupted DB values would crash the API with an unhandled exception
+- **Fix**: Wrapped each parse in a `try/catch` with `[]` fallback
+
+#### 5. Push Notifications — Hardcoded VAPID Key Fallback
+- **Issue**: `PushNotificationToggle.tsx` fell back to a hardcoded public VAPID key when `NEXT_PUBLIC_VAPID_PUBLIC_KEY` was not set — any browser using the fallback key would be registered under a shared key, undermining security
+- **Fix**: Removed the hardcoded fallback; when the env var is absent, the subscribe flow exits early with a console warning
+
+#### 6. HotelSplitView — Map Hover State Not Tracked
+- **Issue**: The map component received `hoveredHotelId={null}` hardcoded, so hovering a hotel card in the list never highlighted the corresponding pin on the map
+- **Fix**: Added `hoveredHotelId` state inside `HotelSplitView`, wired to `onMouseEnter`/`onMouseLeave` on each card, and passed it through to `HotelMap`
+
+---
+
 ## Task 5: Frontend Performance
 
 ### Next.js Image Configuration (next.config.js):
@@ -140,5 +173,6 @@
 After deploying these changes:
 1. Run `prisma db push` to apply new indexes
 2. Ensure `JWT_SECRET` environment variable is set in production
-3. Monitor memory usage for rate limiter improvements
+3. Ensure `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is set if push notifications are needed
+4. Monitor memory usage for rate limiter improvements
 

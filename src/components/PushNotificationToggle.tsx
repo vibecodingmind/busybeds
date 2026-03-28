@@ -28,8 +28,12 @@ export default function PushNotificationToggle() {
       if (perm !== 'granted') { setLoading(false); return; }
 
       const reg = await navigator.serviceWorker.ready;
-      // Use a dummy VAPID key if not configured
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBGYIe55Rcjwt1-YFVmU';
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        console.warn('Push notifications not configured: NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set.');
+        setLoading(false);
+        return;
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),

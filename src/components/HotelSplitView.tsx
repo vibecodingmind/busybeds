@@ -27,6 +27,13 @@ export default function HotelSplitView({
     if (v && k !== 'page') params[k] = v;
   }
 
+  const [hoveredHotelId, setHoveredHotelId] = useState<string | null>(null);
+
+  const handleHoverHotel = useCallback((hotelId: string | null) => {
+    setHoveredHotelId(hotelId);
+    onHoverHotel?.(hotelId);
+  }, [onHoverHotel]);
+
   const { hotels, loading, hasMore, loadMore } = useInfiniteHotels({
     initialHotels,
     pageSize,
@@ -63,8 +70,8 @@ export default function HotelSplitView({
           {hotels.map((hotel: any) => (
             <div
               key={hotel.id}
-              onMouseEnter={() => onHoverHotel?.(hotel.id)}
-              onMouseLeave={() => onHoverHotel?.(null)}
+              onMouseEnter={() => handleHoverHotel(hotel.id)}
+              onMouseLeave={() => handleHoverHotel(null)}
               className="transition-transform duration-200"
             >
               <HotelCard hotel={hotel} />
@@ -82,7 +89,7 @@ export default function HotelSplitView({
       {/* Right side - Map (sticky) */}
       <div className="hidden lg:block lg:w-[45%] xl:w-[50%]">
         <div className="sticky top-24 h-[calc(100vh-120px)] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-          <HotelMap hotels={hotels} hoveredHotelId={null} />
+          <HotelMap hotels={hotels} hoveredHotelId={hoveredHotelId} />
         </div>
       </div>
     </div>

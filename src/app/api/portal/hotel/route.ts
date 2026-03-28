@@ -54,8 +54,13 @@ export async function GET(req: NextRequest) {
     _count: true,
   });
 
+  let amenities: string[] = [];
+  let vibeTags: string[] = [];
+  try { amenities = JSON.parse(hotel.amenities || '[]'); } catch { amenities = []; }
+  try { vibeTags = JSON.parse((hotel as any).vibeTags || '[]'); } catch { vibeTags = []; }
+
   return NextResponse.json({
-    hotel: { ...hotel, amenities: JSON.parse(hotel.amenities || '[]'), vibeTags: JSON.parse((hotel as any).vibeTags || '[]') },
+    hotel: { ...hotel, amenities, vibeTags },
     redemptions,
     stats,
   });
@@ -92,6 +97,10 @@ export async function PATCH(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Parse body once — needed for admin hotelId and for update data
+  let body: Record<string, unknown> = {};
+  try { body = await req.json(); } catch { body = {}; }
+
   let hotelId: string | null = null;
   if (session.role === 'hotel_owner') {
     const owner = await prisma.hotelOwner.findUnique({ where: { userId: session.userId } });
@@ -101,12 +110,11 @@ export async function PATCH(req: NextRequest) {
     const mgr = await prisma.hotelManager.findFirst({ where: { userId: session.userId, isActive: true } });
     hotelId = mgr?.hotelId ?? null;
   } else if (session.role === 'admin') {
-    hotelId = (await req.json().catch(() => ({}))).hotelId ?? null;
+    hotelId = (body.hotelId as string) ?? null;
   }
 
   if (!hotelId) return NextResponse.json({ error: 'No hotel assigned' }, { status: 404 });
 
-  const body = await req.json().catch(() => ({}));
   const data = updateSchema.parse(body);
   const { amenities, vibeTags, ...rest } = data;
   const updateData: Record<string, unknown> = { ...rest };

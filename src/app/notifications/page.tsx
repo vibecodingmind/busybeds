@@ -6,7 +6,8 @@ import Navbar from '@/components/Navbar';
 import NotificationsClient from './NotificationsClient';
 
 export default async function NotificationsPage() {
-  const token = cookies().get('bb_token')?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get('bb_token')?.value;
   const session = token ? verifyToken(token) : null;
   if (!session) redirect('/login');
   return (
