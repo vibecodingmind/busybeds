@@ -1,39 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" fill="none">
 
-  <!-- ═══ BED ICON ═══ -->
+  <!-- CIRCLE BADGE -->
+  <circle cx="40" cy="40" r="38" fill="#E8395A"/>
 
-  <!-- Headboard -->
-  <rect x="6" y="14" width="11" height="46" rx="5.5" fill="#E8395A"/>
+  <!-- House icon — white, modern, centred in circle -->
+  <path d="M40 15 L63 36 L58 36 L58 60 Q58 63 55 63 L25 63 Q22 63 22 60 L22 36 L17 36 Z" fill="white"/>
+  <!-- Door -->
+  <rect x="34" y="46" width="12" height="17" rx="3" fill="#E8395A"/>
+  <!-- Left window -->
+  <rect x="24" y="39" width="9" height="7" rx="2" fill="#E8395A"/>
+  <!-- Right window -->
+  <rect x="47" y="39" width="9" height="7" rx="2" fill="#E8395A"/>
 
-  <!-- Bed frame / base -->
-  <rect x="6" y="46" width="58" height="12" rx="6" fill="#E8395A"/>
-
-  <!-- Pillow left -->
-  <rect x="21" y="27" width="17" height="15" rx="5" fill="#E8395A"/>
-
-  <!-- Pillow right -->
-  <rect x="42" y="27" width="17" height="15" rx="5" fill="#E8395A"/>
-
-  <!-- Tick badge: transparent bg disc + coral fill + white checkmark -->
-  <circle cx="57" cy="54" r="15" fill="rgba(0,0,0,0.25)"/>
-  <circle cx="57" cy="54" r="13" fill="#E8395A"/>
-  <polyline points="50,54 55.5,60 65,46" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-
-  <!-- ═══ WORDMARK ═══ -->
-  <!-- "busy" coral -->
-  <text x="80" y="51"
+  <!-- WORDMARK -->
+  <text x="92" y="54"
         font-family="'Inter','Helvetica Neue',Arial,sans-serif"
         font-weight="800"
-        font-size="34"
+        font-size="38"
         fill="#E8395A"
-        letter-spacing="-1">busy</text>
+        letter-spacing="-1.5">Busy</text>
 
-  <!-- "beds" white (for dark backgrounds) -->
-  <text x="172" y="51"
+  <!-- "Beds" white for dark backgrounds -->
+  <text x="198" y="54"
         font-family="'Inter','Helvetica Neue',Arial,sans-serif"
         font-weight="800"
-        font-size="34"
+        font-size="38"
         fill="#FFFFFF"
-        letter-spacing="-1">beds</text>
+        letter-spacing="-1.5">Beds</text>
 
 </svg>
