@@ -1,21 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <rect width="100" height="100" rx="16" fill="#0D0D0D"/>
-
-  <!-- House outline: left wall + rounded bottom-left -->
-  <path d="M 18 50 L 18 82 Q 18 90 26 90 L 42 90"
-        stroke="#E8395A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- House right wall + rounded bottom-right (stops before badge) -->
-  <path d="M 82 50 L 82 82 Q 82 90 74 90 L 62 90"
-        stroke="#E8395A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Roof left side -->
-  <path d="M 14 52 L 50 14" stroke="#E8395A" stroke-width="6.5" stroke-linecap="round"/>
-  <!-- Roof right side — ends before top-right so it looks open/rounded like your logo -->
-  <path d="M 86 52 L 58 23" stroke="#E8395A" stroke-width="6.5" stroke-linecap="round"/>
-
-  <!-- Badge circle (bottom-right) with black fill to cut into house -->
-  <circle cx="66" cy="74" r="20" fill="#0D0D0D"/>
-  <circle cx="66" cy="74" r="18" stroke="#E8395A" stroke-width="5.5"/>
-  <!-- Checkmark -->
-  <polyline points="56,74 63,81 77,63"
-            stroke="#E8395A" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Coral circle background -->
+  <circle cx="50" cy="50" r="50" fill="#E8395A"/>
+  <!-- White house -->
+  <path d="M50 18 L78 42 L72 42 L72 72 Q72 76 68 76 L32 76 Q28 76 28 72 L28 42 L22 42 Z" fill="white"/>
+  <!-- Door (coral cutout) -->
+  <rect x="43" y="57" width="14" height="19" rx="3" fill="#E8395A"/>
+  <!-- Left window -->
+  <rect x="30" y="48" width="11" height="9" rx="2" fill="#E8395A"/>
+  <!-- Right window -->
+  <rect x="59" y="48" width="11" height="9" rx="2" fill="#E8395A"/>
 </svg>
