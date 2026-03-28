@@ -102,6 +102,16 @@ export default function Navbar() {
         {/* ── Right side ── */}
         <div className="flex items-center gap-1 flex-shrink-0">
 
+          {/* List Your Hotel */}
+          <Link
+            href="/apply"
+            className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border transition-all hover:shadow-md active:scale-95 flex-shrink-0"
+            style={{ borderColor: '#0E7C7B', color: '#0E7C7B', background: 'rgba(14,124,123,0.06)' }}
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            List Your Hotel
+          </Link>
+
           {/* Language */}
           <div className="hidden md:block">
             <LanguageSelector />
@@ -212,6 +222,12 @@ export default function Navbar() {
 
                       <div className="mx-3 my-1.5 border-t border-black/[0.06]" />
 
+                      <MenuItem href="/apply" onClick={() => setMenuOpen(false)} icon={
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                      }>List Your Hotel</MenuItem>
+
+                      <div className="mx-3 my-1.5 border-t border-black/[0.06]" />
+
                       <button
                         onClick={logout}
                         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors rounded-xl mx-auto"
@@ -243,6 +259,15 @@ export default function Navbar() {
                         className="flex items-center justify-center w-full px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] transition-all"
                       >
                         Create Account
+                      </Link>
+                      <Link
+                        href="/apply"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-semibold border transition-all active:scale-[0.98]"
+                        style={{ borderColor: '#0E7C7B', color: '#0E7C7B', background: 'rgba(14,124,123,0.06)' }}
+                      >
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        List Your Hotel
                       </Link>
                     </div>
                   </div>

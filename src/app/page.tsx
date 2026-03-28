@@ -5,7 +5,6 @@ import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
 import HotelCard from '@/components/HotelCard';
 import HotelViewContainer from '@/components/HotelViewContainer';
-import SuggestHotelModal from '@/components/SuggestHotelModal';
 import FilterPanel from '@/components/FilterPanel';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import PersonalizedRecommendations from '@/components/PersonalizedRecommendations';
@@ -1034,18 +1033,17 @@ export default async function HomePage({
             >
               Get Started — from $9/mo
             </Link>
-            <SuggestHotelModal trigger={
-              <span
-                className="px-8 py-4 rounded-full text-sm font-bold cursor-pointer inline-flex items-center justify-center transition-all hover:-translate-y-0.5"
-                style={{
-                  background: 'rgba(255,255,255,0.10)',
-                  border: '1.5px solid rgba(255,255,255,0.25)',
-                  color: 'rgba(255,255,255,0.85)',
-                }}
-              >
-                Suggest a Hotel
-              </span>
-            } />
+            <Link
+              href="/apply"
+              className="px-8 py-4 rounded-full text-sm font-bold inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
+              style={{
+                background: 'rgba(255,255,255,0.10)',
+                border: '1.5px solid rgba(255,255,255,0.25)',
+                color: 'rgba(255,255,255,0.85)',
+              }}
+            >
+              🏨 List Your Hotel
+            </Link>
           </div>
         </div>
       </section>
