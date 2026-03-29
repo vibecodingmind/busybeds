@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
   }
 
   const code = generateCouponCode();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
   const qrDataUrl = await generateQRDataUrl(code, appUrl);
 
   const expiresAt = new Date();

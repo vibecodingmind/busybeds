@@ -4,9 +4,10 @@ import { verifyToken } from '@/lib/auth';
 // Routes that require a logged-in user
 const PROTECTED = ['/dashboard', '/coupons', '/subscribe', '/apply', '/profile', '/favorites', '/referral'];
 // Routes that require specific roles
+// Note: DB stores roles as 'owner' and 'manager' — include legacy names for safety
 const ROLE_PROTECTED: Record<string, string[]> = {
   '/admin': ['admin'],
-  '/portal': ['hotel_owner', 'hotel_manager', 'admin'],
+  '/portal': ['owner', 'hotel_owner', 'manager', 'hotel_manager', 'admin'],
 };
 
 // Paths that should NEVER be cached (dynamic/user-specific content)
@@ -62,7 +63,7 @@ export async function middleware(req: NextRequest) {
   // Redirect logged-in users away from /login and /register
   if (session && (pathname === '/login' || pathname === '/register')) {
     const dest = session.role === 'admin' ? '/admin'
-      : session.role === 'hotel_owner' || session.role === 'hotel_manager' ? '/portal'
+      : ['owner', 'hotel_owner', 'manager', 'hotel_manager'].includes(session.role) ? '/portal'
       : '/dashboard';
     return NextResponse.redirect(new URL(dest, req.url));
   }

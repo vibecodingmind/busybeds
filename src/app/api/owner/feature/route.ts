@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   });
   if (!hotelOwner) return NextResponse.json({ error: 'No hotel found for this user' }, { status: 404 });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
   if (hasStripe && stripe) {
     try {

@@ -83,8 +83,8 @@ export async function POST(req: NextRequest) {
         quantity: 1,
       },
     ],
-    success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/owner/upgrade?success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/owner/upgrade?canceled=true`,
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com'}/owner/upgrade?success=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com'}/owner/upgrade?canceled=true`,
     metadata: {
       hotelId: hotelOwner.hotelId,
       tierId: tier.id,

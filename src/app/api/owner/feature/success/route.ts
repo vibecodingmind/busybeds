@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const days    = parseInt(searchParams.get('days') || '0');
   const hotelId = searchParams.get('hotelId') || '';
   const sid     = searchParams.get('session_id') || '';
-  const appUrl  = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl  = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
   if (!days || !hotelId) return NextResponse.redirect(new URL('/owner', req.url));
 
