@@ -4,60 +4,50 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
-// ─── Hotel property images for the slideshow ───────────────────────────────
-// Using high-quality Unsplash hotel photos with dark overlay for readability
+// ─── Hotel slides ────────────────────────────────────────────────────────────
 const HOTEL_SLIDES = [
   {
-    url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1200&q=80',
-    title: 'Luxury Beachfront Resort',
-    location: 'Mombasa, Kenya',
-    tag: 'Ocean View',
+    url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85',
+    headline: 'YOUR NEXT\nADVENTURE\nAWAITS!',
+    sub: 'Log in to unlock exclusive deals, plan your dream escapes, and pick up where you left off.',
+    tagline: 'Your journey starts here.',
   },
   {
-    url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=80',
-    title: 'Premium City Hotel',
-    location: 'Nairobi, Kenya',
-    tag: 'City Centre',
+    url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1400&q=85',
+    headline: 'DISCOVER\nPREMIUM\nSTAYS',
+    sub: 'Access curated hotel deals across East Africa. From city escapes to wild safaris.',
+    tagline: 'Save up to 40% with BusyBeds.',
   },
   {
-    url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80',
-    title: 'Safari Lodge & Spa',
-    location: 'Masai Mara, Kenya',
-    tag: 'Wildlife',
+    url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400&q=85',
+    headline: 'SLEEP\nBETTER,\nSAVE MORE',
+    sub: 'Your BusyBeds subscription unlocks QR coupons at hundreds of partner hotels.',
+    tagline: 'Scan. Save. Stay.',
   },
   {
-    url: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80',
-    title: 'Boutique Pool Villa',
-    location: 'Diani Beach, Kenya',
-    tag: 'Pool Access',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1200&q=80',
-    title: 'Mountain Retreat',
-    location: 'Mt. Kenya Region',
-    tag: 'Nature',
+    url: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1400&q=85',
+    headline: 'BEACH,\nBUSH OR\nBEYOND',
+    sub: 'Whether it\'s mountains, beaches, or city lights — your perfect stay is waiting.',
+    tagline: 'Find it on BusyBeds.',
   },
 ];
 
-// ─── Icon components ────────────────────────────────────────────────────────
+// ─── Icons ───────────────────────────────────────────────────────────────────
 function EyeOpen() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
     </svg>
   );
 }
-
 function EyeOff() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
       <line x1="1" y1="1" x2="23" y2="23"/>
     </svg>
   );
 }
-
 function GoogleIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
@@ -69,130 +59,101 @@ function GoogleIcon() {
   );
 }
 
-// ─── Image Slideshow Panel ───────────────────────────────────────────────────
+// ─── Slideshow image panel (left card) ───────────────────────────────────────
 function ImagePanel() {
   const [current, setCurrent] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
+  const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTransitioning(true);
+    const t = setInterval(() => {
+      setFading(true);
       setTimeout(() => {
-        setCurrent(prev => (prev + 1) % HOTEL_SLIDES.length);
-        setTransitioning(false);
-      }, 600);
+        setCurrent(p => (p + 1) % HOTEL_SLIDES.length);
+        setFading(false);
+      }, 500);
     }, 5000);
-    return () => clearInterval(timer);
+    return () => clearInterval(t);
   }, []);
-
-  const goTo = (idx: number) => {
-    if (idx === current) return;
-    setTransitioning(true);
-    setTimeout(() => {
-      setCurrent(idx);
-      setTransitioning(false);
-    }, 400);
-  };
 
   const slide = HOTEL_SLIDES[current];
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      {/* Background Image */}
+    <div className="relative w-full h-full rounded-2xl overflow-hidden">
+      {/* Photo */}
       <div
-        className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+        className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage: `url(${slide.url})`,
-          opacity: transitioning ? 0 : 1,
-          transform: transitioning ? 'scale(1.04)' : 'scale(1)',
-          transition: 'opacity 0.7s ease, transform 0.7s ease',
+          opacity: fading ? 0 : 1,
+          transform: fading ? 'scale(1.03)' : 'scale(1)',
+          transition: 'opacity 0.6s ease, transform 0.6s ease',
         }}
       />
 
-      {/* Dark gradient overlay — ensures text is always readable */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-      {/* Extra bottom fade for content area */}
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 to-transparent" />
+      {/* Dark overlay — heavier at bottom so text pops */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/80" />
 
-      {/* Top bar — Logo + nav */}
-      <div className="absolute top-0 left-0 right-0 p-8 flex items-center justify-between z-10">
-        <Link href="/" className="flex items-center gap-3 group">
+      {/* LOGO top-left */}
+      <div className="absolute top-6 left-6 z-10">
+        <Link href="/" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/light-logo.png" alt="BusyBeds" className="h-8 w-auto" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-          <span className="text-xl font-bold text-white drop-shadow">BusyBeds</span>
-        </Link>
-        <Link
-          href="/register"
-          className="px-5 py-2 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 text-white text-sm font-medium hover:bg-white/25 transition-all"
-        >
-          Sign Up
+          <img src="/light-logo.png" alt="BusyBeds" className="h-7 w-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <span className="text-white font-bold text-lg tracking-wide drop-shadow">BusyBeds</span>
         </Link>
       </div>
 
-      {/* Bottom content — Property info + dots */}
+      {/* Bottom headline + sub */}
       <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
-        {/* Property badge */}
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs font-medium mb-4"
-          style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.5s ease 0.2s' }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          {slide.tag}
-        </div>
-
         <h2
-          className="text-3xl font-bold text-white leading-tight mb-1 drop-shadow-lg"
-          style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.5s ease 0.25s' }}
+          className="text-white font-black leading-none mb-4 drop-shadow-lg"
+          style={{
+            fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+            whiteSpace: 'pre-line',
+            opacity: fading ? 0 : 1,
+            transition: 'opacity 0.4s ease 0.15s',
+          }}
         >
-          {slide.title}
+          {slide.headline}
         </h2>
         <p
-          className="text-white/75 text-sm mb-6 flex items-center gap-1.5"
-          style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.5s ease 0.3s' }}
+          className="text-white/75 text-sm leading-relaxed mb-1"
+          style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.4s ease 0.2s' }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          {slide.location}
+          {slide.sub}
+        </p>
+        <p
+          className="text-white/55 text-xs mb-6"
+          style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.4s ease 0.25s' }}
+        >
+          {slide.tagline}
         </p>
 
-        {/* Slide indicator dots */}
+        {/* Dots */}
         <div className="flex items-center gap-2">
-          {HOTEL_SLIDES.map((_, idx) => (
+          {HOTEL_SLIDES.map((_, i) => (
             <button
-              key={idx}
-              onClick={() => goTo(idx)}
-              className="transition-all duration-300 rounded-full"
+              key={i}
+              onClick={() => { setFading(true); setTimeout(() => { setCurrent(i); setFading(false); }, 400); }}
+              aria-label={`Slide ${i + 1}`}
               style={{
-                width: idx === current ? '28px' : '8px',
-                height: '8px',
-                background: idx === current ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                width: i === current ? '24px' : '7px',
+                height: '7px',
+                borderRadius: '99px',
+                background: i === current ? '#fff' : 'rgba(255,255,255,0.35)',
+                transition: 'all 0.3s ease',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
               }}
-              aria-label={`Slide ${idx + 1}`}
             />
           ))}
         </div>
-      </div>
-
-      {/* Stats strip */}
-      <div className="absolute bottom-36 left-8 right-8 z-10 hidden xl:flex gap-8">
-        {[
-          { value: '500+', label: 'Partner Hotels' },
-          { value: '50K+', label: 'Happy Travelers' },
-          { value: '40%', label: 'Avg. Savings' },
-        ].map((stat) => (
-          <div key={stat.label} className="text-center">
-            <div className="text-2xl font-bold text-white drop-shadow">{stat.value}</div>
-            <div className="text-white/60 text-xs mt-0.5">{stat.label}</div>
-          </div>
-        ))}
       </div>
     </div>
   );
 }
 
-// ─── Login Form ─────────────────────────────────────────────────────────────
+// ─── Login Form ───────────────────────────────────────────────────────────────
 function LoginForm() {
   const [form, setForm] = useState({ email: '', password: '', remember: false });
   const [showPass, setShowPass] = useState(false);
@@ -207,8 +168,7 @@ function LoginForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -218,185 +178,166 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 429) { setError('Too many attempts. Please wait a few minutes.'); return; }
-        setError(data.error || 'Login failed');
-        return;
+        setError(data.error || 'Login failed'); return;
       }
       const role = data.user?.role;
       if (role === 'admin') router.push('/admin');
       else if (role === 'hotel_manager' || role === 'hotel_owner') router.push('/portal');
       else router.push(next);
       router.refresh();
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* ── LEFT: Hotel Image Slideshow ── */}
-      <div className="hidden lg:block lg:w-[52%] xl:w-[55%] relative">
-        <ImagePanel />
+    /* ── Full-page dark blurred background ── */
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8"
+      style={{
+        background: 'linear-gradient(135deg, #0a0f0e 0%, #0d1f1a 40%, #091818 100%)',
+      }}
+    >
+      {/* Subtle background texture blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #1B4D3E, transparent)' }} />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, #0E7C7B, transparent)' }} />
       </div>
 
-      {/* ── RIGHT: Login Form ── */}
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        {/* Mobile header */}
-        <div className="lg:hidden bg-[#1B4D3E] px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/light-logo.png" alt="BusyBeds" className="h-7 w-auto" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-            <span className="text-lg font-bold text-white">BusyBeds</span>
-          </Link>
-          <Link href="/register" className="text-white/80 text-sm font-medium">Sign Up</Link>
+      {/* ── The floating card ── */}
+      <div
+        className="relative z-10 w-full flex overflow-hidden"
+        style={{
+          maxWidth: '960px',
+          minHeight: '580px',
+          borderRadius: '20px',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+          background: '#fff',
+        }}
+      >
+        {/* LEFT — image panel */}
+        <div className="hidden lg:block w-[46%] shrink-0 p-3">
+          <ImagePanel />
         </div>
 
-        {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-6 py-10 sm:px-10">
-          <div className="w-full max-w-[420px]">
+        {/* RIGHT — form */}
+        <div className="flex-1 flex flex-col justify-center px-8 py-10 sm:px-12 overflow-y-auto">
 
-            {/* Heading */}
-            <div className="mb-8">
-              <h1 className="text-[28px] font-bold text-slate-900 mb-1.5">Welcome Back to BusyBeds!</h1>
-              <p className="text-slate-500 text-sm">Sign in to your account</p>
-            </div>
-
-            {/* Status banners */}
-            {verified && (
-              <div className="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Email verified! You can now sign in.
-              </div>
-            )}
-            {tokenError && (
-              <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                Invalid or expired link. Please{' '}
-                <Link href="/register" className="underline font-medium">register again</Link>.
-              </div>
-            )}
-            {rateLimited && (
-              <div className="mb-5 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl text-sm">
-                Too many attempts. Please wait before trying again.
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={submit} className="space-y-5">
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Your Email</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter your email"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm bg-white focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    required
-                    placeholder="Enter your password"
-                    value={form.password}
-                    onChange={e => setForm({ ...form, password: e.target.value })}
-                    className="w-full px-4 py-3.5 pr-12 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm bg-white focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPass ? <EyeOff /> : <EyeOpen />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Remember me + Forgot password */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <div
-                    onClick={() => setForm({ ...form, remember: !form.remember })}
-                    className={`w-4 h-4 rounded flex items-center justify-center border transition-all cursor-pointer ${form.remember ? 'bg-slate-900 border-slate-900' : 'border-slate-300 bg-white'}`}
-                  >
-                    {form.remember && (
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-sm text-slate-600">Remember Me</span>
-                </label>
-                <Link href="/forgot-password" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
-                  Forgot Password?
-                </Link>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                  {error}
-                </div>
-              )}
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 rounded-xl text-white font-semibold text-sm tracking-wide transition-all disabled:opacity-60 flex items-center justify-center gap-2 mt-1"
-              >
-                {loading ? (
-                  <>
-                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    Signing in...
-                  </>
-                ) : 'Login'}
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-xs text-slate-400 font-medium tracking-wide">Instan Login</span>
-              <div className="flex-1 h-px bg-slate-200" />
-            </div>
-
-            {/* Social buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <a
-                href="/api/auth/google"
-                className="flex items-center justify-center gap-2.5 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
-              >
-                <GoogleIcon />
-                <span>Continue with Google</span>
-              </a>
-              <button
-                disabled
-                title="Coming soon"
-                className="flex items-center justify-center gap-2.5 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-400 cursor-not-allowed opacity-70"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                <span>Continue with Facebook</span>
-              </button>
-            </div>
-
-            {/* Register link */}
-            <p className="mt-8 text-center text-sm text-slate-500">
-              Don&apos;t have any account?{' '}
-              <Link href="/register" className="font-semibold text-slate-900 hover:underline transition-colors">
-                Register
-              </Link>
-            </p>
+          {/* Mobile logo */}
+          <div className="lg:hidden mb-8 flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/dark-logo.png" alt="BusyBeds" className="h-7 w-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <span className="font-bold text-slate-900 text-lg">BusyBeds</span>
           </div>
+
+          {/* Heading */}
+          <div className="mb-7">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">WELCOME BACK !</h1>
+            <p className="text-slate-400 text-sm">Welcome back! Please enter your details.</p>
+          </div>
+
+          {/* Status banners */}
+          {verified && (
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Email verified! You can now sign in.
+            </div>
+          )}
+          {tokenError && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+              Invalid or expired link. <Link href="/register" className="underline font-medium">Register again</Link>.
+            </div>
+          )}
+          {rateLimited && (
+            <div className="mb-4 bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl text-sm">
+              Too many attempts. Please wait before trying again.
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={submit} className="space-y-4">
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Email</label>
+              <input
+                type="email" required
+                placeholder="Enter your email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-300 text-sm bg-white focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Password</label>
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'} required
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-4 py-3 pr-11 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-300 text-sm bg-white focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+                />
+                <button type="button" onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                  {showPass ? <EyeOff /> : <EyeOpen />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember me + Forgot */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div
+                  onClick={() => setForm({ ...form, remember: !form.remember })}
+                  className={`w-4 h-4 rounded border transition-all cursor-pointer flex items-center justify-center ${form.remember ? 'bg-slate-900 border-slate-900' : 'border-slate-300 bg-white'}`}
+                >
+                  {form.remember && (
+                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                      <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <span className="text-sm text-slate-500">Remember me</span>
+              </label>
+              <Link href="/forgot-password" className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors">
+                Forgot password
+              </Link>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Sign in button */}
+            <button
+              type="submit" disabled={loading}
+              className="w-full py-3 rounded-xl text-white font-bold text-sm tracking-wide transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #0d3b2e, #1B4D3E)' }}
+            >
+              {loading ? (
+                <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Signing in...</>
+              ) : 'Sign in'}
+            </button>
+
+            {/* Google */}
+            <a
+              href="/api/auth/google"
+              className="w-full py-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-sm flex items-center justify-center gap-2.5 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+            >
+              <GoogleIcon />
+              Sign in with Google
+            </a>
+          </form>
+
+          {/* Footer */}
+          <p className="mt-6 text-center text-sm text-slate-400">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="font-bold text-slate-800 hover:underline">Sign up</Link>
+          </p>
         </div>
       </div>
     </div>
