@@ -82,9 +82,12 @@ const SUB_COLORS: Record<string, string> = {
   premium: 'bg-purple-100 text-purple-700',
 };
 
-export default async function OwnerDashboardPage() {
+export default async function OwnerDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const session = await getSession();
   if (!session) redirect('/login?next=/owner');
+
+  const params = await searchParams;
+  const justClaimed = params.welcome === 'claimed';
 
   const data = await getData(session.userId);
 
@@ -116,6 +119,22 @@ export default async function OwnerDashboardPage() {
   return (
     <div className="min-h-screen" style={{ background: '#F7F8FA' }}>
       <Navbar />
+
+      {/* Welcome banner — shown right after hotel claim registration */}
+      {justClaimed && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-4">
+          <div className="max-w-5xl mx-auto flex items-start gap-3">
+            <span className="text-2xl shrink-0">🎉</span>
+            <div>
+              <p className="font-bold text-amber-800 text-sm">Claim submitted for <span className="underline">{hotel.name}</span>!</p>
+              <p className="text-amber-700 text-sm mt-0.5">
+                Our team will verify your ownership and approve your claim within <strong>24–48 hours</strong>.
+                You&apos;ll receive an email once it&apos;s approved. In the meantime, you can explore your dashboard below.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <div style={{ background: 'linear-gradient(135deg, #1A3C5E 0%, #0E5C5B 60%, #0E7C7B 100%)' }} className="px-4 py-10">

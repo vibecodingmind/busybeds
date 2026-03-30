@@ -278,10 +278,16 @@ function RegisterForm() {
           await fetch('/api/referral/use', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: refCode }) });
         } catch (err) { console.error('Referral error:', err); }
       }
-      // Hotel owners go directly to the apply page to list their hotel
-      // Travelers go to subscribe to pick a plan
+      // Routing after registration:
+      // - Hotel owner who claimed an existing hotel → /owner (pending approval page)
+      // - Hotel owner who didn't claim → /apply (submit new hotel form)
+      // - Traveler → /subscribe (pick a plan)
       if (form.role === 'hotel_owner') {
-        router.push('/apply?welcome=1');
+        if (selectedHotel) {
+          router.push('/owner?welcome=claimed');
+        } else {
+          router.push('/apply?welcome=1');
+        }
       } else {
         router.push('/subscribe?welcome=1');
       }
