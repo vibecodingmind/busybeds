@@ -58,6 +58,12 @@ function CheckMini() {
   );
 }
 
+// ─── Claimable hotel type ────────────────────────────────────────────────────
+type ClaimableHotel = {
+  id: string; name: string; city: string; country: string;
+  starRating: number; category: string; coverImage: string | null;
+};
+
 // ─── Password strength ───────────────────────────────────────────────────────
 function pwStrength(pw: string) {
   if (!pw) return { score: 0, label: '', color: '' };
@@ -122,16 +128,18 @@ function SearchableSelect({ options, value, onChange, placeholder }: {
 }
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
-function Steps({ step }: { step: number }) {
+function Steps({ step, isOwner }: { step: number; isOwner: boolean }) {
+  const labels = isOwner ? ['Role', 'Details', 'Location', 'Claim Hotel'] : ['Role', 'Details', 'Location'];
+  const total = labels.length;
   return (
-    <div className="flex items-center gap-1.5 mb-6">
-      {['Role', 'Details', 'Location'].map((label, i) => {
+    <div className="flex items-center gap-1 mb-6 flex-wrap">
+      {labels.map((label, i) => {
         const n = i + 1;
         const done = n < step;
         const active = n === step;
         return (
-          <div key={n} className="flex items-center gap-1.5">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          <div key={n} className="flex items-center gap-1">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
               done ? 'text-white' : active ? 'border-2 border-slate-900 text-slate-900 bg-white' : 'bg-slate-100 text-slate-400'
             }`} style={done ? { background: 'linear-gradient(135deg, #0d3b2e, #1B4D3E)' } : {}}>
               {done
@@ -139,7 +147,7 @@ function Steps({ step }: { step: number }) {
                 : <span>{n}</span>}
               <span>{label}</span>
             </div>
-            {n < 3 && <div className={`w-4 h-px ${done ? 'bg-slate-400' : 'bg-slate-200'}`} />}
+            {n < total && <div className={`w-3 h-px ${done ? 'bg-slate-400' : 'bg-slate-200'}`} />}
           </div>
         );
       })}
@@ -210,11 +218,37 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Hotel claim state (step 4 for hotel_owner)
+  const [hotelSearch, setHotelSearch] = useState('');
+  const [hotelResults, setHotelResults] = useState<ClaimableHotel[]>([]);
+  const [hotelSearching, setHotelSearching] = useState(false);
+  const [selectedHotel, setSelectedHotel] = useState<ClaimableHotel | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams.get('ref');
   const cities = getCities(form.country);
   const strength = pwStrength(form.password);
+  const isOwner = form.role === 'hotel_owner';
+  const totalSteps = isOwner ? 4 : 3;
+
+  // Debounced hotel search
+  const searchHotels = (q: string) => {
+    setHotelSearch(q);
+    setSelectedHotel(null);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (q.length < 2) { setHotelResults([]); return; }
+    setHotelSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/hotels/claimable?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setHotelResults(data.hotels || []);
+      } catch { setHotelResults([]); }
+      finally { setHotelSearching(false); }
+    }, 400);
+  };
 
   const nextStep = () => {
     if (step === 1 && !form.role) { setError('Please choose your role to continue.'); return; }
@@ -231,7 +265,11 @@ function RegisterForm() {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, phone: form.phone || undefined }),
+        body: JSON.stringify({
+          ...form,
+          phone: form.phone || undefined,
+          hotelId: selectedHotel?.id || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(typeof data.error === 'string' ? data.error : 'Registration failed'); return; }
@@ -289,7 +327,7 @@ function RegisterForm() {
           </div>
 
           {/* Step indicator */}
-          <Steps step={step} />
+          <Steps step={step} isOwner={isOwner} />
 
           {/* ── STEP 1: Role ── */}
           {step === 1 && (
@@ -454,12 +492,136 @@ function RegisterForm() {
                   className="px-5 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">
                   Back
                 </button>
+                {isOwner ? (
+                  /* Hotel owners go to step 4 to claim their hotel */
+                  <button type="button" onClick={nextStep}
+                    className="flex-1 py-3 rounded-xl text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #0d3b2e, #1B4D3E)' }}>
+                    Continue
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                ) : (
+                  /* Travellers submit here */
+                  <button type="button" onClick={submit} disabled={loading}
+                    className="flex-1 py-3 rounded-xl text-white font-bold text-sm tracking-wide transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #0d3b2e, #1B4D3E)' }}>
+                    {loading
+                      ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Creating...</>
+                      : 'Create Account'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 4: Claim Your Hotel (hotel owners only) ── */}
+          {step === 4 && isOwner && (
+            <div className="space-y-4">
+
+              {/* Instruction */}
+              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Find Your Hotel</p>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Search for your hotel by name or city. Select it to claim ownership — our team will verify and approve your claim within 24–48 hours.
+                </p>
+              </div>
+
+              {/* Search input */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Search Hotel Name or City</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="e.g. Grand Palace Hotel, Nairobi..."
+                    value={hotelSearch}
+                    onChange={e => searchHotels(e.target.value)}
+                    className="w-full px-4 py-3 pl-10 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-300 text-sm bg-white focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+                  />
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    {hotelSearching
+                      ? <span className="animate-spin inline-block w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full" />
+                      : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* Search results */}
+              {hotelResults.length > 0 && !selectedHotel && (
+                <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                  {hotelResults.map(hotel => (
+                    <button key={hotel.id} type="button" onClick={() => { setSelectedHotel(hotel); setHotelResults([]); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left">
+                      {/* Thumbnail */}
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
+                        {hotel.coverImage
+                          ? <img src={hotel.coverImage} alt={hotel.name} className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-slate-400 text-lg">🏨</div>
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-800 text-sm truncate">{hotel.name}</p>
+                        <p className="text-xs text-slate-400">{hotel.city}, {hotel.country} · {'⭐'.repeat(Math.min(hotel.starRating, 5))}</p>
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-300 shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No results */}
+              {hotelSearch.length >= 2 && !hotelSearching && hotelResults.length === 0 && !selectedHotel && (
+                <div className="text-center py-4">
+                  <p className="text-sm text-slate-400 mb-2">No unclaimed hotels found for &quot;{hotelSearch}&quot;</p>
+                  <Link href="/apply" className="text-sm font-semibold text-slate-700 underline underline-offset-2">
+                    Apply to add your hotel instead →
+                  </Link>
+                </div>
+              )}
+
+              {/* Selected hotel card */}
+              {selectedHotel && (
+                <div className="flex items-center gap-3 p-3.5 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
+                  <div className="w-12 h-12 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
+                    {selectedHotel.coverImage
+                      ? <img src={selectedHotel.coverImage} alt={selectedHotel.name} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-2xl">🏨</div>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-800 text-sm truncate">{selectedHotel.name}</p>
+                    <p className="text-xs text-emerald-600 font-medium">{selectedHotel.city}, {selectedHotel.country}</p>
+                  </div>
+                  <button type="button" onClick={() => { setSelectedHotel(null); setHotelSearch(''); }}
+                    className="text-slate-400 hover:text-slate-600 transition-colors shrink-0 p-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Skip option */}
+              <p className="text-xs text-slate-400 text-center">
+                Don&apos;t see your hotel?{' '}
+                <button type="button" onClick={() => { setSelectedHotel(null); submit(); }}
+                  className="text-slate-600 font-semibold underline underline-offset-2 hover:text-slate-800">
+                  Skip & register anyway
+                </button>
+                {' '}— you can claim it later from your dashboard.
+              </p>
+
+              {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
+
+              <div className="flex gap-2.5 pt-1">
+                <button type="button" onClick={() => setStep(3)}
+                  className="px-5 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">
+                  Back
+                </button>
                 <button type="button" onClick={submit} disabled={loading}
                   className="flex-1 py-3 rounded-xl text-white font-bold text-sm tracking-wide transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                   style={{ background: 'linear-gradient(135deg, #0d3b2e, #1B4D3E)' }}>
                   {loading
                     ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Creating...</>
-                    : form.role === 'hotel_owner' ? 'Register & List My Hotel →' : 'Create Account'}
+                    : selectedHotel ? '📋 Submit Claim & Register' : 'Register Without Claiming'}
                 </button>
               </div>
             </div>
