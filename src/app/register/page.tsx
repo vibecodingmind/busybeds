@@ -380,7 +380,13 @@ function RegisterForm() {
           });
         } catch (err) { console.error('Referral error:', err); }
       }
-      router.push('/subscribe?welcome=1');
+      // Hotel owners go directly to the apply page to list their hotel
+      // Travelers go to subscribe to pick a plan
+      if (form.role === 'hotel_owner') {
+        router.push('/apply?welcome=1');
+      } else {
+        router.push('/subscribe?welcome=1');
+      }
       router.refresh();
     } finally { setLoading(false); }
   };
@@ -442,6 +448,19 @@ function RegisterForm() {
                   })}
                 </div>
 
+                {/* Info card — shown when hotel_owner is selected */}
+                {form.role === 'hotel_owner' && (
+                  <div className="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <span className="text-xl shrink-0">🏨</span>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900 mb-0.5">How listing works</p>
+                      <p className="text-xs text-amber-700 leading-relaxed">
+                        After registering, you'll be taken to the <strong>Hotel Application form</strong> where you fill in your hotel details. Our team reviews and publishes your listing within 24–48 hours.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Divider */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-slate-200" />
@@ -450,7 +469,7 @@ function RegisterForm() {
                 </div>
 
                 {/* Google */}
-                <a
+                <
                   href="/api/auth/google"
                   className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
                 >
@@ -668,7 +687,7 @@ function RegisterForm() {
                         <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                         Creating...
                       </>
-                    ) : 'Create Account'}
+                    ) : form.role === 'hotel_owner' ? 'Register & List My Hotel →' : 'Create Account'}
                   </button>
                 </div>
               </div>
