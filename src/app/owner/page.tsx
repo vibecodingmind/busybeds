@@ -335,6 +335,106 @@ export default async function OwnerDashboardPage({ searchParams }: { searchParam
           </div>
         </div>
 
+        {/* ── Boost & Promote section ── */}
+        {(() => {
+          const sub = (hotel as any).subscription;
+          const tier = sub?.tier;
+          const promoAllowed = tier?.promotionalEmails ?? 0;
+          const promoUsed = sub?.promoEmailsUsed ?? 0;
+          const promoLeft = Math.max(0, promoAllowed - promoUsed);
+          const flashAllowed = tier?.flashDealsPerMonth ?? 0;
+          const flashUsed = sub?.flashDealsUsed ?? 0;
+          const flashLeft = Math.max(0, flashAllowed - flashUsed);
+          const hasPromo = promoAllowed > 0;
+          const hasFlash = flashAllowed > 0;
+
+          return (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="font-bold text-gray-900">🚀 Boost & Promote</h2>
+                {!hasPromo && !hasFlash && (
+                  <Link href="/owner/upgrade" className="text-xs font-bold text-teal-600 hover:underline">Upgrade to unlock →</Link>
+                )}
+              </div>
+              <div className="p-5 grid sm:grid-cols-2 gap-4">
+
+                {/* Promo Email */}
+                <div className={`rounded-xl border p-4 ${hasPromo ? 'border-teal-200 bg-teal-50' : 'border-gray-100 bg-gray-50 opacity-60'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">📧</span>
+                    <span className="font-bold text-sm text-gray-800">Email Campaign</span>
+                    {hasPromo && (
+                      <span className="ml-auto text-xs font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">
+                        {promoLeft >= 999 ? '∞' : promoLeft} left
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                    {hasPromo
+                      ? `Send a promotional email about ${hotel.name} to all active BusyBeds subscribers.`
+                      : 'Upgrade to Growth or Premium to send promo emails to BusyBeds subscribers.'}
+                  </p>
+                  {hasPromo ? (
+                    promoLeft > 0 ? (
+                      <Link href={`/owner/promo-email`}
+                        className="inline-block px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg, #0E7C7B, #1A3C5E)' }}>
+                        Send Campaign →
+                      </Link>
+                    ) : (
+                      <span className="inline-block px-4 py-2 rounded-lg text-xs font-bold bg-gray-200 text-gray-500 cursor-not-allowed">
+                        Limit reached this month
+                      </span>
+                    )
+                  ) : (
+                    <Link href="/owner/upgrade"
+                      className="inline-block px-4 py-2 rounded-lg text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+                      Upgrade Plan
+                    </Link>
+                  )}
+                </div>
+
+                {/* Flash Deal */}
+                <div className={`rounded-xl border p-4 ${hasFlash ? 'border-orange-200 bg-orange-50' : 'border-gray-100 bg-gray-50 opacity-60'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">⚡</span>
+                    <span className="font-bold text-sm text-gray-800">Flash Deal</span>
+                    {hasFlash && (
+                      <span className="ml-auto text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                        {flashLeft >= 999 ? '∞' : flashLeft} left
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                    {hasFlash
+                      ? `Create a time-limited flash deal for ${hotel.name}. Shown prominently on the BusyBeds homepage.`
+                      : 'Upgrade your plan to create flash deals and get featured on the BusyBeds homepage.'}
+                  </p>
+                  {hasFlash ? (
+                    flashLeft > 0 ? (
+                      <Link href={`/portal/manage`}
+                        className="inline-block px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg, #F97316, #EF4444)' }}>
+                        Create Flash Deal →
+                      </Link>
+                    ) : (
+                      <span className="inline-block px-4 py-2 rounded-lg text-xs font-bold bg-gray-200 text-gray-500 cursor-not-allowed">
+                        Limit reached this month
+                      </span>
+                    )
+                  ) : (
+                    <Link href="/owner/upgrade"
+                      className="inline-block px-4 py-2 rounded-lg text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+                      Upgrade Plan
+                    </Link>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Recent Coupon Redemptions */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">

@@ -224,45 +224,98 @@ export default async function HotelPage({ params }: PageProps) {
     lastCouponAt: (hotel as any).lastCouponAt ? (hotel as any).lastCouponAt.toISOString() : null,
   };
 
-  // JSON-LD structured data for Google rich results
-  const jsonLd = {
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
+  const hotelUrl = `${APP_URL}/hotels/${hotel.slug}`;
+  const amenitiesList: string[] = (() => { try { return JSON.parse(hotel.amenities as unknown as string); } catch { return []; } })();
+
+  // ── JSON-LD #1: Hotel (rich result — star rating, price, reviews in Google) ──
+  const hotelJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Hotel',
     name: hotel.name,
+    url: hotelUrl,
+    description: hotel.descriptionShort || `Save ${hotel.discountPercent}% at ${hotel.name} in ${hotel.city}, ${hotel.country}.`,
     address: {
       '@type': 'PostalAddress',
       addressLocality: hotel.city,
       addressCountry: hotel.country,
-      ...(hotel as any).address ? { streetAddress: (hotel as any).address } : {},
+      ...((hotel as any).address ? { streetAddress: (hotel as any).address } : {}),
     },
-    ...(hotel.coverImage ? { image: hotel.coverImage } : {}),
+    ...(hotel.coverImage ? { image: [hotel.coverImage, ...hotel.photos.slice(0,3).map((p:any)=>p.url)] } : {}),
+    starRating: { '@type': 'Rating', ratingValue: hotel.starRating, bestRating: 5 },
     ...((hotel as any).avgRating && (hotel as any).reviewCount > 0 ? {
       aggregateRating: {
         '@type': 'AggregateRating',
         ratingValue: Number((hotel as any).avgRating).toFixed(1),
         reviewCount: (hotel as any).reviewCount,
         bestRating: 5,
+        worstRating: 1,
       },
     } : {}),
     ...(hotel.roomTypes[0]?.pricePerNight ? {
       priceRange: `From $${Math.round(Number(hotel.roomTypes[0].pricePerNight) * (1 - hotel.discountPercent / 100))}/night`,
     } : {}),
-    starRating: { '@type': 'Rating', ratingValue: hotel.starRating },
-    url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com'}/hotels/${hotel.slug}`,
-    description: hotel.descriptionShort || `Save ${hotel.discountPercent}% at ${hotel.name} in ${hotel.city}, ${hotel.country}.`,
+    ...((hotel as any).email ? { email: (hotel as any).email } : {}),
+    ...((hotel as any).whatsapp ? { telephone: (hotel as any).whatsapp } : {}),
+    ...((hotel as any).latitude && (hotel as any).longitude ? {
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: Number((hotel as any).latitude),
+        longitude: Number((hotel as any).longitude),
+      },
+    } : {}),
+    checkinTime: '14:00',
+    checkoutTime: '11:00',
+    ...(amenitiesList.length > 0 ? {
+      amenityFeature: amenitiesList.slice(0, 20).map((a: string) => ({
+        '@type': 'LocationFeatureSpecification',
+        name: a,
+        value: true,
+      })),
+    } : {}),
     makesOffer: {
       '@type': 'Offer',
-      description: `${hotel.discountPercent}% discount coupon`,
+      name: `${hotel.discountPercent}% Discount Coupon`,
+      description: `Exclusive ${hotel.discountPercent}% hotel discount coupon via BusyBeds`,
+      url: hotelUrl,
       eligibleRegion: { '@type': 'Country', name: hotel.country },
+      seller: { '@type': 'Organization', name: 'BusyBeds', url: APP_URL },
+    },
+  };
+
+  // ── JSON-LD #2: BreadcrumbList (shows path in Google search results) ──
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: APP_URL },
+      { '@type': 'ListItem', position: 2, name: 'Hotels', item: `${APP_URL}/hotels` },
+      { '@type': 'ListItem', position: 3, name: hotel.country, item: `${APP_URL}/locations/${hotel.country.toLowerCase().replace(/\s+/g,'-')}` },
+      { '@type': 'ListItem', position: 4, name: hotel.city, item: `${APP_URL}/locations/${hotel.country.toLowerCase().replace(/\s+/g,'-')}/${hotel.city.toLowerCase().replace(/\s+/g,'-')}` },
+      { '@type': 'ListItem', position: 5, name: hotel.name, item: hotelUrl },
+    ],
+  };
+
+  // ── JSON-LD #3: WebPage (helps Google understand page context) ──
+  const webPageJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `${hotel.name} — ${hotel.discountPercent}% Off | BusyBeds`,
+    url: hotelUrl,
+    description: hotel.descriptionShort || `Save ${hotel.discountPercent}% at ${hotel.name}`,
+    isPartOf: { '@type': 'WebSite', name: 'BusyBeds', url: APP_URL },
+    breadcrumb: { '@id': `${hotelUrl}#breadcrumb` },
+    potentialAction: {
+      '@type': 'ViewAction',
+      target: hotelUrl,
     },
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(hotelJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }} />
       <HotelPageClient hotel={hotelData} relatedHotels={relatedHotels} />
     </>
   );

@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import prisma from '@/lib/prisma';
+import { BLOG_POSTS } from '@/lib/blogPosts';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
     { url: `${baseUrl}/hotels`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/coupons`, lastModified: new Date(), changeFrequency: 'hourly', priority: 0.8 },
+    { url: `${baseUrl}/blog`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/apply`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/login`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
     { url: `${baseUrl}/register`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
@@ -23,6 +25,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Add /locations
   staticPages.push({ url: `${baseUrl}/locations`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 });
+
+  // Blog posts
+  const blogPages: MetadataRoute.Sitemap = BLOG_POSTS.map(post => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: 'monthly' as const,
+    priority: 0.75,
+  }));
 
   try {
     const hotels = await prisma.hotel.findMany({
@@ -60,8 +70,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
-    return [...staticPages, ...countryPages, ...cityPages, ...hotelPages];
+    return [...staticPages, ...blogPages, ...countryPages, ...cityPages, ...hotelPages];
   } catch {
-    return staticPages;
+    return [...staticPages, ...blogPages];
   }
 }

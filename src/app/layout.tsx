@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import MobileNav from '@/components/MobileNav';
 import PWAInstaller from '@/components/PWAInstaller';
@@ -8,6 +9,8 @@ import VerifyEmailBanner from '@/components/VerifyEmailBanner';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { CompareProvider } from '@/context/CompareContext';
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID; // e.g. G-XXXXXXXXXX
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
 
@@ -59,7 +62,25 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        {/* Google Search Console verification — add your actual content value in Railway env vars */}
+        {process.env.NEXT_PUBLIC_GSC_VERIFICATION && (
+          <meta name="google-site-verification" content={process.env.NEXT_PUBLIC_GSC_VERIFICATION} />
+        )}
+      </head>
       <body>
+        {/* Google Analytics GA4 — set NEXT_PUBLIC_GA_ID in Railway environment variables */}
+        {GA_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}', { page_path: window.location.pathname, anonymize_ip: true });
+            ` }} />
+          </>
+        )}
         <a href="#main-content" className="skip-to-main">Skip to main content</a>
         <LanguageProvider>
           <CurrencyProvider>
