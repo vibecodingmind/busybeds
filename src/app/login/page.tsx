@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import Logo from '@/components/Logo';
 
 // ─── Hotel slides ────────────────────────────────────────────────────────────
 const HOTEL_SLIDES = [
@@ -95,10 +96,8 @@ function ImagePanel() {
 
       {/* LOGO top-left */}
       <div className="absolute top-6 left-6 z-10">
-        <Link href="/" className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/light-logo.png" alt="BusyBeds" className="h-7 w-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          <span className="text-white font-bold text-lg tracking-wide drop-shadow">BusyBeds</span>
+        <Link href="/">
+          <Logo variant="light" height={36} />
         </Link>
       </div>
 
@@ -222,10 +221,10 @@ function LoginForm() {
         <div className="flex-1 flex flex-col justify-center px-8 py-10 sm:px-12 overflow-y-auto">
 
           {/* Mobile logo */}
-          <div className="lg:hidden mb-8 flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/dark-logo.png" alt="BusyBeds" className="h-7 w-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            <span className="font-bold text-slate-900 text-lg">BusyBeds</span>
+          <div className="lg:hidden mb-8">
+            <Link href="/">
+              <Logo variant="dark" height={32} />
+            </Link>
           </div>
 
           {/* Heading */}
