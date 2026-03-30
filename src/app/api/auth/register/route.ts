@@ -57,20 +57,16 @@ export async function POST(req: NextRequest) {
 
     // Create HotelOwner claim if hotel_owner + hotelId
     if (data.role === 'hotel_owner' && data.hotelId) {
-      await prisma.hotelOwner.upsert({
-        where: { hotelId: data.hotelId },
-        create: {
+      // Delete any rejected claim first to avoid userId unique conflict on upsert
+      await prisma.hotelOwner.deleteMany({
+        where: { hotelId: data.hotelId, kycStatus: 'rejected' },
+      });
+      await prisma.hotelOwner.create({
+        data: {
           userId:         user.id,
           hotelId:        data.hotelId,
           kycStatus:      'pending',
           kycSubmittedAt: new Date(),
-        },
-        update: {
-          userId:         user.id,
-          kycStatus:      'pending',
-          kycSubmittedAt: new Date(),
-          kycRejectionReason: null,
-          kycReviewedAt: null,
         },
       });
     }
@@ -103,7 +99,8 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: err.issues }, { status: 400 });
-    console.error(err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[register] Server error:', message, err);
+    return NextResponse.json({ error: message || 'Server error' }, { status: 500 });
   }
 }
