@@ -111,20 +111,29 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
             </div>
 
             {/* Step-by-step next actions */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left space-y-3">
-              <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">What happens next</p>
-              <div className="space-y-2.5 text-sm">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-left space-y-3">
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">What happens next</p>
+              <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                  <p className="text-gray-700">Hotel reviews and approves your request <span className="font-semibold">(within 48h)</span></p>
+                  <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Hotel checks availability</p>
+                    <p className="text-xs text-gray-500 mt-0.5">They verify your dates against walk-ins, calls & other bookings — within 48h</p>
+                  </div>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                  <p className="text-gray-700">You pay the <span className="font-bold text-amber-800">${depositAmount > 0 ? depositAmount.toFixed(2) : '25%'} deposit</span> to lock your dates</p>
+                  <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">You get notified on approval</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Only then will the <span className="font-semibold text-amber-700">Pay Deposit</span> button appear — {depositAmount > 0 ? `$${depositAmount.toFixed(2)}` : '25% of total'} to lock your room</p>
+                  </div>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                  <p className="text-gray-700">Your <span className="font-semibold">date-locked QR coupon</span> is issued — show it at check-in</p>
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Booking confirmed + QR issued</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Date-locked coupon generated — show QR at check-in to redeem your discount</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -133,7 +142,7 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
               href="/my-stay-requests"
               className="block w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm transition-colors text-center"
             >
-              View My Requests & Pay Deposit →
+              Track My Request →
             </Link>
             <button
               onClick={onClose}
