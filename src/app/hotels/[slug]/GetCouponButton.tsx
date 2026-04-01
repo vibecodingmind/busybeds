@@ -251,9 +251,15 @@ export default function GetCouponButton({ hotelId, hotelName, hotel, subState }:
                 You have a coupon — lock in your dates with a 25% deposit and the hotel will confirm within 48h.
               </p>
               {stayRequestSuccess ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-xs text-emerald-700 font-medium flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Request sent! Hotel will confirm within 48 hours.
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-amber-800 font-semibold">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Request sent! Hotel reviews within 48h.
+                  </div>
+                  <p className="text-xs text-amber-700">Once approved, go to <strong>My Stay Requests</strong> to pay the deposit and lock your dates.</p>
+                  <Link href="/my-stay-requests" className="block text-center text-xs font-semibold text-amber-800 underline hover:text-amber-900">
+                    View My Requests & Pay →
+                  </Link>
                 </div>
               ) : (
                 <button

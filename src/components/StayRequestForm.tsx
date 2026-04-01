@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface RoomType {
   id: string;
@@ -31,6 +32,8 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   const selectedRoom = roomTypes.find(r => r.id === roomTypeId);
   const nights = checkIn && checkOut
@@ -68,6 +71,8 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
         }
         return;
       }
+      setRequestId(data.stayRequest?.id || null);
+      setSubmitted(true);
       onSuccess();
     } catch {
       setError('Network error. Please try again.');
@@ -92,6 +97,55 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
           </button>
         </div>
 
+        {/* ── Success screen ── */}
+        {submitted && (
+          <div className="px-6 py-8 space-y-5 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth={2.5} strokeLinecap="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Request Sent!</h3>
+              <p className="text-sm text-gray-500">{hotelName} will review your request within 48 hours.</p>
+            </div>
+
+            {/* Step-by-step next actions */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left space-y-3">
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">What happens next</p>
+              <div className="space-y-2.5 text-sm">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <p className="text-gray-700">Hotel reviews and approves your request <span className="font-semibold">(within 48h)</span></p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <p className="text-gray-700">You pay the <span className="font-bold text-amber-800">${depositAmount > 0 ? depositAmount.toFixed(2) : '25%'} deposit</span> to lock your dates</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <p className="text-gray-700">Your <span className="font-semibold">date-locked QR coupon</span> is issued — show it at check-in</p>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/my-stay-requests"
+              className="block w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm transition-colors text-center"
+            >
+              View My Requests & Pay Deposit →
+            </Link>
+            <button
+              onClick={onClose}
+              className="block w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {/* ── Form ── */}
+        {!submitted && (
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
@@ -226,6 +280,7 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
             )}
           </button>
         </form>
+        )}
       </div>
     </div>
   );
