@@ -14,16 +14,18 @@ interface Props {
   hotelName: string;
   roomTypes: RoomType[];
   discountPercent: number;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function StayRequestForm({ hotelId, hotelName, roomTypes, discountPercent, onClose, onSuccess }: Props) {
+export default function StayRequestForm({ hotelId, hotelName, roomTypes, discountPercent, initialCheckIn, initialCheckOut, onClose, onSuccess }: Props) {
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-  const [checkIn, setCheckIn] = useState(tomorrow);
-  const [checkOut, setCheckOut] = useState('');
+  const [checkIn, setCheckIn] = useState(initialCheckIn || tomorrow);
+  const [checkOut, setCheckOut] = useState(initialCheckOut || '');
   const [roomTypeId, setRoomTypeId] = useState(roomTypes[0]?.id || '');
   const [guests, setGuests] = useState(1);
   const [notes, setNotes] = useState('');

@@ -149,47 +149,50 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
           </div>
         )}
 
-        {/* Savings pill — only for active partners with discount */}
-        {isPartnerActive && savings && savings > 0 && (
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Save {format(savings)}/night
-          </div>
-        )}
-
         {/* ── Favourite button ── */}
         <div className="absolute top-3 right-3 transition-transform duration-200 group-hover:scale-105" onClick={e => e.preventDefault()}>
           <FavoriteButton hotelId={hotel.id} size="sm" />
         </div>
 
-        {/* ── Compare button (only for partners with discount) ── */}
+        {/* ── Bottom bar: Save pill (left) + Compare button (right) ── */}
         {isPartnerActive && (
-          <div className="absolute bottom-3 right-3 transition-transform duration-200 group-hover:scale-105" onClick={e => e.preventDefault()}>
-            <button
-              onClick={e => {
-                e.preventDefault(); e.stopPropagation();
-                comparing ? removeHotel(hotel.id) : canAdd && addHotel({
-                  id: hotel.id, name: hotel.name, slug: hotel.slug,
-                  coverImage: hotel.coverImage, starRating: hotel.starRating,
-                  discountPercent: hotel.discountPercent, city: hotel.city,
-                  country: hotel.country, avgRating: hotel.avgRating,
-                });
-              }}
-              disabled={!comparing && !canAdd}
-              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
-                comparing
-                  ? 'bg-blue-500 text-white scale-105 shadow-lg'
-                  : canAdd
-                  ? 'bg-white/90 dark:bg-slate-700/90 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-600 hover:text-blue-600 hover:scale-105 hover:shadow-lg'
-                  : 'bg-white/60 dark:bg-slate-700/60 text-gray-300 cursor-not-allowed'
-              }`}
-              title={comparing ? 'Remove from compare' : canAdd ? 'Add to compare' : 'Max 3 hotels'}
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
-              </svg>
-            </button>
+          <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-3 pb-3 pointer-events-none">
+            {/* Savings pill — bottom-left, always visible for active partners */}
+            {savings && savings > 0 ? (
+              <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold text-white shadow-lg pointer-events-none"
+                style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16,185,129,0.4)' }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Save {format(savings)}/night
+              </div>
+            ) : <span />}
+
+            {/* Compare button — bottom-right */}
+            <div className="pointer-events-auto transition-transform duration-200 group-hover:scale-105" onClick={e => e.preventDefault()}>
+              <button
+                onClick={e => {
+                  e.preventDefault(); e.stopPropagation();
+                  comparing ? removeHotel(hotel.id) : canAdd && addHotel({
+                    id: hotel.id, name: hotel.name, slug: hotel.slug,
+                    coverImage: hotel.coverImage, starRating: hotel.starRating,
+                    discountPercent: hotel.discountPercent, city: hotel.city,
+                    country: hotel.country, avgRating: hotel.avgRating,
+                  });
+                }}
+                disabled={!comparing && !canAdd}
+                className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
+                  comparing
+                    ? 'bg-blue-500 text-white scale-105 shadow-lg'
+                    : canAdd
+                    ? 'bg-white/90 dark:bg-slate-700/90 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-600 hover:text-blue-600 hover:scale-105 hover:shadow-lg'
+                    : 'bg-white/60 dark:bg-slate-700/60 text-gray-300 cursor-not-allowed'
+                }`}
+                title={comparing ? 'Remove from compare' : canAdd ? 'Add to compare' : 'Max 3 hotels'}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 

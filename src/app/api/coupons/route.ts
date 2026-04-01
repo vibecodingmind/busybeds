@@ -55,6 +55,8 @@ const schema = z.object({
   hotelId: z.string(),
   guestName: z.string().trim().max(80).optional(),
   guestEmail: z.string().email().optional(),
+  checkIn: z.string().optional(),   // ISO date string e.g. "2025-02-15"
+  checkOut: z.string().optional(),  // ISO date string e.g. "2025-02-20"
 });
 
 // POST /api/coupons — generate a coupon (supports guestName for extra friend coupons)
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { hotelId, guestName, guestEmail } = schema.parse(body);
+  const { hotelId, guestName, guestEmail, checkIn, checkOut } = schema.parse(body);
 
   // Check active subscription
   const now = new Date();
@@ -112,8 +114,13 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://busybeds.com';
   const qrDataUrl = await generateQRDataUrl(code, appUrl);
 
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + hotel.couponValidDays);
+  // If dates provided: coupon is valid from checkIn to checkOut (date-locked)
+  // Otherwise: fall back to hotel's couponValidDays
+  const startTime = checkIn ? new Date(checkIn) : null;
+  const endTime = checkOut ? new Date(checkOut) : null;
+  const expiresAt = endTime
+    ? new Date(new Date(checkOut!).getTime() + 86400000) // day after checkout as hard expiry
+    : (() => { const d = new Date(); d.setDate(d.getDate() + hotel.couponValidDays); return d; })();
 
   // Apply dynamic discount rules if any match today
   const { discount: effectiveDiscount } = getEffectiveDiscount(
@@ -131,6 +138,8 @@ export async function POST(req: NextRequest) {
       discountPercent: effectiveDiscount,
       guestName: guestName || null,
       expiresAt,
+      ...(startTime ? { startTime } : {}),
+      ...(endTime ? { endTime } : {}),
     },
     include: { hotel: true },
   });
