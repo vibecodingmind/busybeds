@@ -6,7 +6,7 @@ const FROM_ADDRESS = process.env.EMAIL_FROM || 'BusyBeds <noreply@busybeds.com>'
 
 function createTransporter() {
   const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
@@ -17,9 +17,10 @@ function createTransporter() {
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure: false,        // false = STARTTLS (works on port 587, not blocked by Railway)
+    requireTLS: true,     // force upgrade to TLS after connect
     auth: { user, pass },
-    tls: { rejectUnauthorized: false }, // allow self-signed certs on cPanel
+    tls: { rejectUnauthorized: false },
   });
 }
 
