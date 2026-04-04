@@ -1,7 +1,26 @@
-// ── Resend email transport (no SDK — plain fetch) ──────────────
+// ── cPanel SMTP email transport (via nodemailer) ────────────────
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS   = process.env.EMAIL_FROM || 'BusyBeds <noreply@busybeds.com>';
+import nodemailer from 'nodemailer';
+
+const FROM_ADDRESS = process.env.EMAIL_FROM || 'BusyBeds <noreply@busybeds.com>';
+
+function createTransporter() {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465, // true for 465 (SSL), false for 587 (TLS/STARTTLS)
+    auth: { user, pass },
+  });
+}
 
 interface EmailOptions {
   to: string;
@@ -10,9 +29,11 @@ interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: EmailOptions) {
-  if (!RESEND_API_KEY) {
+  const transporter = createTransporter();
+
+  if (!transporter) {
     // Dev mode — print to console instead of sending
-    console.log('\n📧 EMAIL (dev mode — set RESEND_API_KEY to send for real)');
+    console.log('\n📧 EMAIL (dev mode — set SMTP_HOST, SMTP_USER, SMTP_PASS to send for real)');
     console.log(`   To:      ${to}`);
     console.log(`   Subject: ${subject}`);
     console.log(`   Body:    ${html.replace(/<[^>]+>/g, '').slice(0, 200)}...`);
@@ -20,20 +41,12 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
     return;
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: FROM_ADDRESS, to, subject, html }),
+  await transporter.sendMail({
+    from: FROM_ADDRESS,
+    to,
+    subject,
+    html,
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    console.error('[Resend] Failed to send email:', err);
-    throw new Error(`Resend error ${res.status}: ${err}`);
-  }
 }
 
 // ── Email Templates ────────────────────────────────────────────
