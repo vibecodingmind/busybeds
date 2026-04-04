@@ -64,11 +64,7 @@ export default function StayRequestForm({ hotelId, hotelName, roomTypes, discoun
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.upgradeRequired) {
-          setError('Stay Requests require a Premium subscription. Please upgrade your plan.');
-        } else {
-          setError(data.error || 'Failed to submit request.');
-        }
+        setError(data.error || 'Failed to submit request.');
         return;
       }
       setRequestId(data.stayRequest?.id || null);

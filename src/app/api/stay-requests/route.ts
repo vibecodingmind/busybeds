@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ requests });
 }
 
-/** POST /api/stay-requests — create a new stay request (Premium subscribers only) */
+/** POST /api/stay-requests — create a new stay request (all active subscribers) */
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
     const { hotelId, roomTypeId, checkIn, checkOut, guests, travelerNotes } = parsed.data;
 
-    // Check Premium subscription
+    // Check active subscription (any tier)
     const now = new Date();
     const sub = await prisma.subscription.findFirst({
       where: { userId: session.userId, status: 'active', expiresAt: { gt: now } },
@@ -57,12 +57,6 @@ export async function POST(req: NextRequest) {
 
     if (!sub) {
       return NextResponse.json({ error: 'An active subscription is required for Stay Requests.' }, { status: 403 });
-    }
-
-    // Must be Premium tier
-    const isPremium = (sub.package as any).tier === 'premium';
-    if (!isPremium) {
-      return NextResponse.json({ error: 'Stay Requests require a Premium subscription.', upgradeRequired: true }, { status: 403 });
     }
 
     // Validate hotel is an active partner
