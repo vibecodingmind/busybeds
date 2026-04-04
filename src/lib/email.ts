@@ -17,8 +17,9 @@ function createTransporter() {
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465, // true for 465 (SSL), false for 587 (TLS/STARTTLS)
+    secure: port === 465,
     auth: { user, pass },
+    tls: { rejectUnauthorized: false }, // allow self-signed certs on cPanel
   });
 }
 

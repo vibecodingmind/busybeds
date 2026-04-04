@@ -34,9 +34,9 @@ export async function POST(req: Request) {
       subject: 'Verify your BusyBeds email address',
       html: emailVerifyEmail(user.fullName, verifyUrl),
     });
-  } catch (e) {
-    console.error('Failed to send verification email:', e);
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+  } catch (e: any) {
+    console.error('[SMTP ERROR] Failed to send verification email:', e?.message, e?.code, e?.response);
+    return NextResponse.json({ error: 'Failed to send email', detail: e?.message }, { status: 500 });
   }
 
   return NextResponse.json({ message: 'Verification email sent' });
