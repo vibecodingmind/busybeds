@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: busybeds-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: busybeds
+      POSTGRES_PASSWORD: busybeds
+      POSTGRES_DB: busybeds
+    ports:
+      - "5432:5432"
+    volumes:
+      - busybeds_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U busybeds -d busybeds"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  busybeds_pg_data:

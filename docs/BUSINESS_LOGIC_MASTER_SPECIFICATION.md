@@ -12,7 +12,7 @@
 |---|-------|----------|
 | D1 | Coupon validity | **Varies by subscription package** — each plan defines its own coupon/entitlement validity rules |
 | D2 | QR generation gate | **Only after hotel availability is confirmed** — initially BusyBeds admin staff call hotels on behalf of hotels; then QR/coupon is generated |
-| D2b | Deposit window | **3 hours** after QR issuance for member to pay **full deposit directly to hotel** — reduces no-shows |
+| D2b | Deposit window | **3 hours** after QR issuance (updated from 30 min in v1.2) |
 | D3 | Rack rate authority | **BusyBeds decides** which hotels and what rack rates to display; member rates from **STO**; rack is platform-controlled reference pricing for savings display |
 | D4 | No availability | **No QR generated** (cannot proceed without availability); **hotel remains visible** in search/listings |
 | D5 | Minimum stay | **3 nights minimum** — enforced |
@@ -414,7 +414,7 @@ Check-in: 10 Jun → Check-out: 13 Jun (3 nights)
 Normal Rate: $200/night
 Member Rate: $120/night
 Deposit due: $360 (pay hotel directly)
-Pay deposit within: 28:45 remaining
+Pay deposit within: 02:45:00 remaining
 Status: DEPOSIT_PENDING
 [QR CODE]
 ```
@@ -891,7 +891,7 @@ CUSTOMER buys membership (plan defines coupon rules) → ACTIVE
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Ops bottleneck (admin calls hotels) | Slow confirmation | Queue UI; later hotel self-service |
-| Deposit timeout disputes | Member/hotel friction | Clear countdown; SMS reminders at 10 min |
+| Deposit timeout disputes | Member/hotel friction | Clear countdown; SMS reminder 1 hour before expiry |
 | Member pays deposit but admin slow to confirm | False expiry | Hotel can confirm deposit in portal; audit |
 | Concept collapse (coupon = booking) | Wrong product | Separate BookingRequest vs Coupon entities |
 | Inflated rack on other platforms vs BB display | Trust questions | BusyBeds-controlled rack policy |
@@ -905,7 +905,7 @@ CUSTOMER buys membership (plan defines coupon rules) → ACTIVE
 1. Exact deposit formula per hotel (% vs full stay amount)?
 2. Who marks deposit confirmed in MVP — hotel reception only or admin too?
 3. Tier-specific hotel access per plan — confirm catalog rules?
-4. Automated SMS at 10 min before deposit expiry?
+4. Automated SMS reminder 1 hour before deposit expiry?
 
 ---
 
