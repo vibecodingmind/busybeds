@@ -3,8 +3,7 @@ builder = "nixpacks"
 buildCommand = "npm run build"
 
 [deploy]
-# Requires Postgres: add DATABASE_URL from Railway PostgreSQL plugin to this service.
-preDeployCommand = ["npx prisma migrate deploy"]
+# Migrate + seed at container start (DATABASE_URL available at runtime).
 startCommand = "npx prisma migrate deploy && npx prisma db seed && npm start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
