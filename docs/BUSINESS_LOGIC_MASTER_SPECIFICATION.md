@@ -1,18 +1,18 @@
 # BUSYBEDS BUSINESS LOGIC MASTER SPECIFICATION
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Stakeholder decisions incorporated — **no implementation until final sign-off**  
 **Last updated:** August 2026
 
 ---
 
-## Stakeholder Decisions Log (v1.1)
+## Stakeholder Decisions Log (v1.2)
 
 | # | Topic | Decision |
 |---|-------|----------|
 | D1 | Coupon validity | **Varies by subscription package** — each plan defines its own coupon/entitlement validity rules |
 | D2 | QR generation gate | **Only after hotel availability is confirmed** — initially BusyBeds admin staff call hotels on behalf of hotels; then QR/coupon is generated |
-| D2b | Deposit window | **30 minutes** after QR issuance for member to pay **full deposit directly to hotel** — reduces no-shows |
+| D2b | Deposit window | **3 hours** after QR issuance for member to pay **full deposit directly to hotel** — reduces no-shows |
 | D3 | Rack rate authority | **BusyBeds decides** which hotels and what rack rates to display; member rates from **STO**; rack is platform-controlled reference pricing for savings display |
 | D4 | No availability | **No QR generated** (cannot proceed without availability); **hotel remains visible** in search/listings |
 | D5 | Minimum stay | **3 nights minimum** — enforced |
@@ -49,7 +49,7 @@ Members (travelers)  ←——  BusyBeds (membership platform)  ——→  Partn
 
 BusyBeds does **not** own inventory or replace hotel PMS in MVP. Room payments flow **Member → Hotel** (deposit and balance). BusyBeds does not collect room payments.
 
-**Availability-confirmed model (v1.1):** A QR/coupon is issued **only after availability is confirmed** (initially by BusyBeds admin calling the hotel). The member then has a **30-minute window** to pay a **full deposit directly to the hotel**. Without confirmed availability, no QR is generated — but the hotel remains visible in listings.
+**Availability-confirmed model (v1.1):** A QR/coupon is issued **only after availability is confirmed** (initially by BusyBeds admin calling the hotel). The member then has a **3-hour window** to pay a **full deposit directly to the hotel**. Without confirmed availability, no QR is generated — but the hotel remains visible in listings.
 
 A valid coupon after deposit means: *"Availability was confirmed, deposit obligation met (or window active), member entitled to agreed offer at snapshotted rates."* It is still **not** a full OTA reservation engine — hotels may be listed even when BusyBeds has no availability for selected dates.
 ---
@@ -59,7 +59,7 @@ A valid coupon after deposit means: *"Availability was confirmed, deposit obliga
 | Revenue | Who pays | What they get |
 |---------|----------|---------------|
 | Membership subscription | Member → BusyBeds | Access to network, member rates, benefits, loyalty |
-| Room deposit (after QR) | Member → Hotel | Secures confirmed availability; 30-minute payment window |
+| Room deposit (after QR) | Member → Hotel | Secures confirmed availability; 3-hour payment window |
 | Hotel partnership | Hotel → BusyBeds (future: listing fee / rev share — **not defined in MVP**) | Visibility, member traffic, occupancy |
 
 **Value exchange:**
@@ -351,10 +351,10 @@ Member ID + Hotel ID + Offer ID + Stay dates + Nights (≥3) + Rate snapshot + P
 | 4 | BusyBeds Admin | Calls hotel (MVP ops) to confirm availability | Logs outcome in system | Branch |
 | 5a | Admin | Marks availability **confirmed** | Status: `AVAILABILITY_CONFIRMED`; rates snapshotted | Generate QR |
 | 5b | Admin | Marks **no availability** | Status: `NO_AVAILABILITY`; notify member; **no QR** | Member picks other dates/hotel |
-| 6 | System | Generates coupon + QR | Status: `DEPOSIT_PENDING`; **30-min timer starts** (D2b) | Member pays deposit |
+| 6 | System | Generates coupon + QR | Status: `DEPOSIT_PENDING`; **3-hour timer starts** (D2b) | Member pays deposit |
 | 7 | Member | Pays **full deposit to hotel** (direct) | Hotel/admin marks deposit received | Deposit confirmed |
-| 8 | System | Deposit confirmed within 30 min | Status: `DEPOSIT_CONFIRMED`; coupon validity per **plan rules** (D1) | Stay proceeds |
-| 9 | System | 30 min elapsed, no deposit | Status: `EXPIRED`; availability released; notify member + hotel | Closed |
+| 8 | System | Deposit confirmed within 3 hours | Status: `DEPOSIT_CONFIRMED`; coupon validity per **plan rules** (D1) | Stay proceeds |
+| 9 | System | 3 hours elapsed, no deposit | Status: `EXPIRED`; availability released; notify member + hotel | Closed |
 
 ### Entitlement / booking request record (conceptual)
 
@@ -369,7 +369,7 @@ nights              (minimum 3)
 rackSnapshot
 stoSnapshot
 depositAmount       (full deposit — policy per hotel/BusyBeds)
-depositDeadline     (issuedAt + 30 minutes)
+depositDeadline     (issuedAt + 3 hours)
 membershipPlanId    (drives coupon validity — D1)
 status              (see lifecycle §11)
 couponId            (null until AVAILABILITY_CONFIRMED → QR issued)
@@ -398,10 +398,10 @@ A **coupon** is the digital authorization issued **after availability is confirm
 | 1 | System | Availability confirmed | Snapshots rack + STO + stay dates | Issue coupon |
 | 2 | System | Generates unique code (e.g. BB-8X7K29) | Code stored | Sign QR token |
 | 3 | System | Generates QR code | Signed token; no PII in QR | Start deposit window |
-| 4 | System | Sets `depositDeadline` = now + **30 minutes** | Status: `DEPOSIT_PENDING` | Notify member |
+| 4 | System | Sets `depositDeadline` = now + **3 hours** | Status: `DEPOSIT_PENDING` | Notify member |
 | 5 | System | Sends notification | SMS/email: QR + deposit amount + deadline + hotel payment instructions | Member pays hotel |
 | 6a | Hotel/Admin | Confirms deposit received | `DEPOSIT_CONFIRMED`; coupon validity per plan | Check-in flow |
-| 6b | System | 30 min timeout | `EXPIRED`; coupon invalid | — |
+| 6b | System | 3 hours timeout | `EXPIRED`; coupon invalid | — |
 
 ### Coupon face (member view — after QR issued)
 
@@ -435,7 +435,7 @@ NO_AVAILABILITY          (terminal — no QR issued)
          OR
 AVAILABILITY_CONFIRMED   (hotel confirmed; QR being issued)
          ↓
-DEPOSIT_PENDING          (QR live; 30-minute deposit window)
+DEPOSIT_PENDING          (QR live; 3-hour deposit window)
          ↓
 DEPOSIT_CONFIRMED        (deposit received; booking secured)
          ↓
@@ -469,7 +469,7 @@ Stored in plan `features` or `couponValidityPolicy` JSON — enforced at verify 
 
 1. QR generated **once**, at availability confirmation — not before.
 2. Deposit is **full deposit**, paid **directly to hotel** — not through BusyBeds.
-3. 30-minute deposit window is mandatory (D2b).
+3. 3-hour deposit window is mandatory (D2b).
 4. Single-use at REDEEMED; one coupon per stay (D6).
 5. Coupon does not mean BusyBeds processed payment — hotel confirms deposit.
 
@@ -532,7 +532,7 @@ Status: VALID
 |------|-------|--------|-----------------|-----------|
 | 1 | Member | Requests stay (≥3 nights) for dates | `PENDING_AVAILABILITY` booking request | Ops review |
 | 2 | BusyBeds Admin | Calls hotel to confirm (MVP) | Logs call notes | Confirm or deny |
-| 3a | Admin | Confirms availability | `AVAILABILITY_CONFIRMED` → QR + 30-min deposit window | Member pays deposit |
+| 3a | Admin | Confirms availability | `AVAILABILITY_CONFIRMED` → QR + 3-hour deposit window | Member pays deposit |
 | 3b | Admin | No availability | `NO_AVAILABILITY`; **no QR**; member notified | Member tries other options |
 | 4 | System | Hotel still listed | Search/detail remain visible (D4) | — |
 
@@ -553,7 +553,7 @@ BusyBeds admin staff act **on behalf of hotels** for availability confirmation u
 
 ### Deposit rule (stakeholder D2b)
 
-After QR issuance, member must pay **full deposit directly to hotel** within **30 minutes**.
+After QR issuance, member must pay **full deposit directly to hotel** within **3 hours**.
 
 ```text
 MEMBER → HOTEL (deposit via hotel's payment methods: card, mobile money, bank)
@@ -564,11 +564,11 @@ NOT: MEMBER → BUSYBEDS → HOTEL
 
 | Step | Actor | Action | System Response | Next Step |
 |------|-------|--------|-----------------|-----------|
-| 1 | System | QR issued | Shows deposit amount + 30-min countdown | Member pays |
+| 1 | System | QR issued | Shows deposit amount + 3-hour countdown | Member pays |
 | 2 | Member | Pays full deposit to hotel | Hotel receives funds on their systems | Confirm |
 | 3 | Hotel staff / Admin | Marks deposit received in system | `DEPOSIT_CONFIRMED` | Coupon active per plan |
 | 4 | Member | Pays balance at check-in/stay | Hotel handles — outside BusyBeds | Redemption |
-| 5 | System | Deposit timeout | `EXPIRED` if not confirmed in 30 min | Slot released |
+| 5 | System | Deposit timeout | `EXPIRED` if not confirmed in 3 hours | Slot released |
 
 ### Deposit amount
 
@@ -787,7 +787,7 @@ These MUST remain separate entities/concepts in software:
 ```text
 Membership → Eligibility → Hotel Offer → Approved STO Rate
     → Booking Request (≥3 nights) → Availability Confirmed (admin/hotel)
-    → QR + Coupon → Deposit (30 min, direct to hotel) → Verification → Redemption
+    → QR + Coupon → Deposit (3 hours, direct to hotel) → Verification → Redemption
          BusyBeds-published Rack Rate (savings display)
 ```
 
@@ -836,7 +836,7 @@ CUSTOMER buys membership (plan defines coupon rules) → ACTIVE
          ┌────────────────────┴────────────────────┐
          NO_AVAILABILITY (no QR)          AVAILABILITY_CONFIRMED
          hotel still listed                         ↓
-                              QR generated + 30-min deposit window
+                              QR generated + 3-hour deposit window
                                                     ↓
                               Member pays FULL DEPOSIT → HOTEL directly
                                                     ↓
@@ -857,7 +857,7 @@ CUSTOMER buys membership (plan defines coupon rules) → ACTIVE
 |-------|------------|
 | Coupon validity | Per subscription package (D1) |
 | QR timing | After availability confirmation only (D2) |
-| Deposit window | 30 minutes, full deposit, direct to hotel (D2b) |
+| Deposit window | 3 hours, full deposit, direct to hotel (D2b) |
 | Rack rate source | BusyBeds-controlled display; STO from hotel (D3) |
 | No availability | No QR; hotel stays listed (D4) |
 | Min stay | 3 nights enforced (D5) |
@@ -880,7 +880,7 @@ CUSTOMER buys membership (plan defines coupon rules) → ACTIVE
 | S7 | MVP includes availability + deposit states (not optional) |
 | S8 | Room deposit/payment direct to hotel — not through BusyBeds |
 | S9 | MVP availability confirmation via BusyBeds admin calling hotels |
-| S10 | Full deposit required within 30 minutes of QR issuance |
+| S10 | Full deposit required within 3 hours of QR issuance |
 | S11 | Minimum stay 3 nights |
 | S12 | Discount > 25% requires admin approval |
 
@@ -944,7 +944,7 @@ Corporate Account
 | During grace | **Cannot** create new booking requests / new QR |
 | After grace | `EXPIRED` — member rates hidden; verify fails for new stays |
 
-This is separate from the **30-minute deposit window** (hotel payment).
+This is separate from the **3-hour deposit window** (hotel payment).
 
 **Approve 7-day subscription grace?**
 
@@ -959,7 +959,7 @@ This is separate from the **30-minute deposit window** (hotel payment).
 | `PENDING_AVAILABILITY` | Member requested; awaiting confirmation |
 | `NO_AVAILABILITY` | Terminal; no QR |
 | `AVAILABILITY_CONFIRMED` | Hotel confirmed; issuing QR |
-| `DEPOSIT_PENDING` | QR live; 30-min timer |
+| `DEPOSIT_PENDING` | QR live; 3-hour timer |
 | `DEPOSIT_CONFIRMED` | Deposit marked received |
 | `VERIFIED` | Checked in at hotel |
 | `REDEEMED` | Stay complete |
