@@ -7,6 +7,8 @@ import {
   MIN_STAY_NIGHTS,
 } from "@/lib/constants";
 import { computeNights, validateMinStay } from "@/lib/rates/discount";
+import { hashQrToken, signBookingToken } from "@/lib/coupons/qr";
+import { awardRedemptionPoints } from "@/lib/loyalty/service";
 
 export class BookingError extends Error {
   constructor(
@@ -112,6 +114,8 @@ export async function confirmAvailability(
   const now = new Date();
   const depositDeadline = new Date(now.getTime() + DEPOSIT_WINDOW_MS);
   const couponCode = generateCouponCode();
+  const qrToken = signBookingToken(bookingId, couponCode);
+  const qrTokenHash = hashQrToken(qrToken);
 
   const updated = await prisma.$transaction(async (tx) => {
     const result = await tx.stayBooking.update({
@@ -119,6 +123,7 @@ export async function confirmAvailability(
       data: {
         status: "DEPOSIT_PENDING",
         couponCode,
+        qrTokenHash,
         depositDeadline,
         confirmedAt: now,
         confirmedById: adminId,
@@ -308,6 +313,8 @@ export async function redeemBooking(
     "VERIFIED",
     "Stay completed / benefit redeemed",
   );
+
+  await awardRedemptionPoints(booking.memberId, bookingId);
 
   return updated;
 }

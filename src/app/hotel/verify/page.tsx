@@ -1,19 +1,13 @@
-import { ButtonLink } from "@/components/ui/button-link";
+import { getCurrentUser } from "@/lib/auth/session";
+import { VerifyMemberForm } from "@/components/hotel/verify-member-form";
 
-export const metadata = {
-  title: "Verify Member",
-};
+export default async function HotelVerifyPage() {
+  const user = await getCurrentUser();
+  const hotelId = user?.contexts.find((c) => c.hotelId)?.hotelId;
 
-export default function HotelVerifyPage() {
-  return (
-    <div className="container mx-auto max-w-lg px-4 py-12">
-      <h1 className="text-2xl font-bold text-primary">Verify BusyBeds Member</h1>
-      <p className="mt-2 text-muted-foreground">
-        Scan QR or enter coupon code. Requires deposit-confirmed status.
-      </p>
-      <ButtonLink href="/" className="mt-6" variant="outline">
-        Home
-      </ButtonLink>
-    </div>
-  );
+  if (!hotelId) {
+    return <p>No hotel context assigned.</p>;
+  }
+
+  return <VerifyMemberForm hotelId={hotelId} />;
 }

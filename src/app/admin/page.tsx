@@ -1,39 +1,38 @@
-import { ButtonLink } from "@/components/ui/button-link";
+import { getAdminMetrics } from "@/lib/hotels/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = {
-  title: "Admin",
-};
+export default async function AdminDashboardPage() {
+  const metrics = await getAdminMetrics();
 
-export default function AdminDashboardPage() {
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-12">
-      <h1 className="text-2xl font-bold text-primary">BusyBeds Admin</h1>
-      <p className="mt-2 text-muted-foreground">
-        Operations queue: confirm hotel availability and approve rates.
-      </p>
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Platform dashboard</h1>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle>Availability queue</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Booking requests in <code>PENDING_AVAILABILITY</code> — call hotels,
-            then confirm to issue QR + 3-hour deposit window.
-          </CardContent>
+          <CardHeader><CardTitle className="text-sm font-medium">Members</CardTitle></CardHeader>
+          <CardContent className="text-3xl font-bold">{metrics.members}</CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Rate approvals</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Discounts above 25% require explicit admin approval before publish.
-          </CardContent>
+          <CardHeader><CardTitle className="text-sm font-medium">Approved hotels</CardTitle></CardHeader>
+          <CardContent className="text-3xl font-bold">{metrics.hotels}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-sm font-medium">Total bookings</CardTitle></CardHeader>
+          <CardContent className="text-3xl font-bold">{metrics.bookings}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-sm font-medium">Pending availability</CardTitle></CardHeader>
+          <CardContent className="text-3xl font-bold text-amber-600">{metrics.pendingBookings}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-sm font-medium">Hotels to approve</CardTitle></CardHeader>
+          <CardContent className="text-3xl font-bold">{metrics.pendingHotels}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-sm font-medium">Rates to approve</CardTitle></CardHeader>
+          <CardContent className="text-3xl font-bold">{metrics.pendingRates}</CardContent>
         </Card>
       </div>
-      <ButtonLink href="/" className="mt-8" variant="outline">
-        Back to home
-      </ButtonLink>
     </div>
   );
 }

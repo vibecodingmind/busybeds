@@ -36,7 +36,9 @@ export const authConfig: NextAuthConfig = {
         return {
           id: user.id,
           email: user.email,
-          name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+          name:
+            [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+            user.email,
           platformRole: user.platformRole,
         };
       },
@@ -50,6 +52,7 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.platformRole = (user as { platformRole?: string }).platformRole;
+        token.sub = (user as { id?: string }).id ?? token.sub;
       }
       return token;
     },

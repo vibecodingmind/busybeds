@@ -31,6 +31,9 @@ model User {
   auditLogs         AuditLog[]
   corporateSeats    CorporateSeat[]
   bookingEvents     BookingTimelineEvent[] @relation("BookingEventActor")
+  loyaltyAccount    LoyaltyAccount?
+  referralsMade     Referral[] @relation("Referrer")
+  referredBy        Referral?  @relation("Referee")
 
   @@index([email])
 }
@@ -396,6 +399,43 @@ model NotificationLog {
   createdAt DateTime            @default(now())
 
   @@index([userId])
+}
+
+// ─── Loyalty ────────────────────────────────────────────────────────────────
+
+model LoyaltyAccount {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+}
+
+model LoyaltyTransaction {
+  id          String   @id @default(cuid())
+  accountId   String
+  amount      Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model Referral {
+  id         String   @id @default(cuid())
+  referrerId String
+  refereeId  String   @unique
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id])
+  referee  User @relation("Referee", fields: [refereeId], references: [id])
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
