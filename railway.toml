@@ -4,7 +4,7 @@ buildCommand = "npm run build"
 
 [deploy]
 # Requires Postgres: add DATABASE_URL from Railway PostgreSQL plugin to this service.
-releaseCommand = "npx prisma migrate deploy"
+preDeployCommand = ["npx prisma migrate deploy"]
 startCommand = "npm start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
