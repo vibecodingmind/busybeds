@@ -12,6 +12,7 @@ Africa's hotel membership network — exclusive negotiated hotel rates and membe
 
 | Document | Description |
 |----------|-------------|
+| [Business Logic Master Spec](docs/BUSINESS_LOGIC_MASTER_SPECIFICATION.md) | **Authoritative** business model, flows, roles, exceptions — approve before code |
 | [PRD](docs/PRD.md) | Product requirements, flows, scope |
 | [Architecture](docs/ARCHITECTURE.md) | System design, stack, security |
 | [Database Design](docs/DATABASE_DESIGN.md) | ERD, Prisma schema draft |
