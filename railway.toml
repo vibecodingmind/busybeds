@@ -3,9 +3,10 @@ builder = "nixpacks"
 buildCommand = "npm run build"
 
 [deploy]
+# Requires Postgres: add DATABASE_URL from Railway PostgreSQL plugin to this service.
 releaseCommand = "npx prisma migrate deploy"
 startCommand = "npm start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 300
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10

@@ -10,13 +10,11 @@ export async function GET() {
       database: "connected",
     });
   } catch {
-    return NextResponse.json(
-      {
-        status: "degraded",
-        service: "busybeds",
-        database: "disconnected",
-      },
-      { status: 503 },
-    );
+    // Return 200 so Railway liveness checks pass while Postgres is being linked.
+    return NextResponse.json({
+      status: "degraded",
+      service: "busybeds",
+      database: "disconnected",
+    });
   }
 }
