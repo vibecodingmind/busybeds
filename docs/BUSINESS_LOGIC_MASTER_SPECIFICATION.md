@@ -1,8 +1,28 @@
 # BUSYBEDS BUSINESS LOGIC MASTER SPECIFICATION
 
-**Version:** 1.0  
-**Status:** Awaiting stakeholder approval — **no implementation until approved**  
+**Version:** 1.1  
+**Status:** Stakeholder decisions incorporated — **no implementation until final sign-off**  
 **Last updated:** August 2026
+
+---
+
+## Stakeholder Decisions Log (v1.1)
+
+| # | Topic | Decision |
+|---|-------|----------|
+| D1 | Coupon validity | **Varies by subscription package** — each plan defines its own coupon/entitlement validity rules |
+| D2 | QR generation gate | **Only after hotel availability is confirmed** — initially BusyBeds admin staff call hotels on behalf of hotels; then QR/coupon is generated |
+| D2b | Deposit window | **30 minutes** after QR issuance for member to pay **full deposit directly to hotel** — reduces no-shows |
+| D3 | Rack rate authority | **BusyBeds decides** which hotels and what rack rates to display; member rates from **STO**; rack is platform-controlled reference pricing for savings display |
+| D4 | No availability | **No QR generated** (cannot proceed without availability); **hotel remains visible** in search/listings |
+| D5 | Minimum stay | **3 nights minimum** — enforced |
+| D6 | Coupon scope | **One coupon per stay** (not per night) |
+| D7 | Corporate seats | **See §31 recommendation** (approved pending stakeholder) |
+| D8 | Grace period | **Clarified:** renewal payment failure grace — **See §31 recommendation** |
+| D9 | Max discount before admin | **25%** — discounts above this require admin review/approval before publish |
+| D10 | MVP booking states | **See §31 recommendation** — availability + deposit states required in MVP |
+| D11 | Rate snapshot honor | **See §31 recommendation** |
+| D12 | Benefit coupons | **See §31 recommendation** |
 
 ---
 
@@ -27,8 +47,11 @@ Members (travelers)  ←——  BusyBeds (membership platform)  ——→  Partn
 - **BusyBeds** negotiates STO (Special Tour Operator) rates and benefits with hotels, approves commercial terms, and verifies member entitlements at redemption.
 - **Hotels** gain members as customers, control availability, handle reservations, collect room payments directly, and honor agreed rates/benefits when a valid entitlement is verified.
 
-BusyBeds does **not** own inventory, replace hotel PMS, process room payments in MVP, or guarantee room availability. A valid coupon means: *"This member is entitled to this agreed offer, subject to hotel availability and conditions."* It does **not** mean: *"A room is reserved."*
+BusyBeds does **not** own inventory or replace hotel PMS in MVP. Room payments flow **Member → Hotel** (deposit and balance). BusyBeds does not collect room payments.
 
+**Availability-confirmed model (v1.1):** A QR/coupon is issued **only after availability is confirmed** (initially by BusyBeds admin calling the hotel). The member then has a **30-minute window** to pay a **full deposit directly to the hotel**. Without confirmed availability, no QR is generated — but the hotel remains visible in listings.
+
+A valid coupon after deposit means: *"Availability was confirmed, deposit obligation met (or window active), member entitled to agreed offer at snapshotted rates."* It is still **not** a full OTA reservation engine — hotels may be listed even when BusyBeds has no availability for selected dates.
 ---
 
 ## 2. Business Model
@@ -36,7 +59,7 @@ BusyBeds does **not** own inventory, replace hotel PMS, process room payments in
 | Revenue | Who pays | What they get |
 |---------|----------|---------------|
 | Membership subscription | Member → BusyBeds | Access to network, member rates, benefits, loyalty |
-| Room payment (MVP) | Member → Hotel | Actual stay/service at agreed STO-based price |
+| Room deposit (after QR) | Member → Hotel | Secures confirmed availability; 30-minute payment window |
 | Hotel partnership | Hotel → BusyBeds (future: listing fee / rev share — **not defined in MVP**) | Visibility, member traffic, occupancy |
 
 **Value exchange:**
@@ -51,32 +74,60 @@ BusyBeds does **not** own inventory, replace hotel PMS, process room payments in
 
 ### Definition
 
-The hotel's **normal public/reference selling price** for a specific room type (or benefit context) during a defined validity period.
+The **reference/normal price shown to members** as "Normal Rate" for savings comparison. In BusyBeds v1.1, **BusyBeds controls published rack rates** — not the hotel alone.
+
+### Authority (stakeholder decision D3)
+
+| Layer | Who controls | Purpose |
+|-------|--------------|---------|
+| STO Rate | Hotel negotiates → BusyBeds approves | **Member Rate** basis (confidential partner rate) |
+| Rack Rate (display) | **BusyBeds admin sets** per hotel/room/context | Savings communication |
+
+Hotels provide STO through commercial onboarding. BusyBeds decides **which hotels** appear and **what rack rate** is displayed alongside each STO rate. This prevents hotels from inflating rack to fake savings and keeps messaging consistent with the **25% max auto-discount policy** (D9).
+
+### Rack derivation rule (system default)
+
+When BusyBeds sets rack from STO:
+
+```text
+Discount % = ((Rack − STO) / Rack) × 100
+
+Maximum auto-publish discount: 25%
+→ Minimum rack for display = STO ÷ (1 − 0.25) = STO ÷ 0.75
+
+Example:
+STO = $120 → minimum rack for 25% display = $160
+BusyBeds admin may set rack higher (e.g. $200) if commercially accurate
+```
+
+If implied discount **> 25%**, rate package requires **admin approval** before publish (D9).
 
 ### Properties
 
 | Property | Description |
 |----------|-------------|
-| Attached to | Room type (or benefit package) |
-| Purpose | Reference price for savings communication |
-| Source | Hotel submits; BusyBeds admin reviews |
-| Not | The price BusyBeds collects from the member for the room |
+| Attached to | Room type + validity context |
+| Purpose | Reference price for savings display |
+| Source | **BusyBeds admin** (derived from STO + commercial policy) |
+| Not | Price BusyBeds collects; not necessarily hotel's live OTA price |
 
 ### Rules
 
-1. Rack rate must exist alongside STO rate for the same offer context and validity window before rates can be approved.
-2. Rack rate is shown to members as **"Normal Rate"** — never hidden when showing member pricing.
-3. Rack rate changes follow the rate approval workflow; historical rack values are retained for audit and issued entitlements/coupons.
+1. STO rate must be approved before any published rack/STO pair goes live.
+2. Rack is always shown with member rate — never STO alone.
+3. Discount > 25% blocks auto-publish; requires admin approval.
+4. Published rack/STO pairs follow approval workflow; history retained for audit and snapshotted bookings.
 
 ### Example
 
 ```
-Hotel: Zanzibar Beach Resort
+Hotel: Zanzibar Beach Resort (listed by BusyBeds)
 Room: Deluxe Ocean Room
-Rack Rate: $200/night
+STO Rate (approved): $120/night
+Rack Rate (BusyBeds display): $200/night
+Saving: $80/night (40%) — requires admin approval (>25%)
 Valid: 01 Jun – 30 Sep 2026
 ```
-
 ---
 
 ## 4. STO Rate Model
@@ -107,11 +158,10 @@ Hotel negotiates with BusyBeds
 
 ### Rules
 
-1. STO ≤ Rack (system warns if STO > Rack; admin may reject).
-2. Hotels should not inflate rack to manufacture fake savings (admin review + ratio alerts).
-3. Unapproved STO rates are never used for member display or entitlement generation.
-4. STO rate alone is never shown without rack context.
-
+1. STO is the commercial anchor; member rate = approved STO for resolved context.
+2. Unapproved STO never used for display or booking requests.
+3. STO alone never shown without BusyBeds-published rack context.
+4. Hotel-submitted rack (if collected during onboarding) is **reference only** — BusyBeds published rack is authoritative for member UI.
 ---
 
 ## 5. Member Rate Calculation
@@ -156,7 +206,8 @@ You Save                 $80/night
 |------|----------|
 | Rack = 0 or missing | Do not show discount %; block entitlement until rack exists |
 | STO = Rack | Show member rate; savings = $0; still valid commercial terms |
-| Tier-specific member rates | **ASSUMPTION:** Gold may access rates Bronze cannot — tier gate on offer eligibility (see § Ambiguities) |
+| Tier-specific member rates | Per subscription package rules (D1) — plans may gate hotels/offers |
+| Discount > 25% | Admin approval required before rates go live (D9) |
 | Currency | Member rate displayed in hotel's rate currency |
 
 ---
@@ -249,7 +300,7 @@ You Save                 $80/night
 
 - Rack and STO both present for same context/dates
 - STO ≤ Rack
-- Discount % within policy thresholds (**ASSUMPTION:** flag if > 60%)
+- Discount % within policy: **auto-publish only if ≤ 25%** (D9); above requires explicit admin approval
 - Validity dates logical (start ≤ end)
 - No conflicting APPROVED rules for same room/context overlap
 
@@ -264,8 +315,13 @@ You Save                 $80/night
 | 3 | Member | Selects check-in/stay date (optional) | Rate engine resolves prices for date | View hotel |
 | 4 | Member | Opens hotel detail | Profile, photos, amenities, room list | View room |
 | 5 | System | Resolves rates for date + room | Returns rack, member rate, savings | Display value prop |
-| 6 | Member | Views room pricing | Mandatory three-part display | Unlock offer |
-| 7 | Non-member | Views hotel | Rack visible; member rate gated/blurred + subscribe CTA | Register/subscribe |
+| 6 | Member | Views room pricing | Mandatory three-part display | Request stay |
+| 7 | Member | Selects dates (min **3 nights**) | Validates min stay; may show "No availability" for dates | Request availability |
+| 8 | Non-member | Views hotel | Rack visible; member rate gated + subscribe CTA | Register/subscribe |
+
+### No availability display (D4)
+
+Hotels **always remain visible** when APPROVED — even if BusyBeds has no availability for selected dates. UI shows e.g. *"No BusyBeds availability for these dates"* — hotel may still be bookable on other platforms. **No QR/coupon is generated** without availability confirmation.
 
 ### Search price filter
 
@@ -273,110 +329,149 @@ Uses resolved **member rate** (STO) for the selected date context, not rack.
 
 ---
 
-## 10. Member Entitlement Flow
+## 10. Member Entitlement & Booking Request Flow
 
 ### Definition
 
-An **entitlement** is the system's record that a specific member has the **right** to use a specific commercial offer, bound to:
+An **entitlement** records a member's **intent to book** a specific offer with stay parameters. The **coupon/QR is not created at this stage** — only after availability confirmation (D2).
+
+Bound to:
 
 ```text
-Member ID + Hotel ID + Offer ID + Rate snapshot + Usage/stay context + Validity
+Member ID + Hotel ID + Offer ID + Stay dates + Nights (≥3) + Rate snapshot + Package validity rules
 ```
 
-The entitlement exists **before** the coupon. The coupon is the digital authorization artifact for that entitlement.
-
-### Workflow
+### Workflow (v1.1 — availability-first)
 
 | Step | Actor | Action | System Response | Next Step |
 |------|-------|--------|-----------------|-----------|
-| 1 | Member | Selects room offer or benefit on hotel detail | System checks eligibility | Validate |
-| 2 | System | Validates membership ACTIVE | Pass or block with CTA | Validate offer |
-| 3 | System | Validates tier eligibility for offer | Pass or "upgrade required" | Validate rate |
-| 4 | System | Resolves rack + STO for selected date | Rate snapshot captured | Validate offer validity |
-| 5 | System | Checks offer validity window + conditions | Pass or show reason | Create entitlement |
-| 6 | System | Creates `Entitlement` record | Status: AVAILABLE; binds all IDs + rate snapshot + stay/usage date | Member confirms |
-| 7 | Member | Confirms activation ("Get Member Rate" / "Claim Benefit") | Entitlement → ACTIVATED | Generate coupon |
-| 8 | System | Generates coupon linked to entitlement | Coupon + QR created; timeline event | Member wallet |
+| 1 | Member | Selects room, check-in, check-out | Validates **min 3 nights** (D5); resolves rack + STO | Validate membership |
+| 2 | System | Validates membership ACTIVE + plan rules | Pass or block | Create booking request |
+| 3 | Member | Submits "Request Stay" | `BookingRequest` created; status: `PENDING_AVAILABILITY` | Admin/hotel confirm |
+| 4 | BusyBeds Admin | Calls hotel (MVP ops) to confirm availability | Logs outcome in system | Branch |
+| 5a | Admin | Marks availability **confirmed** | Status: `AVAILABILITY_CONFIRMED`; rates snapshotted | Generate QR |
+| 5b | Admin | Marks **no availability** | Status: `NO_AVAILABILITY`; notify member; **no QR** | Member picks other dates/hotel |
+| 6 | System | Generates coupon + QR | Status: `DEPOSIT_PENDING`; **30-min timer starts** (D2b) | Member pays deposit |
+| 7 | Member | Pays **full deposit to hotel** (direct) | Hotel/admin marks deposit received | Deposit confirmed |
+| 8 | System | Deposit confirmed within 30 min | Status: `DEPOSIT_CONFIRMED`; coupon validity per **plan rules** (D1) | Stay proceeds |
+| 9 | System | 30 min elapsed, no deposit | Status: `EXPIRED`; availability released; notify member + hotel | Closed |
 
-### Entitlement record (conceptual)
+### Entitlement / booking request record (conceptual)
 
 ```text
-entitlementId
+bookingRequestId / entitlementId
 memberId
 hotelId
-offerId          (room type ID or benefit ID)
-offerType        (ROOM_RATE | BENEFIT)
-stoRateId        (approved pricing rule reference)
-rackSnapshot     (amount at activation time)
-stoSnapshot      (amount at activation time)
-usageDate        (intended stay or benefit use date)
-validFrom
-validUntil
-membershipId     (subscription at activation)
-status           (AVAILABLE → ACTIVATED → …)
+roomTypeId
+checkInDate
+checkOutDate
+nights              (minimum 3)
+rackSnapshot
+stoSnapshot
+depositAmount       (full deposit — policy per hotel/BusyBeds)
+depositDeadline     (issuedAt + 30 minutes)
+membershipPlanId    (drives coupon validity — D1)
+status              (see lifecycle §11)
+couponId            (null until AVAILABILITY_CONFIRMED → QR issued)
 ```
 
 ### Rules
 
-1. Do not generate generic coupons detached from entitlement.
-2. Rate snapshot on entitlement protects member if rates change after activation (**ASSUMPTION:** honored at hotel per commercial agreement).
-3. One entitlement may map to one coupon (1:1 in MVP).
+1. **No QR without availability confirmation** (D2, D4).
+2. **One coupon per stay** covering full date range (D6).
+3. Rate snapshot at availability confirmation — honored for that booking (see §31 D11).
+4. MVP: BusyBeds admin performs availability calls; future: hotel portal self-confirm.
+5. Coupon post-deposit validity governed by **subscription package** config (D1).
 
 ---
 
-## 11. Coupon Flow
+## 11. Coupon & QR Flow
 
 ### Definition
 
-A **coupon** is the unique digital authorization proving entitlement. It is **not** the product; it is the verification token.
+A **coupon** is the digital authorization issued **after availability is confirmed**. The **QR code is generated at the same moment**. Until then, the member has a booking request — not a coupon.
 
-### Generation (after entitlement ACTIVATED)
+### Generation (only after `AVAILABILITY_CONFIRMED`)
 
 | Step | Actor | Action | System Response | Next Step |
 |------|-------|--------|-----------------|-----------|
-| 1 | System | Generates unique code (e.g. BB-8X7K29) | Code stored; indexed unique | Sign token |
-| 2 | System | Creates signed QR reference | HMAC/JWT with couponId, hotelId, exp — no PII in QR | Persist coupon |
-| 3 | System | Links coupon to entitlement | 1:1 relationship | Notify member |
-| 4 | System | Sends notification | Email/SMS with code + link | Member wallet |
+| 1 | System | Availability confirmed | Snapshots rack + STO + stay dates | Issue coupon |
+| 2 | System | Generates unique code (e.g. BB-8X7K29) | Code stored | Sign QR token |
+| 3 | System | Generates QR code | Signed token; no PII in QR | Start deposit window |
+| 4 | System | Sets `depositDeadline` = now + **30 minutes** | Status: `DEPOSIT_PENDING` | Notify member |
+| 5 | System | Sends notification | SMS/email: QR + deposit amount + deadline + hotel payment instructions | Member pays hotel |
+| 6a | Hotel/Admin | Confirms deposit received | `DEPOSIT_CONFIRMED`; coupon validity per plan | Check-in flow |
+| 6b | System | 30 min timeout | `EXPIRED`; coupon invalid | — |
 
-### Coupon face (member view)
+### Coupon face (member view — after QR issued)
 
 ```text
-BUSYBEDS COUPON
+BUSYBEDS CONFIRMED STAY
 Code: BB-8X7K29
 Hotel: Zanzibar Beach Resort
-Offer: Deluxe Ocean Room
-Normal Rate: $200
-Member Rate: $120
-Valid Until: 30 September
-Status: ACTIVE
+Room: Deluxe Ocean Room
+Check-in: 10 Jun → Check-out: 13 Jun (3 nights)
+Normal Rate: $200/night
+Member Rate: $120/night
+Deposit due: $360 (pay hotel directly)
+Pay deposit within: 28:45 remaining
+Status: DEPOSIT_PENDING
 [QR CODE]
 ```
 
-### Coupon lifecycle states
+After deposit:
 
 ```text
-AVAILABLE      (entitlement created, not yet activated by member)
-     ↓
-ACTIVATED      (member confirmed; coupon issued)
-     ↓
-RESERVED/PENDING (optional — hotel acknowledged intent; **ASSUMPTION:** MVP may skip)
-     ↓
-VERIFIED       (staff validated coupon + membership at desk)
-     ↓
-REDEEMED       (benefit actually provided; terminal success)
+Status: DEPOSIT_CONFIRMED / ACTIVE
+Valid until: [per membership package rules]
+```
+
+### Coupon lifecycle states (v1.1)
+
+```text
+PENDING_AVAILABILITY     (member requested; awaiting confirmation)
+         ↓
+NO_AVAILABILITY          (terminal — no QR issued)
+         OR
+AVAILABILITY_CONFIRMED   (hotel confirmed; QR being issued)
+         ↓
+DEPOSIT_PENDING          (QR live; 30-minute deposit window)
+         ↓
+DEPOSIT_CONFIRMED        (deposit received; booking secured)
+         ↓
+VERIFIED                 (staff validates at check-in)
+         ↓
+REDEEMED                 (stay completed; terminal success)
 
 Terminal alternatives:
-  EXPIRED | CANCELLED | REJECTED
+  EXPIRED (deposit timeout or package validity elapsed)
+  CANCELLED (member or admin)
+  REJECTED (hotel/staff at verify)
 ```
 
 Every transition → immutable timeline event (actor, timestamp, metadata).
 
+### Coupon validity by subscription package (D1)
+
+Each `MembershipPlan` defines coupon rules, e.g.:
+
+| Plan | Example validity rule |
+|------|----------------------|
+| Bronze | Coupon valid until check-in date + 24h |
+| Silver | Valid until check-out date |
+| Gold | Valid until check-out + 48h grace |
+| Platinum | Extended validity + reissue policy |
+| Corporate | Same as assigned tier template |
+
+Stored in plan `features` or `couponValidityPolicy` JSON — enforced at verify time.
+
 ### Rules
 
-1. Coupon does not imply reservation.
-2. Coupon does not imply BusyBeds collected room payment.
-3. Single-use at REDEEMED (**ASSUMPTION:** unless benefit type allows multi-use — not MVP).
+1. QR generated **once**, at availability confirmation — not before.
+2. Deposit is **full deposit**, paid **directly to hotel** — not through BusyBeds.
+3. 30-minute deposit window is mandatory (D2b).
+4. Single-use at REDEEMED; one coupon per stay (D6).
+5. Coupon does not mean BusyBeds processed payment — hotel confirms deposit.
 
 ---
 
@@ -402,8 +497,11 @@ Every transition → immutable timeline event (actor, timestamp, metadata).
 | 4 | Coupon belongs to this hotel | "Wrong hotel" |
 | 5 | Offer still valid | "Offer no longer available" |
 | 6 | Rate valid for requested/stay date | "Rate not valid for this date" |
-| 7 | Coupon not already REDEEMED/REJECTED | "Already used" |
+| 7 | Coupon not already REDEEMED/REJECTED/EXPIRED | "Already used or expired" |
 | 8 | Staff has `coupon:verify` permission | 403 Forbidden |
+| 9 | Status is `DEPOSIT_CONFIRMED` or plan-allowed state | "Deposit not confirmed" |
+| 10 | Stay meets **min 3 nights** | "Minimum stay not met" |
+| 11 | Coupon validity per **membership package** rules (D1) | "Coupon expired for your plan" |
 
 ### QR security
 
@@ -428,37 +526,37 @@ Status: VALID
 
 ---
 
-## 13. Hotel Availability Flow
+## 13. Hotel Availability Flow (v1.1)
 
 | Step | Actor | Action | System Response | Next Step |
 |------|-------|--------|-----------------|-----------|
-| 1 | Member | Wants Deluxe Room at member rate $120 | Has valid coupon/entitlement | Contact hotel |
-| 2 | Member | Contacts hotel (phone, email, walk-in) | Outside BusyBeds booking engine in MVP | Hotel checks PMS |
-| 3 | Hotel | Checks own availability | No BusyBeds inventory query in MVP | Respond |
-| 4a | Hotel | Confirms availability | Proceed with verification flow | Member presents coupon |
-| 4b | Hotel | No availability | "No rooms for those dates" | Member cannot stay; coupon may remain unused or expire |
+| 1 | Member | Requests stay (≥3 nights) for dates | `PENDING_AVAILABILITY` booking request | Ops review |
+| 2 | BusyBeds Admin | Calls hotel to confirm (MVP) | Logs call notes | Confirm or deny |
+| 3a | Admin | Confirms availability | `AVAILABILITY_CONFIRMED` → QR + 30-min deposit window | Member pays deposit |
+| 3b | Admin | No availability | `NO_AVAILABILITY`; **no QR**; member notified | Member tries other options |
+| 4 | System | Hotel still listed | Search/detail remain visible (D4) | — |
 
 ### Rules
 
-1. Valid coupon **does not override** hotel availability.
-2. BusyBeds does not guarantee a room in MVP.
-3. **ASSUMPTION:** Unused coupon due to no availability may be cancelled by member or expire naturally — policy TBD.
+1. **No QR without confirmed availability** (D2, D4).
+2. Hotel visibility ≠ availability — hotels appear even when dates unavailable on BusyBeds.
+3. No availability does not remove hotel from platform; member may book elsewhere.
+4. Future: hotel self-confirm via portal; automated inventory optional later.
 
-### Future (explicitly out of MVP)
+### MVP operations note
 
-- Availability inquiry API
-- PMS integration
-- In-platform reservation hold → RESERVED/PENDING state
+BusyBeds admin staff act **on behalf of hotels** for availability confirmation until hotel portal self-service is ready.
 
 ---
 
-## 14. Hotel Payment Flow
+## 14. Hotel Payment Flow (v1.1)
 
-### Rule (non-negotiable for MVP)
+### Deposit rule (stakeholder D2b)
+
+After QR issuance, member must pay **full deposit directly to hotel** within **30 minutes**.
 
 ```text
-MEMBER pays HOTEL directly for the room/service at the agreed member rate.
-
+MEMBER → HOTEL (deposit via hotel's payment methods: card, mobile money, bank)
 NOT: MEMBER → BUSYBEDS → HOTEL
 ```
 
@@ -466,26 +564,22 @@ NOT: MEMBER → BUSYBEDS → HOTEL
 
 | Step | Actor | Action | System Response | Next Step |
 |------|-------|--------|-----------------|-----------|
-| 1 | Member | Presents verified coupon at check-in | Staff has confirmed VERIFIED | Hotel quotes $120 |
-| 2 | Member | Pays hotel (cash, card, mobile money at hotel) | Hotel processes payment on their systems | Hotel provides room |
-| 3 | Hotel | Records payment internally | No BusyBeds payment record for room in MVP | Redemption |
-| 4 | System | (Optional future) Hotel confirms amount collected | Analytics only | Reporting |
+| 1 | System | QR issued | Shows deposit amount + 30-min countdown | Member pays |
+| 2 | Member | Pays full deposit to hotel | Hotel receives funds on their systems | Confirm |
+| 3 | Hotel staff / Admin | Marks deposit received in system | `DEPOSIT_CONFIRMED` | Coupon active per plan |
+| 4 | Member | Pays balance at check-in/stay | Hotel handles — outside BusyBeds | Redemption |
+| 5 | System | Deposit timeout | `EXPIRED` if not confirmed in 30 min | Slot released |
+
+### Deposit amount
+
+**Recommendation:** Full stay at member rate × nights (e.g. 3 nights × $120 = $360 deposit) — configurable per hotel agreement.
 
 ### What BusyBeds records
 
-- Entitlement created
-- Coupon verified
-- Coupon redeemed
-- **Not** room payment amount (unless hotel voluntarily reports for analytics — future)
-
-### Example
-
-```text
-Rack Rate:  $200
-STO Rate:   $120
-Member pays hotel: $120
-BusyBeds membership fee: separate prior payment to BusyBeds
-```
+- Booking request lifecycle
+- QR issuance + deposit deadline
+- Deposit confirmed (boolean + timestamp + confirmer ID) — **not** card details
+- Verification + redemption
 
 ---
 
@@ -688,12 +782,16 @@ These MUST remain separate entities/concepts in software:
 | Redemption | Benefit actually delivered | Payment received |
 | Hotel Payment | Guest → Hotel money flow | BusyBeds revenue |
 
-### Required chain
+### Required chain (v1.1)
 
 ```text
-Membership → Eligibility → Hotel Offer → Approved STO Rate → Member Entitlement → Coupon → Verification → Redemption
-         Rack Rate (reference for savings communication, parallel to STO)
+Membership → Eligibility → Hotel Offer → Approved STO Rate
+    → Booking Request (≥3 nights) → Availability Confirmed (admin/hotel)
+    → QR + Coupon → Deposit (30 min, direct to hotel) → Verification → Redemption
+         BusyBeds-published Rack Rate (savings display)
 ```
+
+**No code until §31 recommendations approved or revised.**
 
 ---
 
@@ -704,79 +802,87 @@ Each pricing rule may include:
 | Dimension | Required? | Notes |
 |-----------|-----------|-------|
 | Room type | Yes | |
-| Rack + STO amounts | Yes | Paired submission |
+| STO amount | Yes | Hotel-negotiated; basis for member rate |
+| Rack amount (display) | Yes | BusyBeds-published (D3) |
 | Start date | Yes | |
 | End date | Yes | |
 | Season label | Optional | High/low season |
 | Day restrictions | Optional | Weekend flags |
 | Blackout dates | Optional | Excluded dates within range |
-| Min stay | Optional | **QUESTION:** Enforced at verify or informational? |
+| Min stay | **Yes — 3 nights minimum** (D5) | Enforced at booking request + verification |
 | Max stay | Optional | |
 | Occupancy conditions | Optional | e.g. double occupancy |
 | Guest count | Optional | |
 | Rate status | Yes | Draft → Approved workflow |
+| Max discount | **25%** auto-publish (D9) | Above requires admin approval |
 
 Rate resolution engine picks highest-priority matching APPROVED rule for `(roomType, date, context)`.
 
 ---
 
-## 26. Complete End-to-End Flow (Reference)
+## 26. Complete End-to-End Flow (Reference — v1.1)
 
 ```text
-HOTEL negotiates → submits Rack + STO → ADMIN approves → HOTEL LIVE
+HOTEL negotiates STO → BUSYBEDS sets rack + approves → HOTEL LIVE (always visible)
                                                               ↓
-CUSTOMER buys membership → ACTIVE → searches → views savings
+CUSTOMER buys membership (plan defines coupon rules) → ACTIVE
                                                               ↓
-                    activates entitlement → coupon/QR issued
+                    searches → views savings (even if no BB availability)
                                                               ↓
-                    member checks availability WITH HOTEL (outside MVP booking)
+                    requests stay (min 3 nights, dates)
                                                               ↓
-                    presents QR → RECEPTION verifies → VERIFIED
+              PENDING_AVAILABILITY → Admin calls hotel (MVP ops)
                                                               ↓
-                    member pays HOTEL directly ($120, not $200)
-                                                              ↓
-                    hotel provides benefit → RECEPTION redeems → REDEEMED
-                                                              ↓
-                    BUSYBEDS records usage (analytics, loyalty, disputes)
+         ┌────────────────────┴────────────────────┐
+         NO_AVAILABILITY (no QR)          AVAILABILITY_CONFIRMED
+         hotel still listed                         ↓
+                              QR generated + 30-min deposit window
+                                                    ↓
+                              Member pays FULL DEPOSIT → HOTEL directly
+                                                    ↓
+                              DEPOSIT_CONFIRMED (coupon valid per plan)
+                                                    ↓
+                              Check-in: RECEPTION verifies QR → VERIFIED
+                                                    ↓
+                              Stay completed → REDEEMED
+                                                    ↓
+                              BUSYBEDS records usage + loyalty
 ```
 
 ---
 
-## 27. Ambiguities (Unresolved — Do Not Invent)
+## 27. Resolved Decisions (formerly ambiguities)
 
-| # | Topic | Options / notes |
-|---|-------|-----------------|
-| A1 | Coupon validity duration | 24 hours vs 7 days vs until season end vs until usage date |
-| A2 | RESERVED/PENDING state in MVP | Skip vs require hotel acknowledgment step |
-| A3 | Verify + redeem | Single step vs two steps (VERIFIED then REDEEMED) |
-| A4 | Tier gates on STO rates | All tiers same rates vs tier-specific access |
-| A5 | Rate snapshot honor period | Legal/commercial: must hotel honor snapshot if rates changed? |
-| A6 | No-availability policy | Cancel coupon vs auto-expire vs member-initiated cancel |
-| A7 | Min/max stay enforcement | Block verification vs display-only warning |
-| A8 | Blackout handling | Separate rules vs blackout table vs manual |
-| A9 | Multi-night stays | One coupon per night vs one per stay |
-| A10 | Benefit coupons | Same lifecycle as room rate coupons? |
-| A11 | Corporate membership | Seat transfer; who pays hotel — employee as member |
-| A12 | Past_due grace | Days of continued access |
-| A13 | Discount alert threshold | 60%? Admin-only flag vs auto-reject |
-| A14 | Offline verification | Required for African hotel connectivity? |
+| Topic | Resolution |
+|-------|------------|
+| Coupon validity | Per subscription package (D1) |
+| QR timing | After availability confirmation only (D2) |
+| Deposit window | 30 minutes, full deposit, direct to hotel (D2b) |
+| Rack rate source | BusyBeds-controlled display; STO from hotel (D3) |
+| No availability | No QR; hotel stays listed (D4) |
+| Min stay | 3 nights enforced (D5) |
+| Multi-night | One coupon per stay (D6) |
+| Max discount | 25% auto; above needs admin (D9) |
+| MVP states | PENDING_AVAILABILITY → … → DEPOSIT_PENDING → DEPOSIT_CONFIRMED (§31) |
 
 ---
 
-## 28. Assumptions (Explicit — Subject to Approval)
+## 28. Approved Assumptions (v1.1)
 
 | ID | Assumption |
 |----|------------|
-| S1 | Member Rate = approved STO rate for resolved context (no dynamic markup) |
-| S2 | One entitlement → one coupon (1:1) in MVP |
-| S3 | Single-use coupon at REDEEMED for room rates |
-| S4 | Email verification required before membership payment |
-| S5 | Rate snapshot stored on entitlement at activation time |
-| S6 | VERIFIED and REDEEMED are separate states (two-step staff flow) |
-| S7 | RESERVED/PENDING optional — likely omitted in MVP |
-| S8 | No BusyBeds room payment processing in MVP |
-| S9 | Hotel availability handled outside platform in MVP |
-| S10 | Offline QR verification not in MVP |
+| S1 | Member Rate = approved STO for resolved context |
+| S2 | One booking request → one coupon per stay |
+| S3 | Single-use at REDEEMED |
+| S4 | Email verification before membership payment |
+| S5 | Rate snapshot at availability confirmation |
+| S6 | VERIFIED and REDEEMED are separate staff steps |
+| S7 | MVP includes availability + deposit states (not optional) |
+| S8 | Room deposit/payment direct to hotel — not through BusyBeds |
+| S9 | MVP availability confirmation via BusyBeds admin calling hotels |
+| S10 | Full deposit required within 30 minutes of QR issuance |
+| S11 | Minimum stay 3 nights |
+| S12 | Discount > 25% requires admin approval |
 
 ---
 
@@ -784,30 +890,123 @@ CUSTOMER buys membership → ACTIVE → searches → views savings
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Concept collapse (coupon = booking) | Wrong product, OTA creep | This spec + separate entities |
-| Inflated rack rates | Fake savings, member distrust | Admin review, ratio alerts |
-| Hotel refuses honored rate | Member churn, disputes | Snapshot + audit + commercial contracts |
-| Coupon sharing | Revenue leakage for hotels | Live membership check, single redeem |
-| Rate engine complexity | Wrong prices displayed | Extensive unit tests, admin preview |
-| Scope creep to full OTA | Years of delay | MVP boundaries in PRD |
-| Payment provider fragmentation | Failed subscriptions in Africa | Multi-gateway abstraction early |
+| Ops bottleneck (admin calls hotels) | Slow confirmation | Queue UI; later hotel self-service |
+| Deposit timeout disputes | Member/hotel friction | Clear countdown; SMS reminders at 10 min |
+| Member pays deposit but admin slow to confirm | False expiry | Hotel can confirm deposit in portal; audit |
+| Concept collapse (coupon = booking) | Wrong product | Separate BookingRequest vs Coupon entities |
+| Inflated rack on other platforms vs BB display | Trust questions | BusyBeds-controlled rack policy |
+| Coupon sharing | Fraud | Deposit binding + live membership check |
+| Payment provider fragmentation (membership) | Failed subs | Multi-gateway for BusyBeds fees only |
 
 ---
 
-## 30. Questions Requiring Answers Before Implementation
+## 30. Remaining Questions (minor — recommendations in §31)
 
-1. What is the default coupon validity window after activation?
-2. Is verify→redeem one or two staff actions?
-3. Do membership tiers gate which STO rates/offers are accessible?
-4. When hotel has no availability, what happens to the coupon?
-5. Are min stay / blackout rules enforced at verification or advisory only?
-6. One coupon per stay or per night for multi-night visits?
-7. Corporate: does company subscription map 1:1 to employee member entitlements?
-8. Past_due grace period length?
-9. Maximum allowed discount % before admin escalation?
-10. Is RESERVED/PENDING in MVP scope?
-11. Hotel commercial contract: mandatory honor of rate snapshot on issued coupons?
-12. Benefit-only coupons (free breakfast): same payment flow (member may pay $0 for benefit but room separately)?
+1. Exact deposit formula per hotel (% vs full stay amount)?
+2. Who marks deposit confirmed in MVP — hotel reception only or admin too?
+3. Tier-specific hotel access per plan — confirm catalog rules?
+4. Automated SMS at 10 min before deposit expiry?
+
+---
+
+## 31. Recommendations (Stakeholder Items 7, 8, 10, 11, 12)
+
+### D7 — Corporate membership (recommendation)
+
+```text
+Corporate Account
+  → purchases N seats on a plan tier (e.g. Corporate Gold)
+  → Corporate Admin invites employees by email
+  → Employee accepts → seat assigned → Subscription linked to corporate billing
+  → Employee uses same booking flow as individual member
+  → Coupons/deposits: employee pays hotel directly (same as retail members)
+  → Corporate Admin sees aggregated usage (redemptions, active seats) — no PII on amounts paid to hotels
+```
+
+| Rule | Recommendation |
+|------|----------------|
+| Seat limit | Enforced at invite/assign |
+| Seat release | On employee departure, admin revokes → subscription ends at period end |
+| Booking | Employee identity on coupon; corporate reporting only |
+
+**Approve or adjust?**
+
+---
+
+### D8 — Grace period (clarification + recommendation)
+
+**What we meant:** When a member's **BusyBeds subscription renewal payment fails** (card declined, mobile money timeout), do they keep access temporarily?
+
+| Policy | Recommendation |
+|------|----------------|
+| Grace period | **7 days** past `currentPeriodEnd` while `PAST_DUE` |
+| During grace | Can **view** member rates and **existing** deposit-confirmed coupons |
+| During grace | **Cannot** create new booking requests / new QR |
+| After grace | `EXPIRED` — member rates hidden; verify fails for new stays |
+
+This is separate from the **30-minute deposit window** (hotel payment).
+
+**Approve 7-day subscription grace?**
+
+---
+
+### D10 — MVP booking states (recommendation)
+
+**Include in MVP** — these are required for the confirmed business model:
+
+| State | Meaning |
+|-------|---------|
+| `PENDING_AVAILABILITY` | Member requested; awaiting confirmation |
+| `NO_AVAILABILITY` | Terminal; no QR |
+| `AVAILABILITY_CONFIRMED` | Hotel confirmed; issuing QR |
+| `DEPOSIT_PENDING` | QR live; 30-min timer |
+| `DEPOSIT_CONFIRMED` | Deposit marked received |
+| `VERIFIED` | Checked in at hotel |
+| `REDEEMED` | Stay complete |
+| `EXPIRED` / `CANCELLED` / `REJECTED` | Terminals |
+
+Admin ops queue: filter `PENDING_AVAILABILITY` for daily hotel calls.
+
+**Approve state machine?**
+
+---
+
+### D11 — Rate snapshot honor (recommendation)
+
+Once `AVAILABILITY_CONFIRMED` and rates snapshotted:
+
+| Rule | Recommendation |
+|------|----------------|
+| Binding period | Hotel **must honor** snapshotted rack/STO for that stay when `DEPOSIT_CONFIRMED` |
+| Commercial | Encode in hotel partnership agreement |
+| Rate changes later | Apply only to **new** booking requests |
+| Disputes | Snapshot + timeline + deposit record = evidence |
+
+If deposit expires (`EXPIRED`), snapshot void — member must re-request at current rates.
+
+**Approve binding snapshot on deposit-confirmed bookings?**
+
+---
+
+### D12 — Benefit coupons (recommendation)
+
+Benefits (breakfast, late checkout, spa) should **attach to the stay coupon**, not separate QR flows in MVP:
+
+```text
+Stay coupon (room) → includes bundled benefit flags
+At VERIFIED: staff sees "Includes: Free breakfast, Late checkout"
+Benefit redemption: part of same REDEEMED event OR optional per-benefit checkboxes at redeem
+```
+
+| Benefit type | Payment |
+|--------------|---------|
+| Included perk (breakfast) | $0 — covered by stay; no separate payment |
+| Discount benefit (20% spa) | Member pays hotel at discounted price directly |
+| Room upgrade | If approved at verify — price difference paid to hotel directly |
+
+**One QR per stay** includes all plan-eligible benefits for that hotel (D6).
+
+**Approve bundled benefit model?**
 
 ---
 
@@ -815,8 +1014,8 @@ CUSTOMER buys membership → ACTIVE → searches → views savings
 
 | Stakeholder | Status |
 |-------------|--------|
-| Product | Pending |
-| Commercial / Hotel partnerships | Pending |
-| Engineering | Spec complete — awaiting business sign-off |
+| Product | v1.1 decisions incorporated |
+| Commercial / Hotel partnerships | Pending §31 recommendations |
+| Engineering | Ready for schema/API design after §31 sign-off |
 
-**No code implementation until this document is approved and open questions in §27 and §30 are resolved or accepted with explicit assumptions.**
+**No code until §31 recommendations approved or revised.**
